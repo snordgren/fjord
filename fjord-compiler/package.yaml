@@ -1,0 +1,48 @@
+name:                fjord-compiler
+version:             0.0.1.0
+github:              "snordgren/fjord"
+license:             BSD3
+author:              "Silas Nordgren"
+maintainer:          "nordgrensilas@gmail.com"
+copyright:           "2019 Silas Nordgren"
+
+extra-source-files:
+- README.md
+
+description:         A compiler for the Fjord programming language.
+
+dependencies:
+- base >= 4.7 && < 5
+- bytestring
+- either
+- filepath
+- hspec-megaparsec
+- megaparsec
+- tasty
+- tasty-golden
+- text
+
+library:
+  source-dirs: src
+
+executables:
+  fjord-compiler-exe:
+    main:                Main.hs
+    source-dirs:         app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - fjord-compiler
+
+tests:
+  fjord-compiler-test:
+    main:                Spec.hs
+    source-dirs:         test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - fjord-compiler
