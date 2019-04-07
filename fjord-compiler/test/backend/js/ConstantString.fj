@@ -1,0 +1,4 @@
+module ConstantString
+
+helloWorld : String
+helloWorld = "Hello, world!"
