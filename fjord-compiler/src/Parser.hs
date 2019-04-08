@@ -40,7 +40,7 @@ declarationP = do
 typeNameP :: Parser C.Type
 typeNameP = do
   offset <- getOffset
-  name <- (string "Int") <|> (string "String")
+  name <- nameP
   return $ C.Named offset name
 
 spaceP :: Parser Char

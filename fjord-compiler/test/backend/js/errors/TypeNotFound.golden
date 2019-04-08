@@ -1,0 +1,5 @@
+TypeNotFound.fj:3:18:
+  |
+3 | myUnknownValue : UnknownTypeName
+  |                  ^^^^^^^^^^^^^^^^
+type not found UnknownTypeName

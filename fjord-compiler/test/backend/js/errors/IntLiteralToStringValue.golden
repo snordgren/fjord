@@ -2,4 +2,4 @@ IntLiteralToStringValue.fj:4:15:
   |
 4 | stringValue = 30
   |               ^^^
-expression has type Int, expected String
+expression has type BuiltIn.Int, expected BuiltIn.String

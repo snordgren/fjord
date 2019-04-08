@@ -9,16 +9,14 @@ module AST.Typed (
   Type (..)
 ) where
 
-import qualified AST.Contextual as C
-
 data Module = Module { moduleName :: String, moduleDeclarations :: [Declaration] }
 data Expression = IntLiteral Integer | StringLiteral String
-data Declaration = ValueDeclaration String C.Type Expression
+data Declaration = ValueDeclaration String Type Expression
 
 data Type = Named String | BuiltInInt | BuiltInString
   deriving Eq
 
 instance Show Type where
   show (Named s) = s
-  show BuiltInInt = "Int"
-  show BuiltInString = "String"
+  show BuiltInInt = "BuiltIn.Int"
+  show BuiltInString = "BuiltIn.String"

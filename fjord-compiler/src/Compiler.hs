@@ -9,8 +9,9 @@ import Data.Set as Set
 import Data.Void
 import Text.Megaparsec
 
+import Canonicalize (canonicalize, CanonicalizationError (..))
 import Parser (runModuleParser)
-import TypeCheck
+import TypeCheck (typeCheck, TypeError (..))
 import qualified AST.Contextual as C
 import qualified AST.Typed as T
 
@@ -28,14 +29,16 @@ parseModuleSource fileName source =
       pstateTabWidth = defaultTabWidth,
       pstateLinePrefix = ""
     } 
-  in 
-    do
+  in do
     contextualModule <- runModuleParser fileName source
-    typedModule <- mapLeft (toErrorBundle initialPosState) (typeCheck contextualModule)
+    canonicalModule <- mapLeft (canonicalizationErrorToErrorBundle initialPosState) 
+      (canonicalize contextualModule)
+    typedModule <- mapLeft (typeErrorToErrorBundle initialPosState) 
+      (typeCheck canonicalModule)
     return typedModule
   
-toErrorBundle :: PosState String -> TypeError -> ParseErrorBundle String String
-toErrorBundle initialPosState (WrongType offset expected actual) = ParseErrorBundle {
+typeErrorToErrorBundle :: PosState String -> TypeError -> ParseErrorBundle String String
+typeErrorToErrorBundle initialPosState (WrongType offset expected actual) = ParseErrorBundle {
   bundleErrors = NonEmpty.fromList [
     FancyError offset (Set.fromList [
       ErrorCustom ("expression has type " ++ (show actual) ++ ", expected " ++ (show expected))
@@ -43,6 +46,19 @@ toErrorBundle initialPosState (WrongType offset expected actual) = ParseErrorBun
   ],
   bundlePosState = initialPosState
 }
+
+canonicalizationErrorToErrorBundle :: PosState String -> 
+  CanonicalizationError -> 
+  ParseErrorBundle String String
+canonicalizationErrorToErrorBundle initialPosState (TypeNotFound offset name) =
+  ParseErrorBundle {
+    bundleErrors = NonEmpty.fromList [
+      FancyError offset (Set.fromList [
+        ErrorCustom ("type not found " ++ name)
+      ])
+    ],
+    bundlePosState = initialPosState
+  }
 
 generateJSModule :: T.Module -> String
 generateJSModule m = 

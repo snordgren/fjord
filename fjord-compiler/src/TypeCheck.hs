@@ -1,7 +1,7 @@
 module TypeCheck (typeCheck, TypeError (..)) where
 
 import Control.Monad (sequence)
-import qualified AST.Contextual as C
+import qualified AST.Canonical as C
 import qualified AST.Typed as T
 
 data TypeError = WrongType Int T.Type T.Type 
@@ -19,7 +19,7 @@ toTypedDeclaration (C.ValueDeclaration offset name declaredType expr) =
     typedDeclaredType = toTypedType declaredType
   in
     if inferredType == typedDeclaredType then 
-      Right(T.ValueDeclaration name declaredType (toTypedExpression expr))
+      Right(T.ValueDeclaration name typedDeclaredType (toTypedExpression expr))
     else
       Left (WrongType (C.expressionOffset expr) typedDeclaredType inferredType)
 
@@ -31,5 +31,5 @@ inferType :: C.Expression -> T.Type
 inferType (C.IntLiteral _ _) = T.BuiltInInt
 inferType (C.StringLiteral _ _) = T.BuiltInString
 
-toTypedType (C.Named _ "Int") = T.BuiltInInt
-toTypedType (C.Named _ "String") = T.BuiltInString
+toTypedType (C.BuiltInInt) = T.BuiltInInt
+toTypedType (C.BuiltInString) = T.BuiltInString

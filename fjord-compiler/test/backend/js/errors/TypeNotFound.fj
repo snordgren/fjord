@@ -1,0 +1,4 @@
+module TypeNotFound
+
+myUnknownValue : UnknownTypeName
+myUnknownValue = 5
