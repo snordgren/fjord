@@ -1,0 +1,4 @@
+module IntLiteralToStringValue
+
+stringValue : String
+stringValue = 30

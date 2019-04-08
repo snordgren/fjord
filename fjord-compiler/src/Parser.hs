@@ -1,37 +1,47 @@
 {-# LANGUAGE FlexibleInstances #-}
-module Parser where
+module Parser (runModuleParser) where
 
 import Text.Megaparsec
 import Text.Megaparsec.Char
 import Text.Megaparsec.Char.Lexer
 
-import AST.Contextual
+import qualified AST.Contextual as C
 
 type Parser = Parsec String String
 
-moduleP :: Parser Module
+runModuleParser :: String -> String -> Either (ParseErrorBundle String String) C.Module
+runModuleParser = runParser moduleP
+
+moduleP :: Parser C.Module
 moduleP = do
   string "module"
   some spaceP
   moduleName <- nameP
   some eol
   declarations <- many declarationP 
-  return $ Module moduleName declarations
+  return $ C.Module moduleName declarations
 
-declarationP :: Parser Declaration
+declarationP :: Parser C.Declaration
 declarationP = do
+  offset <- getOffset
   declarationName <- nameP
   many spaceP
   char ':'
   many spaceP
-  string "Int" <|> string "String"
+  declaredType <- typeNameP
   some eol
   string declarationName
   many spaceP
   char '='
   many spaceP
-  value <- (fmap IntLiteral decimal) <|> stringP
-  return $ ValueDeclaration declarationName value
+  value <- intLiteralP <|> stringLiteralP
+  return $ C.ValueDeclaration offset declarationName declaredType value
+
+typeNameP :: Parser C.Type
+typeNameP = do
+  offset <- getOffset
+  name <- (string "Int") <|> (string "String")
+  return $ C.Named offset name
 
 spaceP :: Parser Char
 spaceP = oneOf " \t"
@@ -39,12 +49,19 @@ spaceP = oneOf " \t"
 nameP :: Parser String
 nameP = some letterChar
 
-stringP :: Parser Expression
-stringP = do
+intLiteralP :: Parser C.Expression
+intLiteralP = do
+  offset <- getOffset
+  num <- decimal
+  return $ C.IntLiteral offset num
+
+stringLiteralP :: Parser C.Expression
+stringLiteralP = do
+  offset <- getOffset
   char '"'
   strings <- many stringPartP 
   char '"'
-  return $ StringLiteral $ concat strings
+  return $ C.StringLiteral offset (concat strings)
 
 nonEscape :: Parser String
 nonEscape = do

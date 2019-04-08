@@ -14,6 +14,7 @@ description:         A compiler for the Fjord programming language.
 dependencies:
 - base >= 4.7 && < 5
 - bytestring
+- containers
 - either
 - filepath
 - hspec-megaparsec
