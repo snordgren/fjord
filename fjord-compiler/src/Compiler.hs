@@ -3,11 +3,11 @@ module Compiler (
 ) where
 
 import Data.Either.Combinators
-import Data.List (intercalate)
 import Data.List.NonEmpty as NonEmpty
 import Data.Set as Set
 import Data.Void
 import Text.Megaparsec
+import qualified Data.List as DL
 
 import Canonicalize (canonicalize, CanonicalizationError (..))
 import Parser (runModuleParser)
@@ -46,6 +46,14 @@ typeErrorToErrorBundle initialPosState (WrongType offset expected actual) = Pars
   ],
   bundlePosState = initialPosState
 }
+typeErrorToErrorBundle initialPosState (CannotInferType offset) = ParseErrorBundle {
+  bundleErrors = NonEmpty.fromList [
+    FancyError offset (Set.fromList [
+      ErrorCustom ("cannot infer type")
+    ])
+  ],
+  bundlePosState = initialPosState
+}
 
 canonicalizationErrorToErrorBundle :: PosState String -> 
   CanonicalizationError -> 
@@ -62,12 +70,22 @@ canonicalizationErrorToErrorBundle initialPosState (TypeNotFound offset name) =
 
 generateJSModule :: T.Module -> String
 generateJSModule m = 
-  (intercalate "\n\n" (fmap translateDeclaration (T.moduleDeclarations m))) ++ "\n"
+  (DL.intercalate "\n\n" (fmap translateDeclaration (T.moduleDeclarations m))) ++ "\n"
 
 translateDeclaration :: T.Declaration -> String
-translateDeclaration (T.ValueDeclaration name declaredType expression) =
-  "export const " ++ name ++ " = " ++ (translateExpression expression) ++ ";"
+translateDeclaration (T.ValueDeclaration name parameters declaredType expression) =
+  let
+    jsParam = 
+      if DL.length parameters > 0 then 
+        DL.foldl (\s -> \p -> (T.parameterName p) ++ " => ") "" parameters
+      else
+        ""
+
+    jsExpr = translateExpression expression
+  in
+    "export const " ++ name ++ " = " ++ jsParam ++ jsExpr ++ ";"
 
 translateExpression :: T.Expression -> String
 translateExpression (T.IntLiteral a) = show a
 translateExpression (T.StringLiteral a) = show a
+translateExpression (T.Name a) = a

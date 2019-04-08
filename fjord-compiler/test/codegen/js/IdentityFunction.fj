@@ -1,0 +1,4 @@
+module IdentityFunction
+
+id : Int -> Int
+id x = x
