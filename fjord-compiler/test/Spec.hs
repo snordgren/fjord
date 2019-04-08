@@ -10,14 +10,26 @@ main = defaultMain =<< goldenTests
 
 goldenTests :: IO TestTree
 goldenTests = do
-  files <- findByExtension [".fj"] "./test/backend/js"
-  tests <- mapM mkGoldenTest files
-  return $ testGroup "JS Target golden tests" tests
+  js <- jsGoldenTests
+  errors <- errorGoldenTests
+  return $ testGroup "Golden Tests" [js, errors]
 
-mkGoldenTest :: FilePath -> IO TestTree
-mkGoldenTest path = do
+jsGoldenTests :: IO TestTree
+jsGoldenTests = createGoldenTestTree "JS CodeGen" "./test/codegen/js" ".js"
+
+errorGoldenTests :: IO TestTree
+errorGoldenTests = createGoldenTestTree "Error Reporting" "./test/errors" 
+  ".golden"
+
+createGoldenTestTree name dir extension = do
+  files <- findByExtension [".fj"] dir
+  tests <- mapM (mkGoldenTest extension) files
+  return $ testGroup name tests
+
+mkGoldenTest :: String -> FilePath -> IO TestTree
+mkGoldenTest extension path = do
   let testName = takeBaseName path
-  let goldenPath = replaceExtension path ".golden"
+  let goldenPath = replaceExtension path extension
   return (goldenVsString testName goldenPath action)
   where
     action :: IO LBS.ByteString
