@@ -1,12 +1,29 @@
-import qualified Data.ByteString.Lazy.Char8 as LBS
 import System.FilePath (takeBaseName, takeFileName, replaceExtension)
-
-import Compiler (compile)
 import Test.Tasty (defaultMain, testGroup, TestTree)
 import Test.Tasty.Golden (goldenVsString, findByExtension)
+import Test.Tasty.HUnit (assertEqual, testCase, Assertion)
+import qualified Data.ByteString.Lazy.Char8 as LBS
+
+import qualified Compiler as  C
+import qualified AST.Typed as T
 
 main :: IO ()
-main = defaultMain =<< goldenTests
+main = do
+  foundGoldenTests <- goldenTests
+  defaultMain $ testGroup "Tests" [unitTests, foundGoldenTests]
+
+unitTests :: TestTree
+unitTests = testGroup "Unit Tests" 
+  [
+    testGroup "Compiler" [
+      testCase "generateJSParameters" testGenerateJSParameters
+    ]
+  ]
+
+testGenerateJSParameters :: Assertion
+testGenerateJSParameters = 
+  assertEqual "generated parameter list" "x => y => " 
+    (C.generateJSParameters [T.Parameter "x" T.BuiltInInt, T.Parameter "y" T.BuiltInInt])
 
 goldenTests :: IO TestTree
 goldenTests = do
@@ -35,5 +52,5 @@ mkGoldenTest extension path = do
     action :: IO LBS.ByteString
     action = do
       source <- readFile path
-      let actual = compile (takeFileName path) source
+      let actual = C.compile (takeFileName path) source
       return (LBS.pack actual)

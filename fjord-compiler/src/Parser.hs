@@ -18,6 +18,7 @@ moduleP = do
   string "module"
   some spaceP
   moduleName <- nameP
+  many spaceP
   some eol
   declarations <- many declarationP 
   return $ C.Module moduleName declarations

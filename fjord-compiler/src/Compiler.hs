@@ -1,5 +1,6 @@
 module Compiler ( 
-  compile
+  compile,
+  generateJSParameters
 ) where
 
 import Data.Either.Combinators
@@ -72,15 +73,17 @@ generateJSModule :: T.Module -> String
 generateJSModule m = 
   (DL.intercalate "\n\n" (fmap translateDeclaration (T.moduleDeclarations m))) ++ "\n"
 
+generateJSParameters :: [T.Parameter] -> String
+generateJSParameters parameters = 
+  if DL.length parameters > 0 then 
+    DL.foldr (\s -> \p -> s ++ " => " ++ p) "" (fmap T.parameterName parameters)
+  else
+    ""
+
 translateDeclaration :: T.Declaration -> String
 translateDeclaration (T.ValueDeclaration name parameters declaredType expression) =
   let
-    jsParam = 
-      if DL.length parameters > 0 then 
-        DL.foldl (\s -> \p -> (T.parameterName p) ++ " => ") "" parameters
-      else
-        ""
-
+    jsParam = generateJSParameters parameters
     jsExpr = translateExpression expression
   in
     "export const " ++ name ++ " = " ++ jsParam ++ jsExpr ++ ";"

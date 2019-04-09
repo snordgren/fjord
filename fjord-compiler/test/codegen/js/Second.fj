@@ -1,0 +1,4 @@
+module Second 
+
+second : Int -> Int -> Int
+second x y = y
