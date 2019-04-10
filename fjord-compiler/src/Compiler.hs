@@ -5,6 +5,7 @@ module Compiler (
 
 import Data.Either.Combinators
 import Data.List.NonEmpty as NonEmpty
+import Data.Maybe
 import Data.Set as Set
 import Data.Void
 import Text.Megaparsec
@@ -79,8 +80,12 @@ generateJSModule m =
 
 generateJSParameters :: [T.Parameter] -> String
 generateJSParameters parameters = 
-  if DL.length parameters > 0 then 
-    DL.foldr (\s -> \p -> s ++ " => " ++ p) "" (fmap T.parameterName parameters)
+  let 
+    parameterNames = (fmap T.parameterName parameters)
+  in if DL.length parameters == 1 then
+    (T.parameterName $ DL.head parameters) ++ " => "
+  else if DL.length parameters >= 2 then 
+    "(" ++ (DL.foldl' (\s -> \p -> s ++ ", " ++ p) (DL.head parameterNames) (DL.tail parameterNames)) ++ ") => "
   else
     ""
 
@@ -99,4 +104,26 @@ translateExpression (T.Name a) = a
 translateExpression (T.Addition a b) = 
   "(" ++ (translateExpression a) ++ " + " ++ (translateExpression b) ++ ")"
 translateExpression (T.Apply a b) = 
-  "(" ++ (translateExpression a) ++ "(" ++ (translateExpression b) ++ ")" ++ ")"
+  let 
+    translatedParams = fmap translateExpression (parametersOfApply (T.Apply a b))
+    params = 
+      if DL.null translatedParams then
+        ""
+      else if DL.length translatedParams == 1 then
+        DL.head translatedParams
+      else
+        DL.foldl' (\a -> \b -> a ++ ", " ++ b) (DL.head translatedParams) (DL.tail translatedParams)
+  in 
+    "(" ++ (translateExpression (fromMaybe a (rootFunction a))) ++ "(" ++ params ++ "))"
+
+rootFunction :: T.Expression -> Maybe T.Expression
+rootFunction e = 
+  case e of 
+    T.Apply a b -> Just $ fromMaybe a (rootFunction a)
+    _ -> Nothing
+
+parametersOfApply :: T.Expression -> [T.Expression]
+parametersOfApply e = 
+  case e of 
+    T.Apply a b -> (parametersOfApply a) ++ [b]
+    _ -> []

@@ -24,7 +24,7 @@ unitTests = testGroup "Unit Tests"
 
 testGenerateJSParameters :: Assertion
 testGenerateJSParameters = 
-  assertEqual "generated parameter list" "x => y => " 
+  assertEqual "generated parameter list" "(x, y) => " 
     (C.generateJSParameters [T.Parameter "x" T.BuiltInInt, T.Parameter "y" T.BuiltInInt])
 
 goldenTests :: IO TestTree
