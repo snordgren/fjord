@@ -32,8 +32,6 @@ expressionOffset :: Expression -> Int
 expressionOffset (IntLiteral offset _) = offset
 expressionOffset (StringLiteral offset _) = offset
 expressionOffset (Name offset _) = offset
+expressionOffset (Apply offset _ _) = offset
 
 parameterName (Parameter _ n) = n
-
-scopeVariableType scope name = 
-  fmap bindingType (L.find (\a -> (bindingName a) == name) (scopeBindings scope))

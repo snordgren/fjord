@@ -7,6 +7,7 @@ import qualified Data.ByteString.Lazy.Char8 as LBS
 import qualified Compiler as  C
 import qualified AST.Typed as T
 import qualified ParserSpec as ParserSpec
+import qualified TypeCheckSpec as TypeCheckSpec
 
 main :: IO ()
 main = do
@@ -19,13 +20,14 @@ unitTests = testGroup "Unit Tests"
     testGroup "Compiler" [
       testCase "generateJSParameters" testGenerateJSParameters
     ],
-    ParserSpec.testParser
+    ParserSpec.testParser,
+    TypeCheckSpec.test
   ]
 
 testGenerateJSParameters :: Assertion
 testGenerateJSParameters = 
   assertEqual "generated parameter list" "(x, y) => " 
-    (C.generateJSParameters [T.Parameter "x" T.BuiltInInt, T.Parameter "y" T.BuiltInInt])
+    (C.generateJSParameters ["x", "y"])
 
 goldenTests :: IO TestTree
 goldenTests = do

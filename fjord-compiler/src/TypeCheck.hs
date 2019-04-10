@@ -1,22 +1,27 @@
-module TypeCheck (typeCheck, TypeError (..)) where
+module TypeCheck where
 
 import Control.Monad (sequence)
-import Data.Either.Combinators as DEC
+import qualified Data.Either.Combinators as DEC
 import qualified Data.List as L
 
 import qualified AST.Canonical as C
 import qualified AST.Typed as T
 
-data TypeError = WrongType Int T.Type T.Type |
-  CannotInferType Int |
-  TooManyParameters Int
+
+data TypeError 
+  = WrongType Int T.Type T.Type 
+  | CannotInferType Int 
+  | TooManyParameters Int
+  | UndefinedInScope Int
   deriving (Eq, Show)
+
 
 typeCheck :: C.Module -> Either TypeError T.Module
 typeCheck m = do
   declarations <- sequence (fmap (toTypedDeclaration (C.moduleDeclarations m))
     (C.moduleDeclarations m))
   return $ T.Module (C.moduleName m) declarations
+
 
 toTypedDeclaration :: [C.Declaration] -> C.Declaration -> Either TypeError T.Declaration
 toTypedDeclaration decls (C.ValueDeclaration offset name parameters declaredType expr) =
@@ -28,19 +33,23 @@ toTypedDeclaration decls (C.ValueDeclaration offset name parameters declaredType
       (zip parameters (functionParameterList declaredType))
   in do
     inferredType <- inferType scope expr
+    typedExpr <- toTypedExpression scope expr 
     if inferredType == requiredType then 
-      Right(T.ValueDeclaration name typedParameters typedDeclaredType (toTypedExpression expr))
+      Right $ T.ValueDeclaration name typedParameters typedDeclaredType typedExpr
     else
-      Left (WrongType (C.expressionOffset expr) requiredType inferredType)
+      Left $ WrongType (C.expressionOffset expr) requiredType inferredType
+
 
 inferRequiredBody :: C.Type -> [C.Parameter] -> C.Type
 inferRequiredBody declaredType parameters = 
   let 
     remainingParameters = drop (length parameters) (functionParameterList declaredType)
+    returnType = last (functionTypeList declaredType)
   in if length remainingParameters > 0 then
-      foldl (C.FunctionType 0) (last remainingParameters) (init remainingParameters) 
-    else
-      last (functionTypeList declaredType)
+    L.foldr (C.FunctionType 0) returnType remainingParameters
+  else
+    returnType
+
 
 createDeclarationScope :: [C.Declaration] -> [C.Parameter] -> C.Type -> C.Scope
 createDeclarationScope moduleDeclarations parameters typ = 
@@ -54,12 +63,14 @@ createDeclarationScope moduleDeclarations parameters typ =
   in
     C.Scope (parameterBindings ++ declarationBindings)
   
+
 functionParameterList :: C.Type -> [C.Type]
 functionParameterList t = 
   case t of 
     C.FunctionType _ parameterType returnType -> 
       parameterType : functionParameterList (returnType)
     _ -> []
+
 
 functionTypeList :: C.Type -> [C.Type]
 functionTypeList t =
@@ -68,19 +79,38 @@ functionTypeList t =
     a -> [a]
     
 
-toTypedExpression :: C.Expression -> T.Expression
-toTypedExpression (C.IntLiteral _ value) = T.IntLiteral value
-toTypedExpression (C.StringLiteral _ value) = T.StringLiteral value
-toTypedExpression (C.Name _ value) = T.Name value
-toTypedExpression (C.Addition _ a b) = T.Addition (toTypedExpression a) (toTypedExpression b)
-toTypedExpression (C.Apply _ a b) = T.Apply (toTypedExpression a) (toTypedExpression b)
+toTypedExpression :: C.Scope -> C.Expression -> Either TypeError T.Expression
+toTypedExpression _ (C.IntLiteral _ value) = 
+  Right $ T.IntLiteral value
+
+toTypedExpression _ (C.StringLiteral _ value) = 
+  Right $ T.StringLiteral value
+
+toTypedExpression scope (C.Name n s) = do
+  t <- scopeVariableType scope n s
+  return $ T.Name s (toTypedType t)
+  
+toTypedExpression scope (C.Addition _ a b) = do
+  typedA <- toTypedExpression scope a
+  typedB <- toTypedExpression scope b
+  return $ T.Addition typedA typedB
+
+toTypedExpression scope (C.Apply _ a b) = do 
+  typedA <- toTypedExpression scope a
+  typedB <- toTypedExpression scope b
+  return $ T.Apply typedA typedB
+
 
 inferType :: C.Scope -> C.Expression -> Either TypeError T.Type
-inferType _ (C.IntLiteral offset _) = Right T.BuiltInInt 
-inferType _ (C.StringLiteral offset _) = Right T.BuiltInString
-inferType scope (C.Name offset name) = DEC.maybeToRight 
-  (CannotInferType offset)
-  (fmap toTypedType (C.scopeVariableType scope name))
+inferType _ (C.IntLiteral offset _) = 
+  Right T.BuiltInInt 
+
+inferType _ (C.StringLiteral offset _) = 
+  Right T.BuiltInString
+
+inferType scope (C.Name offset name) = 
+  fmap toTypedType (scopeVariableType scope offset name)
+
 inferType scope (C.Addition offset a b) = do
   inferA <- inferType scope a
   inferB <- inferType scope b
@@ -88,6 +118,7 @@ inferType scope (C.Addition offset a b) = do
     Right $ inferA 
   else 
     Left $ WrongType (C.expressionOffset b) inferA inferB
+    
 inferType scope (C.Apply offset a b) = do
   inferA <- inferType scope a
   inferB <- inferType scope b
@@ -95,8 +126,15 @@ inferType scope (C.Apply offset a b) = do
     T.FunctionType param ret -> Right ret
     _ -> Left $ CannotInferType offset
 
+
 toTypedType (C.BuiltInInt _) = T.BuiltInInt
 toTypedType (C.BuiltInString _) = T.BuiltInString
 toTypedType (C.Canonical _ n) = T.TypeName n
-toTypedType (C.FunctionType offset parameterType returnType) = 
-  T.FunctionType (toTypedType parameterType) (toTypedType returnType)
+toTypedType (C.FunctionType offset par ret) = 
+  T.FunctionType (toTypedType par) (toTypedType ret)
+
+
+scopeVariableType :: C.Scope -> Int -> String -> Either TypeError C.Type
+scopeVariableType scope offset name = 
+  DEC.maybeToRight (UndefinedInScope offset)
+    (fmap C.bindingType (L.find (\a -> (C.bindingName a) == name) (C.scopeBindings scope)))

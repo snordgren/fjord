@@ -2,23 +2,21 @@
 -- information is retained and all names are canonical. This AST is intended to 
 -- be used for optimizations and other program transforms, after the program
 -- has been verified correct. 
-module AST.Typed (
-  Declaration (..),
-  Expression (..),
-  Module (..),
-  Parameter (..),
-  Type (..)
-) where
+module AST.Typed where
 
 data Module = Module { moduleName :: String, moduleDeclarations :: [Declaration] }
 data Expression = IntLiteral Integer | 
   StringLiteral String | 
-  Name String | 
+  Name String Type | 
   Addition Expression Expression |
   Apply Expression Expression
+  deriving (Eq, Show)
 
 data Declaration = ValueDeclaration String [Parameter] Type Expression
+  deriving (Eq, Show)
+
 data Parameter = Parameter { parameterName :: String, parameterType :: Type }
+  deriving (Eq, Show)
 
 data Type = TypeName String | BuiltInInt | BuiltInString | FunctionType Type Type
   deriving Eq

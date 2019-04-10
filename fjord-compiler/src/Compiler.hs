@@ -3,13 +3,15 @@ module Compiler (
   generateJSParameters
 ) where
 
+import Control.Monad.Writer.Lazy
 import Data.Either.Combinators
 import Data.List.NonEmpty as NonEmpty
 import Data.Maybe
 import Data.Set as Set
 import Data.Void
 import Text.Megaparsec
-import qualified Data.List as DL
+import qualified Control.Monad as Monad
+import qualified Data.List as List
 
 import Canonicalize (canonicalize, CanonicalizationError (..))
 import Parser (runModuleParser)
@@ -74,47 +76,53 @@ generateJSModule :: T.Module -> String
 generateJSModule m = 
   let 
     declarationOutput = 
-      (DL.intercalate "\n\n" (fmap translateDeclaration (T.moduleDeclarations m))) ++ "\n"
+      (List.intercalate "\n\n" (fmap translateDeclaration (T.moduleDeclarations m))) ++ "\n"
   in 
     "// module " ++ (T.moduleName m) ++ "\n\n" ++ declarationOutput
 
-generateJSParameters :: [T.Parameter] -> String
-generateJSParameters parameters = 
-  let 
-    parameterNames = (fmap T.parameterName parameters)
-  in if DL.length parameters == 1 then
-    (T.parameterName $ DL.head parameters) ++ " => "
-  else if DL.length parameters >= 2 then 
-    "(" ++ (DL.foldl' (\s -> \p -> s ++ ", " ++ p) (DL.head parameterNames) (DL.tail parameterNames)) ++ ") => "
+generateJSParameters :: [String] -> String
+generateJSParameters p = 
+  if List.length p == 1 then
+    (List.head p) ++ " => "
+  else if List.length p >= 2 then 
+    "(" ++ (List.intercalate ", " p) ++ ") => "
   else
     ""
 
 translateDeclaration :: T.Declaration -> String
 translateDeclaration (T.ValueDeclaration name parameters declaredType expression) =
   let
-    jsParam = generateJSParameters parameters
-    jsExpr = translateExpression expression
+    parameterNames :: [String]
+    parameterNames = fmap (T.parameterName) parameters
+
+    (jsExpr, jsHiddenParam) = runWriter $ translateExpression expression
+    jsParam = generateJSParameters (parameterNames ++ jsHiddenParam)
   in
     "export const " ++ name ++ " = " ++ jsParam ++ jsExpr ++ ";"
 
-translateExpression :: T.Expression -> String
-translateExpression (T.IntLiteral a) = show a
-translateExpression (T.StringLiteral a) = show a
-translateExpression (T.Name a) = a
-translateExpression (T.Addition a b) = 
-  "(" ++ (translateExpression a) ++ " + " ++ (translateExpression b) ++ ")"
-translateExpression (T.Apply a b) = 
-  let 
-    translatedParams = fmap translateExpression (parametersOfApply (T.Apply a b))
-    params = 
-      if DL.null translatedParams then
-        ""
-      else if DL.length translatedParams == 1 then
-        DL.head translatedParams
-      else
-        DL.foldl' (\a -> \b -> a ++ ", " ++ b) (DL.head translatedParams) (DL.tail translatedParams)
-  in 
-    "(" ++ (translateExpression (fromMaybe a (rootFunction a))) ++ "(" ++ params ++ "))"
+translateExpression :: T.Expression -> Writer [String] String
+translateExpression (T.IntLiteral a) = return $ show a
+translateExpression (T.StringLiteral a) = return $ show a
+translateExpression (T.Name a t) = return $ a
+translateExpression (T.Addition a b) = do
+  translatedA <- translateExpression a
+  translatedB <- translateExpression b
+  return ("(" ++ translatedA ++ " + " ++ translatedB ++ ")")
+translateExpression (T.Apply a b) = do
+  let rootF = fromMaybe a (rootFunction a)
+  let requiredArgumentCount = List.length $ functionParameterList (typeOf rootF)
+  let passedParameters = parametersOfApply (T.Apply a b)
+  translatedParams <- Monad.sequence $ fmap translateExpression passedParameters
+  translatedRootF <- translateExpression rootF
+  let hiddenParamCount = requiredArgumentCount - (List.length passedParameters)
+  let hiddenParams = fmap (\n -> "_" ++ (show n)) [0..(hiddenParamCount - 1)]
+  let params = List.intercalate ", " (translatedParams ++ hiddenParams)
+  tell hiddenParams
+  return ("(" ++ translatedRootF ++ "(" ++ params ++ "))")
+
+functionParameterList :: T.Type -> [T.Type]
+functionParameterList (T.FunctionType a b) = [a] ++ functionParameterList b 
+functionParameterList _ = []
 
 rootFunction :: T.Expression -> Maybe T.Expression
 rootFunction e = 
@@ -127,3 +135,7 @@ parametersOfApply e =
   case e of 
     T.Apply a b -> (parametersOfApply a) ++ [b]
     _ -> []
+
+typeOf :: T.Expression -> T.Type
+typeOf (T.IntLiteral _) = T.BuiltInInt
+typeOf (T.Name _ t) = t

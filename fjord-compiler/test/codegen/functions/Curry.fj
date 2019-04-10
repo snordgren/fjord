@@ -1,0 +1,16 @@
+module test.codegen.functions.Curry
+
+first : Int -> Int -> Int -> Int
+first x y z = x
+
+alwaysOne : Int -> Int -> Int
+alwaysOne = first 1
+
+alwaysTwo : Int -> Int -> Int
+alwaysTwo x = first 2 x
+
+one : Int
+one = alwaysOne 2 3
+
+two : Int
+two = alwaysTwo 3 4
