@@ -1,4 +1,4 @@
-module ConstantString
+module test.codegen.constants.ConstantString
 
 helloWorld : String
 helloWorld = "Hello, world!"

@@ -1,4 +1,4 @@
-module Second 
+module test.codegen.functions.Second 
 
 second : Int -> Int -> Int
 second x y = y

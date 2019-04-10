@@ -17,7 +17,7 @@ moduleP :: Parser C.Module
 moduleP = do
   string "module"
   some spaceP
-  moduleName <- nameP
+  moduleName <- qualifiedNameP
   many spaceP
   some eol
   declarations <- many declarationP 
@@ -72,6 +72,12 @@ spaceP = oneOf " \t\r"
 
 nameP :: Parser String
 nameP = some letterChar
+
+qualifiedNameP :: Parser String
+qualifiedNameP = do
+  head <- some letterChar
+  tail <- many (letterChar <|> (char '.'))
+  return (head ++ tail)
 
 termP :: Parser C.Expression
 termP = intLiteralP <|> stringLiteralP <|> nameExpressionP

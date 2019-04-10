@@ -1,4 +1,4 @@
-module First
+module test.codegen.functions.First
 
 first : Int -> Int -> Int
 first x y = x

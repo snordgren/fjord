@@ -71,7 +71,11 @@ canonicalizationErrorToErrorBundle initialPosState (TypeNotFound offset name) =
 
 generateJSModule :: T.Module -> String
 generateJSModule m = 
-  (DL.intercalate "\n\n" (fmap translateDeclaration (T.moduleDeclarations m))) ++ "\n"
+  let 
+    declarationOutput = 
+      (DL.intercalate "\n\n" (fmap translateDeclaration (T.moduleDeclarations m))) ++ "\n"
+  in 
+    "// module " ++ (T.moduleName m) ++ "\n\n" ++ declarationOutput
 
 generateJSParameters :: [T.Parameter] -> String
 generateJSParameters parameters = 

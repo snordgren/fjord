@@ -34,7 +34,7 @@ goldenTests = do
   return $ testGroup "Golden Tests" [js, errors]
 
 jsGoldenTests :: IO TestTree
-jsGoldenTests = createGoldenTestTree "JS CodeGen" "./test/codegen/js" ".js"
+jsGoldenTests = createGoldenTestTree "JS CodeGen" "./test/codegen" ".js"
 
 errorGoldenTests :: IO TestTree
 errorGoldenTests = createGoldenTestTree "Error Reporting" "./test/errors" 

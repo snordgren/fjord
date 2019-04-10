@@ -1,4 +1,0 @@
-module ConstantInt
-
-five : Int
-five = 5

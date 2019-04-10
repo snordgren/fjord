@@ -1,0 +1,4 @@
+module test.codegen.constants.ConstantInt
+
+five : Int
+five = 5

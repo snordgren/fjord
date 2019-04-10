@@ -1,0 +1,4 @@
+module test.codegen.operators.Addition
+
+three : Int
+three = 1 + 2
