@@ -19,6 +19,7 @@ dependencies:
 - filepath
 - hspec-megaparsec
 - megaparsec
+- mtl
 - parser-combinators
 - tasty
 - tasty-golden
