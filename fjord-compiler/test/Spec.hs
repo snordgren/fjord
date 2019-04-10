@@ -6,6 +6,7 @@ import qualified Data.ByteString.Lazy.Char8 as LBS
 
 import qualified Compiler as  C
 import qualified AST.Typed as T
+import qualified ParserSpec as ParserSpec
 
 main :: IO ()
 main = do
@@ -17,7 +18,8 @@ unitTests = testGroup "Unit Tests"
   [
     testGroup "Compiler" [
       testCase "generateJSParameters" testGenerateJSParameters
-    ]
+    ],
+    ParserSpec.testParser
   ]
 
 testGenerateJSParameters :: Assertion

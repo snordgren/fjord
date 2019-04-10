@@ -92,3 +92,7 @@ translateExpression :: T.Expression -> String
 translateExpression (T.IntLiteral a) = show a
 translateExpression (T.StringLiteral a) = show a
 translateExpression (T.Name a) = a
+translateExpression (T.Addition a b) = 
+  "(" ++ (translateExpression a) ++ " + " ++ (translateExpression b) ++ ")"
+translateExpression (T.Apply a b) = 
+  "(" ++ (translateExpression a) ++ "(" ++ (translateExpression b) ++ ")" ++ ")"

@@ -2,3 +2,6 @@ module Second
 
 second : Int -> Int -> Int
 second x y = y
+
+two : Int
+two = second 1 2

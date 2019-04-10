@@ -35,3 +35,11 @@ canonicalizeExpression :: D.Expression -> Either CanonicalizationError C.Express
 canonicalizeExpression (D.IntLiteral offset value) = Right $ C.IntLiteral offset value
 canonicalizeExpression (D.StringLiteral offset value) = Right $ C.StringLiteral offset value
 canonicalizeExpression (D.Name offset value) = Right $ C.Name offset value
+canonicalizeExpression (D.Addition offset a b) = do
+  canonA <- canonicalizeExpression a
+  canonB <- canonicalizeExpression b
+  return $ C.Addition offset canonA canonB
+canonicalizeExpression (D.Apply offset a b) = do
+  canonA <- canonicalizeExpression a
+  canonB <- canonicalizeExpression b
+  return $ C.Apply offset canonA canonB

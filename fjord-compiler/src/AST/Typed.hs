@@ -11,7 +11,12 @@ module AST.Typed (
 ) where
 
 data Module = Module { moduleName :: String, moduleDeclarations :: [Declaration] }
-data Expression = IntLiteral Integer | StringLiteral String | Name String
+data Expression = IntLiteral Integer | 
+  StringLiteral String | 
+  Name String | 
+  Addition Expression Expression |
+  Apply Expression Expression
+
 data Declaration = ValueDeclaration String [Parameter] Type Expression
 data Parameter = Parameter { parameterName :: String, parameterType :: Type }
 

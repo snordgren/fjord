@@ -1,5 +1,5 @@
 {-# LANGUAGE FlexibleInstances #-}
-module Parser (runModuleParser) where
+module Parser (runModuleParser, expressionP) where
 
 import Control.Monad.Combinators.Expr
 import Text.Megaparsec
@@ -39,6 +39,7 @@ declarationP = do
   char '='
   many spaceP
   value <- expressionP
+  some eol
   return $ C.ValueDeclaration offset declarationName parameters declaredType value
 
 parameterP :: Parser C.Parameter
@@ -54,16 +55,6 @@ typeNameP = do
   name <- nameP
   return $ C.Named offset name
 
-functionTypeP :: Parser C.Type
-functionTypeP = do
-  offset <- getOffset
-  parameterType <- typeP
-  some spaceP
-  string "->"
-  some spaceP
-  returnType <- typeP
-  return $ C.FunctionType offset parameterType returnType
-
 typeP :: Parser C.Type
 typeP = 
   let 
@@ -77,13 +68,28 @@ typeP =
     makeExprParser typeNameP [[thinArrow]]
 
 spaceP :: Parser Char
-spaceP = oneOf " \t"
+spaceP = oneOf " \t\r"
 
 nameP :: Parser String
 nameP = some letterChar
 
-expressionP :: Parser C.Expression
-expressionP = intLiteralP <|> stringLiteralP <|> nameExpressionP
+termP :: Parser C.Expression
+termP = intLiteralP <|> stringLiteralP <|> nameExpressionP
+
+applyP = do
+  offset <- getOffset
+  some spaceP
+  notFollowedBy additionP
+  return $ C.Apply offset
+
+additionP = do
+  offset <- getOffset
+  many spaceP
+  char '+'
+  many spaceP
+  return $ C.Addition offset
+
+expressionP = makeExprParser termP [[InfixL (try applyP)], [InfixL (try additionP)]]
 
 intLiteralP :: Parser C.Expression
 intLiteralP = do

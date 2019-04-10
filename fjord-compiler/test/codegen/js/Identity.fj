@@ -2,3 +2,6 @@ module Identity
 
 id : Int -> Int
 id x = x
+
+zero : Int
+zero = id 0

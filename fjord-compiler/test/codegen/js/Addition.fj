@@ -1,0 +1,4 @@
+module Addition
+
+three : Int
+three = 1 + 2
