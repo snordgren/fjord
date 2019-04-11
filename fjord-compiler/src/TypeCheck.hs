@@ -1,8 +1,8 @@
 module TypeCheck where
 
-import Control.Monad (sequence)
+import qualified Control.Monad as Monad
 import qualified Data.Either.Combinators as DEC
-import qualified Data.List as L
+import qualified Data.List as List
 
 import qualified AST.Canonical as C
 import qualified AST.Typed as T
@@ -39,6 +39,14 @@ toTypedDeclaration decls (C.ValueDeclaration offset name parameters declaredType
     else
       Left $ WrongType (C.expressionOffset expr) requiredType inferredType
 
+toTypedDeclaration decls (C.RecordDeclaration offset name fields) = 
+  let 
+    toTypedRecordField :: C.RecordField -> T.RecordField
+    toTypedRecordField (C.RecordField _ s t) = T.RecordField s (toTypedType t)
+      
+  in 
+    return $ T.RecordDeclaration name (fmap toTypedRecordField fields)
+
 
 inferRequiredBody :: C.Type -> [C.Parameter] -> C.Type
 inferRequiredBody declaredType parameters = 
@@ -46,7 +54,7 @@ inferRequiredBody declaredType parameters =
     remainingParameters = drop (length parameters) (functionParameterList declaredType)
     returnType = last (functionTypeList declaredType)
   in if length remainingParameters > 0 then
-    L.foldr (C.FunctionType 0) returnType remainingParameters
+    List.foldr (C.FunctionType 0) returnType remainingParameters
   else
     returnType
 
@@ -54,15 +62,31 @@ inferRequiredBody declaredType parameters =
 createDeclarationScope :: [C.Declaration] -> [C.Parameter] -> C.Type -> C.Scope
 createDeclarationScope moduleDeclarations parameters typ = 
   let
-    parameterBindings = (fmap (\(n, t) -> C.Binding n t) 
-      (L.zip (fmap C.parameterName parameters) (functionParameterList typ)))
+    parameterBindings = 
+      (List.zip (fmap C.parameterName parameters) (functionParameterList typ))
 
-    declarationBindings :: [C.Binding]
-    declarationBindings = fmap (\d -> C.Binding (C.declarationName d) (C.declarationType d)) 
-      moduleDeclarations
+    declarationBindings :: [(String, C.Type)]
+    declarationBindings = 
+      List.concat $ fmap bindingsOf moduleDeclarations
   in
     C.Scope (parameterBindings ++ declarationBindings)
   
+bindingsOf :: C.Declaration -> [(String, C.Type)]
+bindingsOf (C.RecordDeclaration offset name fields) =
+  let 
+    constructorRetType = 
+      C.Canonical offset name
+    
+    fieldTypes = 
+      fmap C.recordFieldType fields
+
+    constructorType = 
+      List.foldr (C.FunctionType offset) constructorRetType fieldTypes
+  in 
+    [(name, constructorType)]
+
+bindingsOf (C.ValueDeclaration _ name _ t _) = [(name, t)]
+
 
 functionParameterList :: C.Type -> [C.Type]
 functionParameterList t = 
@@ -137,4 +161,4 @@ toTypedType (C.FunctionType offset par ret) =
 scopeVariableType :: C.Scope -> Int -> String -> Either TypeError C.Type
 scopeVariableType scope offset name = 
   DEC.maybeToRight (UndefinedInScope offset)
-    (fmap C.bindingType (L.find (\a -> (C.bindingName a) == name) (C.scopeBindings scope)))
+    (fmap (\(_, t) -> t) (List.find (\(n, _) -> n == name) (C.scopeBindings scope)))

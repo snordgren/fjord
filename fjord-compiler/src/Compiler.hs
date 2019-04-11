@@ -100,14 +100,28 @@ translateDeclaration (T.ValueDeclaration name parameters declaredType expression
   in
     "export const " ++ name ++ " = " ++ jsParam ++ jsExpr ++ ";"
 
+translateDeclaration (T.RecordDeclaration name fields) = 
+  let
+    jsParams = List.intercalate ", " (fmap T.recordFieldName fields)
+    generateObj = "({ " ++ jsParams ++ " })";
+  in
+    "export const " ++ name ++ " = (" ++ jsParams ++ ") => " ++ generateObj ++ ";";
+
 translateExpression :: T.Expression -> Writer [String] String
-translateExpression (T.IntLiteral a) = return $ show a
-translateExpression (T.StringLiteral a) = return $ show a
-translateExpression (T.Name a t) = return $ a
+translateExpression (T.IntLiteral a) = 
+  return $ show a
+
+translateExpression (T.StringLiteral a) = 
+  return $ show a
+
+translateExpression (T.Name a t) = 
+  return $ a
+
 translateExpression (T.Addition a b) = do
   translatedA <- translateExpression a
   translatedB <- translateExpression b
   return ("(" ++ translatedA ++ " + " ++ translatedB ++ ")")
+
 translateExpression (T.Apply a b) = do
   let rootF = fromMaybe a (rootFunction a)
   let requiredArgumentCount = List.length $ functionParameterList (typeOf rootF)

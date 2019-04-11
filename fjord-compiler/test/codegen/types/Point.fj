@@ -1,0 +1,8 @@
+module test.codegen.types.Point
+
+record Point
+  x : Int
+  y : Int
+
+defaultPosition : Point
+defaultPosition = Point 1 2

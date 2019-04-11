@@ -1,10 +1,4 @@
-module AST.Contextual (
-  Declaration (..),
-  Expression (..),
-  Module (..),
-  Parameter (..),
-  Type (..)
-) where
+module AST.Contextual where
 
 data Module = Module { moduleName :: String, moduleDeclarations :: [Declaration] }
 
@@ -19,5 +13,12 @@ data Expression = IntLiteral Int Integer |
   Apply Int Expression Expression
   deriving (Eq, Show)
 
-data Declaration = ValueDeclaration Int String [Parameter] Type Expression
+data Declaration 
+  = RecordDeclaration Int String [RecordField]
+  | ValueDeclaration Int String [Parameter] Type Expression
+
+data RecordField = RecordField Int String Type
+
 data Parameter = Parameter Int String
+
+data Scope = Scope { scopeTypes :: [(String, String)] }

@@ -12,7 +12,12 @@ data Expression = IntLiteral Integer |
   Apply Expression Expression
   deriving (Eq, Show)
 
-data Declaration = ValueDeclaration String [Parameter] Type Expression
+data Declaration 
+  = RecordDeclaration String [RecordField]
+  | ValueDeclaration String [Parameter] Type Expression
+  deriving (Eq, Show)
+
+data RecordField = RecordField { recordFieldName :: String, recordFieldType :: Type }
   deriving (Eq, Show)
 
 data Parameter = Parameter { parameterName :: String, parameterType :: Type }

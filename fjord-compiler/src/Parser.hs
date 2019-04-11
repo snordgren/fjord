@@ -11,8 +11,10 @@ import qualified AST.Contextual as C
 type Parser = Parsec String String
 
 runModuleParser :: String -> String -> Either (ParseErrorBundle String String) C.Module
-runModuleParser = runParser moduleP
+runModuleParser = 
+  runParser moduleP
 
+  
 moduleP :: Parser C.Module
 moduleP = do
   string "module"
@@ -23,8 +25,39 @@ moduleP = do
   declarations <- many declarationP 
   return $ C.Module moduleName declarations
 
+
 declarationP :: Parser C.Declaration
-declarationP = do
+declarationP = 
+  recordDeclarationP <|> valueDeclarationP
+
+
+recordDeclarationP :: Parser C.Declaration
+recordDeclarationP = do
+  offset <- getOffset
+  string "record"
+  some spaceP
+  declarationName <- nameP
+  eol
+  fields <- some recordFieldP
+  eol
+  return $ C.RecordDeclaration offset declarationName fields
+
+
+recordFieldP :: Parser C.RecordField
+recordFieldP = do
+  some spaceP
+  offset <- getOffset
+  fieldName <- nameP
+  many spaceP 
+  char ':'
+  many spaceP
+  fieldType <- typeP
+  eol
+  return $ C.RecordField offset fieldName fieldType
+
+
+valueDeclarationP :: Parser C.Declaration
+valueDeclarationP = do
   offset <- getOffset
   declarationName <- nameP
   many spaceP
@@ -79,14 +112,18 @@ qualifiedNameP = do
   tail <- many (letterChar <|> (char '.'))
   return (head ++ tail)
 
+
 termP :: Parser C.Expression
-termP = intLiteralP <|> stringLiteralP <|> nameExpressionP
+termP = 
+  intLiteralP <|> stringLiteralP <|> nameExpressionP
+
 
 applyP = do
   offset <- getOffset
   some spaceP
   notFollowedBy additionP
   return $ C.Apply offset
+
 
 additionP = do
   offset <- getOffset
@@ -95,13 +132,16 @@ additionP = do
   many spaceP
   return $ C.Addition offset
 
+
 expressionP = makeExprParser termP [[InfixL (try applyP)], [InfixL (try additionP)]]
+
 
 intLiteralP :: Parser C.Expression
 intLiteralP = do
   offset <- getOffset
   num <- decimal
   return $ C.IntLiteral offset num
+
 
 stringLiteralP :: Parser C.Expression
 stringLiteralP = do
@@ -111,11 +151,13 @@ stringLiteralP = do
   char '"'
   return $ C.StringLiteral offset (concat strings)
 
+
 nameExpressionP :: Parser C.Expression
 nameExpressionP = do
   offset <- getOffset
   name <- nameP
   return $ C.Name offset name
+
 
 nonEscape :: Parser String
 nonEscape = do
@@ -123,11 +165,14 @@ nonEscape = do
   c <- oneOf "\\\"0nrvtbf"
   return [d, c]
 
+
 escape :: Parser String
 escape = some $ noneOf "\\\"\0\n\r\v\t\b\f"
 
+
 stringPartP :: Parser String
 stringPartP = nonEscape <|> escape
+
 
 instance ShowErrorComponent String where
   showErrorComponent = id

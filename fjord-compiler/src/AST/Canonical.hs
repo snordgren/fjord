@@ -10,8 +10,18 @@ data Expression = IntLiteral Int Integer |
   Addition Int Expression Expression |
   Apply Int Expression Expression
 
-data Declaration = ValueDeclaration Int String [Parameter] Type Expression
+data Declaration 
+  = RecordDeclaration Int String [RecordField]
+  | ValueDeclaration Int String [Parameter] Type Expression
+
 data Parameter = Parameter Int String
+
+data RecordField = RecordField 
+  { 
+    recordFieldOffset :: Int,
+    recordFieldName :: String,
+    recordFieldType :: Type
+  }
 
 data Type = Canonical Int String |
   BuiltInInt Int |
@@ -19,14 +29,11 @@ data Type = Canonical Int String |
   FunctionType Int Type Type
   deriving (Eq, Show)
 
-data Scope = Scope { scopeBindings :: [Binding] }
-data Binding = Binding { bindingName :: String, bindingType :: Type }
+data Scope = Scope { scopeBindings :: [(String, Type)] }
 
 declarationName :: Declaration -> String
+declarationName (RecordDeclaration _ name _) = name
 declarationName (ValueDeclaration _ name _ _ _) = name
-
-declarationType :: Declaration -> Type
-declarationType (ValueDeclaration _ _ _ t _) = t
 
 expressionOffset :: Expression -> Int
 expressionOffset (IntLiteral offset _) = offset
