@@ -4,7 +4,7 @@ import qualified Control.Monad as Monad
 import qualified Data.Either.Combinators as DEC
 import qualified Data.List as List
 
-import qualified AST.Canonical as C
+import qualified AST.Resolved as R
 import qualified AST.Typed as T
 
 
@@ -16,36 +16,36 @@ data TypeError
   deriving (Eq, Show)
 
 
-typeCheck :: C.Module -> Either TypeError T.Module
+typeCheck :: R.Module -> Either TypeError T.Module
 typeCheck m = do
-  declarations <- sequence (fmap (toTypedDeclaration (C.moduleDeclarations m))
-    (C.moduleDeclarations m))
-  return $ T.Module (C.moduleName m) declarations
+  declarations <- sequence (fmap (toTypedDeclaration (R.moduleDeclarations m))
+    (R.moduleDeclarations m))
+  return $ T.Module (R.moduleName m) declarations
 
 
-toTypedDeclaration :: [C.Declaration] -> C.Declaration -> Either TypeError T.Declaration
+toTypedDeclaration :: [R.Declaration] -> R.Declaration -> Either TypeError T.Declaration
 
-toTypedDeclaration decls (C.EnumDeclaration offset name constructors) = 
+toTypedDeclaration decls (R.EnumDeclaration offset name constructors) = 
   let 
-    toTypedEnumConstructor :: C.EnumConstructor -> T.EnumConstructor
-    toTypedEnumConstructor (C.EnumConstructor _ s t) = T.EnumConstructor s (toTypedType t)
+    toTypedEnumConstructor :: R.EnumConstructor -> T.EnumConstructor
+    toTypedEnumConstructor (R.EnumConstructor _ s t) = T.EnumConstructor s (toTypedType t)
   in
     return $ T.EnumDeclaration name (fmap toTypedEnumConstructor constructors)
 
-toTypedDeclaration decls (C.RecordDeclaration offset name fields) = 
+toTypedDeclaration decls (R.RecordDeclaration offset name fields) = 
   let 
-    toTypedRecordField :: C.RecordField -> T.RecordField
-    toTypedRecordField (C.RecordField _ s t) = T.RecordField s (toTypedType t)
+    toTypedRecordField :: R.RecordField -> T.RecordField
+    toTypedRecordField (R.RecordField _ s t) = T.RecordField s (toTypedType t)
       
   in 
     return $ T.RecordDeclaration name (fmap toTypedRecordField fields)
 
-toTypedDeclaration decls (C.ValueDeclaration offset name parameters declaredType expr) =
+toTypedDeclaration decls (R.ValueDeclaration offset name parameters declaredType expr) =
   let 
     typedDeclaredType = toTypedType declaredType
     scope = createDeclarationScope decls parameters declaredType
     requiredType = toTypedType (inferRequiredBody declaredType parameters)
-    typedParameters = fmap (\(p, t) -> T.Parameter (C.parameterName p) (toTypedType t))
+    typedParameters = fmap (\(p, t) -> T.Parameter (R.parameterName p) (toTypedType t))
       (zip parameters (functionParameterList declaredType))
   in do
     inferredType <- inferType scope expr
@@ -53,105 +53,105 @@ toTypedDeclaration decls (C.ValueDeclaration offset name parameters declaredType
     if inferredType == requiredType then 
       Right $ T.ValueDeclaration name typedParameters typedDeclaredType typedExpr
     else
-      Left $ WrongType (C.expressionOffset expr) requiredType inferredType
+      Left $ WrongType (R.expressionOffset expr) requiredType inferredType
 
 
-inferRequiredBody :: C.Type -> [C.Parameter] -> C.Type
+inferRequiredBody :: R.Type -> [R.Parameter] -> R.Type
 inferRequiredBody declaredType parameters = 
   let 
     remainingParameters = drop (length parameters) (functionParameterList declaredType)
     returnType = last (functionTypeList declaredType)
   in if length remainingParameters > 0 then
-    List.foldr (C.FunctionType 0) returnType remainingParameters
+    List.foldr (R.FunctionType 0) returnType remainingParameters
   else
     returnType
 
 
-createDeclarationScope :: [C.Declaration] -> [C.Parameter] -> C.Type -> C.Scope
+createDeclarationScope :: [R.Declaration] -> [R.Parameter] -> R.Type -> R.Scope
 createDeclarationScope moduleDeclarations parameters typ = 
   let
     parameterBindings = 
-      (List.zip (fmap C.parameterName parameters) (functionParameterList typ))
+      (List.zip (fmap R.parameterName parameters) (functionParameterList typ))
 
-    declarationBindings :: [(String, C.Type)]
+    declarationBindings :: [(String, R.Type)]
     declarationBindings = 
       List.concat $ fmap bindingsOf moduleDeclarations
   in
-    C.Scope (parameterBindings ++ declarationBindings)
+    R.Scope (parameterBindings ++ declarationBindings)
   
-bindingsOf :: C.Declaration -> [(String, C.Type)]
-bindingsOf (C.RecordDeclaration offset name fields) =
+bindingsOf :: R.Declaration -> [(String, R.Type)]
+bindingsOf (R.RecordDeclaration offset name fields) =
   let 
     constructorRetType = 
-      C.Canonical offset name
+      R.Canonical offset name
     
     fieldTypes = 
-      fmap C.recordFieldType fields
+      fmap R.recordFieldType fields
 
     constructorType = 
-      List.foldr (C.FunctionType offset) constructorRetType fieldTypes
+      List.foldr (R.FunctionType offset) constructorRetType fieldTypes
   in 
     [(name, constructorType)]
 
-bindingsOf (C.ValueDeclaration _ name _ t _) = [(name, t)]
+bindingsOf (R.ValueDeclaration _ name _ t _) = [(name, t)]
 
 
-functionParameterList :: C.Type -> [C.Type]
+functionParameterList :: R.Type -> [R.Type]
 functionParameterList t = 
   case t of 
-    C.FunctionType _ parameterType returnType -> 
+    R.FunctionType _ parameterType returnType -> 
       parameterType : functionParameterList (returnType)
     _ -> []
 
 
-functionTypeList :: C.Type -> [C.Type]
+functionTypeList :: R.Type -> [R.Type]
 functionTypeList t =
   case t of 
-    C.FunctionType _ p r -> p : functionTypeList r
+    R.FunctionType _ p r -> p : functionTypeList r
     a -> [a]
     
 
-toTypedExpression :: C.Scope -> C.Expression -> Either TypeError T.Expression
-toTypedExpression _ (C.IntLiteral _ value) = 
+toTypedExpression :: R.Scope -> R.Expression -> Either TypeError T.Expression
+toTypedExpression _ (R.IntLiteral _ value) = 
   Right $ T.IntLiteral value
 
-toTypedExpression _ (C.StringLiteral _ value) = 
+toTypedExpression _ (R.StringLiteral _ value) = 
   Right $ T.StringLiteral value
 
-toTypedExpression scope (C.Name n s) = do
+toTypedExpression scope (R.Name n s) = do
   t <- scopeVariableType scope n s
   return $ T.Name s (toTypedType t)
   
-toTypedExpression scope (C.Addition _ a b) = do
+toTypedExpression scope (R.Addition _ a b) = do
   typedA <- toTypedExpression scope a
   typedB <- toTypedExpression scope b
   return $ T.Addition typedA typedB
 
-toTypedExpression scope (C.Apply _ a b) = do 
+toTypedExpression scope (R.Apply _ a b) = do 
   typedA <- toTypedExpression scope a
   typedB <- toTypedExpression scope b
   return $ T.Apply typedA typedB
 
 
-inferType :: C.Scope -> C.Expression -> Either TypeError T.Type
-inferType _ (C.IntLiteral offset _) = 
+inferType :: R.Scope -> R.Expression -> Either TypeError T.Type
+inferType _ (R.IntLiteral offset _) = 
   Right T.BuiltInInt 
 
-inferType _ (C.StringLiteral offset _) = 
+inferType _ (R.StringLiteral offset _) = 
   Right T.BuiltInString
 
-inferType scope (C.Name offset name) = 
+inferType scope (R.Name offset name) = 
   fmap toTypedType (scopeVariableType scope offset name)
 
-inferType scope (C.Addition offset a b) = do
+inferType scope (R.Addition offset a b) = do
   inferA <- inferType scope a
   inferB <- inferType scope b
   if inferA == inferB then 
     Right $ inferA 
   else 
-    Left $ WrongType (C.expressionOffset b) inferA inferB
+    Left $ WrongType (R.expressionOffset b) inferA inferB
     
-inferType scope (C.Apply offset a b) = do
+inferType scope (R.Apply offset a b) = do
   inferA <- inferType scope a
   inferB <- inferType scope b
   case inferA of 
@@ -159,14 +159,14 @@ inferType scope (C.Apply offset a b) = do
     _ -> Left $ CannotInferType offset
 
 
-toTypedType (C.BuiltInInt _) = T.BuiltInInt
-toTypedType (C.BuiltInString _) = T.BuiltInString
-toTypedType (C.Canonical _ n) = T.TypeName n
-toTypedType (C.FunctionType offset par ret) = 
+toTypedType (R.BuiltInInt _) = T.BuiltInInt
+toTypedType (R.BuiltInString _) = T.BuiltInString
+toTypedType (R.Canonical _ n) = T.TypeName n
+toTypedType (R.FunctionType offset par ret) = 
   T.FunctionType (toTypedType par) (toTypedType ret)
 
 
-scopeVariableType :: C.Scope -> Int -> String -> Either TypeError C.Type
+scopeVariableType :: R.Scope -> Int -> String -> Either TypeError R.Type
 scopeVariableType scope offset name = 
   DEC.maybeToRight (UndefinedInScope offset)
-    (fmap (\(_, t) -> t) (List.find (\(n, _) -> n == name) (C.scopeBindings scope)))
+    (fmap (\(_, t) -> t) (List.find (\(n, _) -> n == name) (R.scopeBindings scope)))

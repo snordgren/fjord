@@ -1,5 +1,5 @@
 -- A typed AST where all types have been checked and asserted valid. No position 
--- information is retained and all names are canonical. This AST is intended to 
+-- information is retained and all names are resolved. This AST is intended to 
 -- be used for optimizations and other program transforms, after the program
 -- has been verified correct. 
 module AST.Typed where

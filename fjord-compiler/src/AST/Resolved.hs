@@ -1,4 +1,4 @@
-module AST.Canonical where
+module AST.Resolved where
 
 import Data.List as L
 

@@ -13,8 +13,8 @@ import Text.Megaparsec
 import qualified Control.Monad as Monad
 import qualified Data.List as List
 
-import Canonicalize (canonicalize, CanonicalizationError (..))
 import Parser (runModuleParser)
+import Resolution (resolve, ResolutionError (..))
 import TypeCheck (typeCheck, TypeError (..))
 import qualified AST.Contextual as C
 import qualified AST.Typed as T
@@ -35,10 +35,10 @@ parseModuleSource fileName source =
     } 
   in do
     contextualModule <- runModuleParser fileName source
-    canonicalModule <- mapLeft (canonicalizationErrorToErrorBundle initialPosState) 
-      (canonicalize contextualModule)
+    resolvedModule <- mapLeft (resolvedizationErrorToErrorBundle initialPosState) 
+      (resolve contextualModule)
     typedModule <- mapLeft (typeErrorToErrorBundle initialPosState) 
-      (typeCheck canonicalModule)
+      (typeCheck resolvedModule)
     return typedModule
   
 typeErrorToErrorBundle :: PosState String -> TypeError -> ParseErrorBundle String String
@@ -59,10 +59,11 @@ typeErrorToErrorBundle initialPosState (CannotInferType offset) = ParseErrorBund
   bundlePosState = initialPosState
 }
 
-canonicalizationErrorToErrorBundle :: PosState String -> 
-  CanonicalizationError -> 
-  ParseErrorBundle String String
-canonicalizationErrorToErrorBundle initialPosState (TypeNotFound offset name) =
+resolvedizationErrorToErrorBundle 
+  :: PosState String 
+  -> ResolutionError 
+  -> ParseErrorBundle String String
+resolvedizationErrorToErrorBundle initialPosState (TypeNotFound offset name) =
   ParseErrorBundle {
     bundleErrors = NonEmpty.fromList [
       FancyError offset (Set.fromList [
