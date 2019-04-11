@@ -132,6 +132,19 @@ toTypedExpression scope (R.Apply _ a b) = do
   typedB <- toTypedExpression scope b
   return $ T.Apply typedA typedB
 
+toTypedExpression scope (R.RecordUpdate _ target updates) = do
+  typedTarget <- toTypedExpression scope target
+  typedUpdates <- Monad.sequence $ fmap (typedFieldUpdate scope) updates
+  return $ T.RecordUpdate typedTarget typedUpdates
+
+
+typedFieldUpdate :: R.Scope -> R.FieldUpdate -> Either TypeError T.FieldUpdate
+typedFieldUpdate scope a = 
+  let 
+    name = R.fieldUpdateName a
+  in
+    fmap (\expr -> T.FieldUpdate name expr) (toTypedExpression scope $ R.fieldUpdateExpression a)
+
 
 inferType :: R.Scope -> R.Expression -> Either TypeError T.Type
 inferType _ (R.IntLiteral offset _) = 
@@ -158,6 +171,8 @@ inferType scope (R.Apply offset a b) = do
     T.FunctionType param ret -> Right ret
     _ -> Left $ CannotInferType offset
 
+inferType scope (R.RecordUpdate _ target _) =
+  inferType scope target
 
 toTypedType (R.BuiltInInt _) = T.BuiltInInt
 toTypedType (R.BuiltInString _) = T.BuiltInString

@@ -6,11 +6,21 @@ data Type = Named Int String |
   FunctionType Int Type Type
   deriving (Eq, Show)
 
-data Expression = IntLiteral Int Integer |
-  StringLiteral Int String | 
-  Name Int String |
-  Addition Int Expression Expression |
-  Apply Int Expression Expression
+data Expression 
+  = IntLiteral Int Integer 
+  | StringLiteral Int String 
+  | Name Int String 
+  | Addition Int Expression Expression 
+  | Apply Int Expression Expression
+  | RecordUpdate Int Expression [FieldUpdate]
+  deriving (Eq, Show)
+
+data FieldUpdate = FieldUpdate 
+  { 
+    fieldUpdateOffset :: Int,
+    fieldUpdateName :: String,
+    fieldUpdateExpression :: Expression
+  }
   deriving (Eq, Show)
 
 data Declaration 

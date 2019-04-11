@@ -6,3 +6,6 @@ record Point
 
 defaultPosition : Point
 defaultPosition = Point 1 2
+
+toOrigin : Point -> Point
+toOrigin p = { p | x = 0, y = 0 }

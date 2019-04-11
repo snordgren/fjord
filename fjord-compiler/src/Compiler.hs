@@ -164,6 +164,20 @@ translateExpression (T.Apply a b) = do
   tell hiddenParams
   return ("(" ++ translatedRootF ++ "(" ++ params ++ "))")
 
+translateExpression (T.RecordUpdate target updates) = do
+  updatesSM <- Monad.sequence $ fmap translateFieldUpdate updates
+  let 
+    updatesS :: String
+    updatesS = List.intercalate "\n" updatesSM
+  targetS <- translateExpression target
+  let returnS = "\n  return _m;\n}"
+  return $ "{\n  const _m = " ++ targetS ++ ";\n" ++ updatesS ++ returnS
+
+translateFieldUpdate :: T.FieldUpdate -> Writer [String] String
+translateFieldUpdate a = do 
+  exprS <- translateExpression $ T.fieldUpdateExpression a
+  return $ "  _m." ++ (T.fieldUpdateName a) ++ " = " ++ exprS ++ ";"
+
 functionParameterList :: T.Type -> [T.Type]
 functionParameterList (T.FunctionType a b) = [a] ++ functionParameterList b 
 functionParameterList _ = []

@@ -5,11 +5,20 @@
 module AST.Typed where
 
 data Module = Module { moduleName :: String, moduleDeclarations :: [Declaration] }
-data Expression = IntLiteral Integer | 
-  StringLiteral String | 
-  Name String Type | 
-  Addition Expression Expression |
-  Apply Expression Expression
+data Expression 
+  = IntLiteral Integer 
+  | StringLiteral String 
+  | Name String Type 
+  | Addition Expression Expression 
+  | Apply Expression Expression
+  | RecordUpdate Expression [FieldUpdate]
+  deriving (Eq, Show)
+
+data FieldUpdate = FieldUpdate 
+  { 
+    fieldUpdateName :: String, 
+    fieldUpdateExpression :: Expression 
+  }
   deriving (Eq, Show)
 
 data Declaration 

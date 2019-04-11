@@ -4,11 +4,20 @@ import Data.List as L
 
 data Module = Module { moduleName :: String, moduleDeclarations :: [Declaration] }
 
-data Expression = IntLiteral Int Integer | 
-  StringLiteral Int String | 
-  Name Int String | 
-  Addition Int Expression Expression |
-  Apply Int Expression Expression
+data Expression 
+  = IntLiteral Int Integer 
+  | StringLiteral Int String 
+  | Name Int String 
+  | Addition Int Expression Expression 
+  | Apply Int Expression Expression
+  | RecordUpdate Int Expression [FieldUpdate]
+
+data FieldUpdate = FieldUpdate 
+  {
+    fieldUpdateOffset :: Int,
+    fieldUpdateName :: String,
+    fieldUpdateExpression :: Expression
+  }
 
 data Declaration 
   = EnumDeclaration Int String [EnumConstructor]

@@ -139,13 +139,17 @@ qualifiedNameP = do
 
 termP :: Parser C.Expression
 termP = 
-  intLiteralP <|> stringLiteralP <|> nameExpressionP
+  intLiteralP <|> stringLiteralP <|> nameExpressionP <|> recordUpdateP
 
 
 applyP = do
   offset <- getOffset
   some spaceP
-  notFollowedBy additionP
+  notFollowedBy $ choice 
+    [
+      fmap (\_ -> ()) additionP, 
+      fmap (\_ -> ()) $ char '}'
+    ]
   return $ C.Apply offset
 
 
@@ -163,8 +167,8 @@ expressionP = makeExprParser termP [[InfixL (try applyP)], [InfixL (try addition
 intLiteralP :: Parser C.Expression
 intLiteralP = do
   offset <- getOffset
-  num <- decimal
-  return $ C.IntLiteral offset num
+  num <- some (oneOf "1234567890")
+  return $ C.IntLiteral offset (read num :: Integer)
 
 
 stringLiteralP :: Parser C.Expression
@@ -181,6 +185,34 @@ nameExpressionP = do
   offset <- getOffset
   name <- nameP
   return $ C.Name offset name
+
+
+recordUpdateP :: Parser C.Expression
+recordUpdateP = do
+  offset <- getOffset
+  char '{'
+  many spaceP
+  target <- nameExpressionP
+  many spaceP
+  char '|'
+  many spaceP
+  updateHead <- fieldUpdateP
+  updateTail <- many ((char ',') >> (many spaceP) >> fieldUpdateP)
+  many spaceP
+  char '}'
+  let updates = updateHead : updateTail
+  return $ C.RecordUpdate offset target updates
+
+
+fieldUpdateP :: Parser C.FieldUpdate
+fieldUpdateP = do
+  offset <- getOffset
+  fieldName <- nameP
+  many spaceP
+  char '='
+  many spaceP
+  value <- expressionP
+  return $ C.FieldUpdate offset fieldName value
 
 
 nonEscape :: Parser String

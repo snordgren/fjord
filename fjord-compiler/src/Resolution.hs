@@ -88,14 +88,31 @@ resolveType scope (C.FunctionType offset parameterType returnType) = do
 
 
 resolveExpression :: C.Expression -> Either ResolutionError R.Expression
-resolveExpression (C.IntLiteral offset value) = Right $ R.IntLiteral offset value
-resolveExpression (C.StringLiteral offset value) = Right $ R.StringLiteral offset value
-resolveExpression (C.Name offset value) = Right $ R.Name offset value
+resolveExpression (C.IntLiteral offset value) =
+  Right $ R.IntLiteral offset value
+
+resolveExpression (C.StringLiteral offset value) = 
+  Right $ R.StringLiteral offset value
+
+resolveExpression (C.Name offset value) = 
+  Right $ R.Name offset value
+
 resolveExpression (C.Addition offset a b) = do
   resolvedA <- resolveExpression a
   resolvedB <- resolveExpression b
   return $ R.Addition offset resolvedA resolvedB
+
 resolveExpression (C.Apply offset a b) = do
   resolvedA <- resolveExpression a
   resolvedB <- resolveExpression b
   return $ R.Apply offset resolvedA resolvedB
+
+resolveExpression (C.RecordUpdate offset target updates) = do
+  resolvedTarget <- resolveExpression target
+  resolvedUpdates <- Monad.sequence (fmap resolveFieldUpdate updates)
+  return $ R.RecordUpdate offset resolvedTarget resolvedUpdates
+
+resolveFieldUpdate :: C.FieldUpdate -> Either ResolutionError R.FieldUpdate
+resolveFieldUpdate a = do
+  resolvedExpression <- resolveExpression (C.fieldUpdateExpression a)
+  return $ R.FieldUpdate (C.fieldUpdateOffset a) (C.fieldUpdateName a) resolvedExpression
