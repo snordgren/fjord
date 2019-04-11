@@ -24,6 +24,22 @@ typeCheck m = do
 
 
 toTypedDeclaration :: [C.Declaration] -> C.Declaration -> Either TypeError T.Declaration
+
+toTypedDeclaration decls (C.EnumDeclaration offset name constructors) = 
+  let 
+    toTypedEnumConstructor :: C.EnumConstructor -> T.EnumConstructor
+    toTypedEnumConstructor (C.EnumConstructor _ s t) = T.EnumConstructor s (toTypedType t)
+  in
+    return $ T.EnumDeclaration name (fmap toTypedEnumConstructor constructors)
+
+toTypedDeclaration decls (C.RecordDeclaration offset name fields) = 
+  let 
+    toTypedRecordField :: C.RecordField -> T.RecordField
+    toTypedRecordField (C.RecordField _ s t) = T.RecordField s (toTypedType t)
+      
+  in 
+    return $ T.RecordDeclaration name (fmap toTypedRecordField fields)
+
 toTypedDeclaration decls (C.ValueDeclaration offset name parameters declaredType expr) =
   let 
     typedDeclaredType = toTypedType declaredType
@@ -38,14 +54,6 @@ toTypedDeclaration decls (C.ValueDeclaration offset name parameters declaredType
       Right $ T.ValueDeclaration name typedParameters typedDeclaredType typedExpr
     else
       Left $ WrongType (C.expressionOffset expr) requiredType inferredType
-
-toTypedDeclaration decls (C.RecordDeclaration offset name fields) = 
-  let 
-    toTypedRecordField :: C.RecordField -> T.RecordField
-    toTypedRecordField (C.RecordField _ s t) = T.RecordField s (toTypedType t)
-      
-  in 
-    return $ T.RecordDeclaration name (fmap toTypedRecordField fields)
 
 
 inferRequiredBody :: C.Type -> [C.Parameter] -> C.Type

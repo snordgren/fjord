@@ -11,10 +11,18 @@ data Expression = IntLiteral Int Integer |
   Apply Int Expression Expression
 
 data Declaration 
-  = RecordDeclaration Int String [RecordField]
+  = EnumDeclaration Int String [EnumConstructor]
+  | RecordDeclaration Int String [RecordField]
   | ValueDeclaration Int String [Parameter] Type Expression
 
 data Parameter = Parameter Int String
+
+data EnumConstructor = EnumConstructor 
+  {
+    enumConstructorOffset :: Int,
+    enumConstructorName :: String,
+    enumConstructorType :: Type
+  }
 
 data RecordField = RecordField 
   { 

@@ -76,7 +76,8 @@ generateJSModule :: T.Module -> String
 generateJSModule m = 
   let 
     declarationOutput = 
-      (List.intercalate "\n\n" (fmap translateDeclaration (T.moduleDeclarations m))) ++ "\n"
+      (List.intercalate "\n\n" 
+        (List.concat (fmap translateDeclaration (T.moduleDeclarations m)))) ++ "\n"
   in 
     "// module " ++ (T.moduleName m) ++ "\n\n" ++ declarationOutput
 
@@ -89,7 +90,42 @@ generateJSParameters p =
   else
     ""
 
-translateDeclaration :: T.Declaration -> String
+translateDeclaration :: T.Declaration -> [String]
+
+translateDeclaration (T.EnumDeclaration name constructors) = 
+  let 
+    translateConstructor :: (T.EnumConstructor, Int) -> [String]
+    translateConstructor (a, n) = 
+      [constructorTag (a, n), constructorF a]
+
+    constructorTag :: (T.EnumConstructor, Int) -> String
+    constructorTag (a, n) = 
+      "export const $Tag" ++ (T.enumConstructorName a) ++ " = " ++ (show (n + 1)) ++ ";"
+
+    constructorF :: T.EnumConstructor -> String
+    constructorF a = 
+      let 
+        parameterCount = List.length $ functionParameterList $ T.enumConstructorType a
+        parameterNames = fmap (\n -> "_" ++ (show n)) [0..(parameterCount - 1)]
+        params = List.intercalate ", " parameterNames
+        name = T.enumConstructorName a
+        tagName = "$Tag" ++ name
+        arrayParams = List.intercalate ", " (tagName : parameterNames)
+      in if parameterCount == 0 then
+        "export const " ++ name ++ " = Object.freeze([" ++ tagName ++ "]);" 
+      else
+        "export const " ++ name ++ " = (" ++ params ++ 
+          ") => Object.freeze([" ++ arrayParams ++ "]);" 
+  in 
+    List.concat $ fmap translateConstructor (List.zip constructors [0..]) 
+
+translateDeclaration (T.RecordDeclaration name fields) = 
+  let
+    jsParams = List.intercalate ", " (fmap T.recordFieldName fields)
+    generateObj = "({ " ++ jsParams ++ " })";
+  in
+    ["export const " ++ name ++ " = (" ++ jsParams ++ ") => " ++ generateObj ++ ";"]
+
 translateDeclaration (T.ValueDeclaration name parameters declaredType expression) =
   let
     parameterNames :: [String]
@@ -98,14 +134,7 @@ translateDeclaration (T.ValueDeclaration name parameters declaredType expression
     (jsExpr, jsHiddenParam) = runWriter $ translateExpression expression
     jsParam = generateJSParameters (parameterNames ++ jsHiddenParam)
   in
-    "export const " ++ name ++ " = " ++ jsParam ++ jsExpr ++ ";"
-
-translateDeclaration (T.RecordDeclaration name fields) = 
-  let
-    jsParams = List.intercalate ", " (fmap T.recordFieldName fields)
-    generateObj = "({ " ++ jsParams ++ " })";
-  in
-    "export const " ++ name ++ " = (" ++ jsParams ++ ") => " ++ generateObj ++ ";";
+    ["export const " ++ name ++ " = " ++ jsParam ++ jsExpr ++ ";"]
 
 translateExpression :: T.Expression -> Writer [String] String
 translateExpression (T.IntLiteral a) = 

@@ -13,8 +13,16 @@ data Expression = IntLiteral Integer |
   deriving (Eq, Show)
 
 data Declaration 
-  = RecordDeclaration String [RecordField]
+  = EnumDeclaration String [EnumConstructor]
+  | RecordDeclaration String [RecordField]
   | ValueDeclaration String [Parameter] Type Expression
+  deriving (Eq, Show)
+
+data EnumConstructor = EnumConstructor 
+  { 
+    enumConstructorName :: String, 
+    enumConstructorType :: Type
+  }
   deriving (Eq, Show)
 
 data RecordField = RecordField { recordFieldName :: String, recordFieldType :: Type }

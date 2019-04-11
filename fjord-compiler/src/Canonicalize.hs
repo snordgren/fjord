@@ -22,8 +22,9 @@ buildScope :: D.Module -> D.Scope
 buildScope m = 
   let 
     checkDeclaration :: D.Declaration -> [(String, String)]
+    checkDeclaration (D.EnumDeclaration offset name fields) = [(name, name)]
     checkDeclaration (D.RecordDeclaration offset name fields) = [(name, name)]
-    checkDeclaration _ = []
+    checkDeclaration (D.ValueDeclaration _ _ _ _ _) = []
   in D.Scope $ List.concat (fmap checkDeclaration (D.moduleDeclarations m))
 
 
@@ -32,12 +33,13 @@ canonicalizeDeclaration
   -> D.Declaration 
   -> Either CanonicalizationError C.Declaration
 
-canonicalizeDeclaration scope (D.ValueDeclaration offset name parameters declaredType expr) = 
-  do 
-    resolvedType <- resolveType scope declaredType
-    resolvedExpression <- canonicalizeExpression expr
-    return $ C.ValueDeclaration offset name (fmap canonicalizeParameter parameters) 
-      resolvedType resolvedExpression
+canonicalizeDeclaration scope (D.EnumDeclaration offset name constructors) = 
+  let
+    resolveConstructor (D.EnumConstructor offset name t) = 
+      fmap (C.EnumConstructor offset name) (resolveType scope t) 
+  in do
+    resolvedConstructors <- Monad.sequence (fmap resolveConstructor constructors)
+    return $ C.EnumDeclaration offset name resolvedConstructors
 
 canonicalizeDeclaration scope (D.RecordDeclaration offset name fields) = 
   let 
@@ -46,6 +48,13 @@ canonicalizeDeclaration scope (D.RecordDeclaration offset name fields) =
   in do
     canonicalizedFields <- Monad.sequence (fmap canonicalizeField fields)
     return $ C.RecordDeclaration offset name canonicalizedFields
+
+canonicalizeDeclaration scope (D.ValueDeclaration offset name parameters declaredType expr) = 
+  do 
+    resolvedType <- resolveType scope declaredType
+    resolvedExpression <- canonicalizeExpression expr
+    return $ C.ValueDeclaration offset name (fmap canonicalizeParameter parameters) 
+      resolvedType resolvedExpression
 
 
 canonicalizeParameter :: D.Parameter -> C.Parameter

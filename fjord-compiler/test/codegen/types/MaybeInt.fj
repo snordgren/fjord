@@ -1,0 +1,5 @@
+module test.codegen.types.MaybeInt
+
+enum MaybeInt
+  None : MaybeInt
+  Some : Int -> MaybeInt

@@ -14,8 +14,11 @@ data Expression = IntLiteral Int Integer |
   deriving (Eq, Show)
 
 data Declaration 
-  = RecordDeclaration Int String [RecordField]
+  = EnumDeclaration Int String [EnumConstructor]
+  | RecordDeclaration Int String [RecordField]
   | ValueDeclaration Int String [Parameter] Type Expression
+
+data EnumConstructor = EnumConstructor Int String Type
 
 data RecordField = RecordField Int String Type
 

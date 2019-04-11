@@ -28,7 +28,31 @@ moduleP = do
 
 declarationP :: Parser C.Declaration
 declarationP = 
-  recordDeclarationP <|> valueDeclarationP
+  enumDeclarationP <|> recordDeclarationP <|> valueDeclarationP
+
+
+enumDeclarationP :: Parser C.Declaration
+enumDeclarationP = do
+  offset <- getOffset
+  string "enum"
+  some spaceP
+  declarationName <- nameP
+  eol
+  constructors <- some enumConstructorP
+  return $ C.EnumDeclaration offset declarationName constructors
+
+
+enumConstructorP :: Parser C.EnumConstructor
+enumConstructorP = do
+  some spaceP
+  offset <- getOffset
+  constructorName <- nameP
+  many spaceP
+  char ':'
+  many spaceP
+  t <- typeP
+  eol
+  return $ C.EnumConstructor offset constructorName t 
 
 
 recordDeclarationP :: Parser C.Declaration
