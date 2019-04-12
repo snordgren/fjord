@@ -1,4 +1,4 @@
-module test.codegen.functions.Lambda
+module test.codegen.expressions.Lambda
 
 addLambda : Int -> Int -> Int
 addLambda = x -> y -> x + y

@@ -1,4 +1,4 @@
-// module test.codegen.functions.Lambda
+// module test.codegen.expressions.Lambda
 
 export const addLambda = (x, y) => (x + y);
 

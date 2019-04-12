@@ -1,0 +1,8 @@
+module test.errors.MissingExpressionEnum
+
+enum A
+  B : A
+  C : A
+
+missing : Int
+missing = 
