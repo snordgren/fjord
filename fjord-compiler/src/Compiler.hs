@@ -41,23 +41,29 @@ parseModuleSource fileName source =
       (typeCheck resolvedModule)
     return typedModule
   
+
 typeErrorToErrorBundle :: PosState String -> TypeError -> ParseErrorBundle String String
-typeErrorToErrorBundle initialPosState (WrongType offset expected actual) = ParseErrorBundle {
-  bundleErrors = NonEmpty.fromList [
-    FancyError offset (Set.fromList [
-      ErrorCustom ("expression has type " ++ (show actual) ++ ", expected " ++ (show expected))
-    ])
-  ],
-  bundlePosState = initialPosState
-}
-typeErrorToErrorBundle initialPosState (CannotInferType offset) = ParseErrorBundle {
-  bundleErrors = NonEmpty.fromList [
-    FancyError offset (Set.fromList [
-      ErrorCustom ("cannot infer type")
-    ])
-  ],
-  bundlePosState = initialPosState
-}
+typeErrorToErrorBundle initialPosState (WrongType offset expected actual) = 
+  let 
+    msg = "expression has type " ++ (show actual) ++ ", expected " ++ (show expected)
+  in
+    toErrorBundle initialPosState offset msg
+
+typeErrorToErrorBundle initialPosState (CannotInferType offset s) = 
+  toErrorBundle initialPosState offset ("cannot infer type\n" ++ s)
+
+typeErrorToErrorBundle initialPosState (UndefinedInScope offset) =
+  toErrorBundle initialPosState offset ("undefined in scope")
+
+toErrorBundle initialPosState offset s = 
+  ParseErrorBundle {
+    bundleErrors = NonEmpty.fromList [
+      FancyError offset (Set.fromList [
+        ErrorCustom s
+      ])
+    ],
+    bundlePosState = initialPosState
+  }
 
 resolvedizationErrorToErrorBundle 
   :: PosState String 
@@ -163,6 +169,22 @@ translateExpression (T.Apply a b) = do
   let params = List.intercalate ", " (translatedParams ++ hiddenParams)
   tell hiddenParams
   return ("(" ++ translatedRootF ++ "(" ++ params ++ "))")
+
+translateExpression (T.Lambda name t expr) =
+  let 
+    lambdaParameters :: T.Expression -> [String]
+    lambdaParameters (T.Lambda n _ body) = n : (lambdaParameters body)
+    lambdaParameters _ = []
+
+    lambdaBody :: T.Expression -> T.Expression
+    lambdaBody (T.Lambda _ _ body) = lambdaBody (body)
+    lambdaBody a = a
+
+    parameters = name : (lambdaParameters expr)
+    paramsS = List.intercalate ", " parameters
+  in do
+    exprT <- translateExpression $ lambdaBody expr
+    return $ "(" ++ paramsS ++ ")" ++ " => " ++ exprT
 
 translateExpression (T.RecordUpdate target updates) = do
   updatesSM <- Monad.sequence $ fmap translateFieldUpdate updates

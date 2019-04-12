@@ -5,6 +5,7 @@ import Control.Monad.Combinators.Expr
 import Text.Megaparsec
 import Text.Megaparsec.Char
 import Text.Megaparsec.Char.Lexer
+import qualified Data.List as List
 
 import qualified AST.Contextual as C
 
@@ -29,6 +30,17 @@ moduleP = do
 declarationP :: Parser C.Declaration
 declarationP = 
   enumDeclarationP <|> recordDeclarationP <|> valueDeclarationP
+
+
+lambdaP :: Parser C.Expression
+lambdaP = do
+  offset <- getOffset
+  name <- nameP
+  many spaceP
+  string "->"
+  many spaceP
+  ret <- expressionP
+  return $ C.Lambda offset name ret
 
 
 enumDeclarationP :: Parser C.Declaration
@@ -139,7 +151,7 @@ qualifiedNameP = do
 
 termP :: Parser C.Expression
 termP = 
-  intLiteralP <|> stringLiteralP <|> nameExpressionP <|> recordUpdateP
+  (try lambdaP) <|> recordUpdateP <|> intLiteralP <|> stringLiteralP <|> nameExpressionP
 
 
 applyP = do
@@ -161,8 +173,11 @@ additionP = do
   return $ C.Addition offset
 
 
-expressionP = makeExprParser termP [[InfixL (try applyP)], [InfixL (try additionP)]]
-
+expressionP = makeExprParser termP 
+  [
+    [InfixL (try applyP)], 
+    [InfixL (try additionP)]
+  ]
 
 intLiteralP :: Parser C.Expression
 intLiteralP = do

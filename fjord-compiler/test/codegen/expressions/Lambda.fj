@@ -1,0 +1,7 @@
+module test.codegen.functions.Lambda
+
+addLambda : Int -> Int -> Int
+addLambda = x -> y -> x + y
+
+partiallyApplied : Int -> Int
+partiallyApplied = addLambda 1

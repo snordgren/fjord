@@ -10,6 +10,7 @@ data Expression
   | Name Int String 
   | Addition Int Expression Expression 
   | Apply Int Expression Expression
+  | Lambda Int String Expression
   | RecordUpdate Int Expression [FieldUpdate]
 
 data FieldUpdate = FieldUpdate 

@@ -11,6 +11,7 @@ data Expression
   | Name String Type 
   | Addition Expression Expression 
   | Apply Expression Expression
+  | Lambda String Type Expression
   | RecordUpdate Expression [FieldUpdate]
   deriving (Eq, Show)
 

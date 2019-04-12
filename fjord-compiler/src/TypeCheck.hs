@@ -1,7 +1,7 @@
 module TypeCheck where
 
 import qualified Control.Monad as Monad
-import qualified Data.Either.Combinators as DEC
+import qualified Data.Either.Combinators as Combinators
 import qualified Data.List as List
 
 import qualified AST.Resolved as R
@@ -10,7 +10,7 @@ import qualified AST.Typed as T
 
 data TypeError 
   = WrongType Int T.Type T.Type 
-  | CannotInferType Int 
+  | CannotInferType Int String
   | TooManyParameters Int
   | UndefinedInScope Int
   deriving (Eq, Show)
@@ -44,16 +44,17 @@ toTypedDeclaration decls (R.ValueDeclaration offset name parameters declaredType
   let 
     typedDeclaredType = toTypedType declaredType
     scope = createDeclarationScope decls parameters declaredType
-    requiredType = toTypedType (inferRequiredBody declaredType parameters)
+    requiredType = inferRequiredBody declaredType parameters
+    typedRequiredType = toTypedType requiredType
     typedParameters = fmap (\(p, t) -> T.Parameter (R.parameterName p) (toTypedType t))
       (zip parameters (functionParameterList declaredType))
   in do
-    inferredType <- inferType scope expr
-    typedExpr <- toTypedExpression scope expr 
-    if inferredType == requiredType then 
+    inferredType <- inferType scope (Just typedRequiredType) expr
+    typedExpr <- toTypedExpression scope (Just requiredType) expr 
+    if inferredType == typedRequiredType then 
       Right $ T.ValueDeclaration name typedParameters typedDeclaredType typedExpr
     else
-      Left $ WrongType (R.expressionOffset expr) requiredType inferredType
+      Left $ WrongType (R.expressionOffset expr) typedRequiredType inferredType
 
 
 inferRequiredBody :: R.Type -> [R.Parameter] -> R.Type
@@ -111,29 +112,39 @@ functionTypeList t =
     a -> [a]
     
 
-toTypedExpression :: R.Scope -> R.Expression -> Either TypeError T.Expression
-toTypedExpression _ (R.IntLiteral _ value) = 
+toTypedExpression :: R.Scope -> Maybe R.Type -> R.Expression -> Either TypeError T.Expression
+toTypedExpression _ _ (R.IntLiteral _ value) = 
   Right $ T.IntLiteral value
 
-toTypedExpression _ (R.StringLiteral _ value) = 
+toTypedExpression _ _ (R.StringLiteral _ value) = 
   Right $ T.StringLiteral value
 
-toTypedExpression scope (R.Name n s) = do
+toTypedExpression scope _ (R.Name n s) = do
   t <- scopeVariableType scope n s
   return $ T.Name s (toTypedType t)
   
-toTypedExpression scope (R.Addition _ a b) = do
-  typedA <- toTypedExpression scope a
-  typedB <- toTypedExpression scope b
+toTypedExpression scope expectedType (R.Addition _ a b) = do
+  typedA <- toTypedExpression scope expectedType a
+  typedB <- toTypedExpression scope expectedType b
   return $ T.Addition typedA typedB
 
-toTypedExpression scope (R.Apply _ a b) = do 
-  typedA <- toTypedExpression scope a
-  typedB <- toTypedExpression scope b
+toTypedExpression scope _ (R.Apply _ a b) = do 
+  typedA <- toTypedExpression scope Nothing a
+  typedB <- toTypedExpression scope Nothing b
   return $ T.Apply typedA typedB
 
-toTypedExpression scope (R.RecordUpdate _ target updates) = do
-  typedTarget <- toTypedExpression scope target
+toTypedExpression scope expectedType (R.Lambda offset name expr) = do
+  t <- Combinators.maybeToRight (CannotInferType offset "missing expected type") expectedType
+  parT <- Combinators.maybeToRight (CannotInferType offset "missing parameter type") 
+    (parameterType t)
+  retT <- Combinators.maybeToRight (CannotInferType offset "missing return type") (returnType t)
+  let lambdaScope = R.Scope ((name, parT) : R.scopeBindings scope)
+  exprT <- toTypedExpression lambdaScope (Just retT) expr
+  let typedT = toTypedType t
+  return $ T.Lambda name typedT exprT
+
+toTypedExpression scope expectedType (R.RecordUpdate _ target updates) = do
+  typedTarget <- toTypedExpression scope expectedType target
   typedUpdates <- Monad.sequence $ fmap (typedFieldUpdate scope) updates
   return $ T.RecordUpdate typedTarget typedUpdates
 
@@ -143,36 +154,39 @@ typedFieldUpdate scope a =
   let 
     name = R.fieldUpdateName a
   in
-    fmap (\expr -> T.FieldUpdate name expr) (toTypedExpression scope $ R.fieldUpdateExpression a)
+    fmap (\expr -> T.FieldUpdate name expr) (toTypedExpression scope Nothing $ R.fieldUpdateExpression a)
 
 
-inferType :: R.Scope -> R.Expression -> Either TypeError T.Type
-inferType _ (R.IntLiteral offset _) = 
+inferType :: R.Scope -> Maybe T.Type -> R.Expression -> Either TypeError T.Type
+inferType _ _ (R.IntLiteral offset _) = 
   Right T.BuiltInInt 
 
-inferType _ (R.StringLiteral offset _) = 
+inferType _ _ (R.StringLiteral offset _) = 
   Right T.BuiltInString
 
-inferType scope (R.Name offset name) = 
+inferType scope _ (R.Name offset name) = 
   fmap toTypedType (scopeVariableType scope offset name)
 
-inferType scope (R.Addition offset a b) = do
-  inferA <- inferType scope a
-  inferB <- inferType scope b
+inferType scope expectedType (R.Addition offset a b) = do
+  inferA <- inferType scope expectedType a
+  inferB <- inferType scope expectedType b
   if inferA == inferB then 
     Right $ inferA 
   else 
     Left $ WrongType (R.expressionOffset b) inferA inferB
     
-inferType scope (R.Apply offset a b) = do
-  inferA <- inferType scope a
-  inferB <- inferType scope b
+inferType scope _ (R.Apply offset a b) = do
+  inferA <- inferType scope Nothing a
+  inferB <- inferType scope Nothing b
   case inferA of 
     T.FunctionType param ret -> Right ret
-    _ -> Left $ CannotInferType offset
+    _ -> Left $ CannotInferType offset "cannot infer function type"
 
-inferType scope (R.RecordUpdate _ target _) =
-  inferType scope target
+inferType scope expectedType (R.Lambda offset name expr) = 
+  Combinators.maybeToRight (CannotInferType offset "cannot infer lambda type") expectedType
+
+inferType scope expectedType (R.RecordUpdate _ target _) =
+  inferType scope expectedType target
 
 toTypedType (R.BuiltInInt _) = T.BuiltInInt
 toTypedType (R.BuiltInString _) = T.BuiltInString
@@ -183,5 +197,15 @@ toTypedType (R.FunctionType offset par ret) =
 
 scopeVariableType :: R.Scope -> Int -> String -> Either TypeError R.Type
 scopeVariableType scope offset name = 
-  DEC.maybeToRight (UndefinedInScope offset)
+  Combinators.maybeToRight (UndefinedInScope offset)
     (fmap (\(_, t) -> t) (List.find (\(n, _) -> n == name) (R.scopeBindings scope)))
+
+
+parameterType :: R.Type -> Maybe R.Type
+parameterType (R.FunctionType _ p _) = Just p
+parameterType _ = Nothing
+
+
+returnType :: R.Type -> Maybe R.Type
+returnType (R.FunctionType _ _ ret) = Just ret
+returnType _ = Nothing

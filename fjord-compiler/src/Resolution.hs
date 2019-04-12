@@ -107,6 +107,10 @@ resolveExpression (C.Apply offset a b) = do
   resolvedB <- resolveExpression b
   return $ R.Apply offset resolvedA resolvedB
 
+resolveExpression (C.Lambda offset name expr) = do
+  resolvedExpr <- resolveExpression expr
+  return $ R.Lambda offset name resolvedExpr
+
 resolveExpression (C.RecordUpdate offset target updates) = do
   resolvedTarget <- resolveExpression target
   resolvedUpdates <- Monad.sequence (fmap resolveFieldUpdate updates)
