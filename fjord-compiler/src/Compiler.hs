@@ -138,39 +138,39 @@ translateDeclaration (T.ValueDeclaration name parameters declaredType expression
     parameterNames :: [String]
     parameterNames = fmap (T.parameterName) parameters
 
-    (jsExpr, jsHiddenParam) = runWriter $ translateExpression expression
+    (jsExpr, jsHiddenParam) = runWriter $ translateExpression 1 expression
     jsParam = generateJSParameters (parameterNames ++ jsHiddenParam)
   in
     ["export const " ++ name ++ " = " ++ jsParam ++ jsExpr ++ ";"]
 
-translateExpression :: T.Expression -> Writer [String] String
-translateExpression (T.IntLiteral a) = 
+translateExpression :: Int -> T.Expression -> Writer [String] String
+translateExpression _ (T.IntLiteral a) = 
   return $ show a
 
-translateExpression (T.StringLiteral a) = 
+translateExpression _ (T.StringLiteral a) = 
   return $ show a
 
-translateExpression (T.Name a t) = 
+translateExpression _ (T.Name a t) = 
   return $ a
 
-translateExpression (T.Addition a b) = do
-  translatedA <- translateExpression a
-  translatedB <- translateExpression b
+translateExpression indent (T.Addition a b) = do
+  translatedA <- translateExpression indent a
+  translatedB <- translateExpression indent b
   return ("(" ++ translatedA ++ " + " ++ translatedB ++ ")")
 
-translateExpression (T.Apply a b) = do
+translateExpression indent (T.Apply a b) = do
   let rootF = fromMaybe a (rootFunction a)
   let requiredArgumentCount = List.length $ functionParameterList (typeOf rootF)
   let passedParameters = parametersOfApply (T.Apply a b)
-  translatedParams <- Monad.sequence $ fmap translateExpression passedParameters
-  translatedRootF <- translateExpression rootF
+  translatedParams <- Monad.sequence $ fmap (translateExpression indent) passedParameters
+  translatedRootF <- translateExpression indent rootF
   let hiddenParamCount = requiredArgumentCount - (List.length passedParameters)
   let hiddenParams = fmap (\n -> "_" ++ (show n)) [0..(hiddenParamCount - 1)]
   let params = List.intercalate ", " (translatedParams ++ hiddenParams)
   tell hiddenParams
   return ("(" ++ translatedRootF ++ "(" ++ params ++ "))")
 
-translateExpression (T.Lambda name t expr) =
+translateExpression indent (T.Lambda name t expr) =
   let 
     lambdaParameters :: T.Expression -> [String]
     lambdaParameters (T.Lambda n _ body) = n : (lambdaParameters body)
@@ -183,22 +183,26 @@ translateExpression (T.Lambda name t expr) =
     parameters = name : (lambdaParameters expr)
     paramsS = List.intercalate ", " parameters
   in do
-    exprT <- translateExpression $ lambdaBody expr
+    exprT <- translateExpression indent $ lambdaBody expr
     return $ "(" ++ paramsS ++ ")" ++ " => " ++ exprT
 
-translateExpression (T.RecordUpdate target updates) = do
-  updatesSM <- Monad.sequence $ fmap translateFieldUpdate updates
+translateExpression indent (T.RecordUpdate target updates) = do
+  let genIndentS n = List.concat $ fmap (const "  ") [0..(n - 1)]
+  let indentS = genIndentS indent
+  updatesSM <- Monad.sequence $ fmap (translateFieldUpdate indentS) updates
   let 
     updatesS :: String
-    updatesS = List.intercalate "\n" updatesSM
-  targetS <- translateExpression target
-  let returnS = "\n  return _m;\n}"
-  return $ "{\n  const _m = " ++ targetS ++ ";\n" ++ updatesS ++ returnS
+    updatesS = List.intercalate ("\n") updatesSM
+  targetS <- translateExpression (indent + 1) target
+  let startS = "(() => {\n" ++ indentS ++ "const _m = "
+  let returnS = "\n" ++ indentS ++ "return _m;\n" ++ (genIndentS (indent - 1)) ++ "}"
+  let endS = ")()"
+  return $ startS ++ targetS ++ ";\n" ++ updatesS ++ returnS ++ endS
 
-translateFieldUpdate :: T.FieldUpdate -> Writer [String] String
-translateFieldUpdate a = do 
-  exprS <- translateExpression $ T.fieldUpdateExpression a
-  return $ "  _m." ++ (T.fieldUpdateName a) ++ " = " ++ exprS ++ ";"
+translateFieldUpdate :: String -> T.FieldUpdate -> Writer [String] String
+translateFieldUpdate indentS a = do 
+  exprS <- translateExpression 1 $ T.fieldUpdateExpression a
+  return $ indentS ++ "_m." ++ (T.fieldUpdateName a) ++ " = " ++ exprS ++ ";"
 
 functionParameterList :: T.Type -> [T.Type]
 functionParameterList (T.FunctionType a b) = [a] ++ functionParameterList b 

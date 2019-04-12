@@ -160,7 +160,7 @@ applyP = do
   notFollowedBy $ choice 
     [
       fmap (\_ -> ()) additionP, 
-      fmap (\_ -> ()) $ char '}'
+      fmap (\_ -> ()) $ oneOf "}|"
     ]
   return $ C.Apply offset
 
@@ -207,7 +207,7 @@ recordUpdateP = do
   offset <- getOffset
   char '{'
   many spaceP
-  target <- nameExpressionP
+  target <- expressionP
   many spaceP
   char '|'
   many spaceP
