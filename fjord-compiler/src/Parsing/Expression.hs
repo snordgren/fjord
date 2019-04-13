@@ -1,12 +1,19 @@
-module Parsing.Expression (expressionP) where
+module Parsing.Expression (
+  caseP, 
+  expressionP, 
+  patternP
+) where
   
 import Control.Monad.Combinators.Expr
 import Text.Megaparsec
 import Text.Megaparsec.Char
+import qualified Control.Monad as Monad
 
 import Parsing.Basics
 import qualified AST.Contextual as C
 
+
+expressionP :: Parser C.Expression
 expressionP = 
   label "expression" $ makeExprParser termP 
     [
@@ -16,7 +23,9 @@ expressionP =
 
 termP :: Parser C.Expression
 termP = 
-  (try lambdaP) <|> recordUpdateP <|> intLiteralP <|> stringLiteralP <|> nameExpressionP
+  choice [
+    (try caseP), (try lambdaP), recordUpdateP, intLiteralP, stringLiteralP, nameExpressionP
+  ]
 
 
 lambdaP :: Parser C.Expression
@@ -31,7 +40,7 @@ lambdaP = do
 
 
 recordUpdateP :: Parser C.Expression
-recordUpdateP = do
+recordUpdateP = label "record update" $ do
   offset <- getOffset
   char '{'
   many spaceP
@@ -59,14 +68,14 @@ fieldUpdateP = do
 
 
 intLiteralP :: Parser C.Expression
-intLiteralP = do
+intLiteralP = label "integer" $ do
   offset <- getOffset
   num <- some (oneOf "1234567890")
   return $ C.IntLiteral offset (read num :: Integer)
 
 
 stringLiteralP :: Parser C.Expression
-stringLiteralP = do
+stringLiteralP = label "string" $ do
   offset <- getOffset
   char '"'
   strings <- many stringPartP 
@@ -101,8 +110,9 @@ applyP = do
   some spaceP
   notFollowedBy $ choice 
     [
-      fmap (\_ -> ()) additionP, 
-      fmap (\_ -> ()) $ oneOf "}|"
+      fmap (const ()) additionP, 
+      fmap (const ()) $ oneOf "}|",
+      fmap (const ()) $ string "of"
     ]
   return $ C.Apply offset
 
@@ -113,3 +123,31 @@ additionP = do
   char '+'
   many spaceP
   return $ C.Addition offset
+
+
+caseP = label "case expression" $ do
+  offset <- getOffset
+  keyword "case"
+  spaceInExpressionP
+  expr <- expressionP
+  spaceInExpressionP
+  keyword "of"
+  many spaceP
+  eol
+  patterns <- some (try patternP)
+  return $ C.Case offset expr patterns
+
+
+patternP = label "pattern" $ do
+  spaceInExpressionP
+  offset <- getOffset
+  constructor <- qualifiedNameP
+  variables <- many (try ((some spaceP) >> nameP))
+  many spaceP
+  string "->"
+  many spaceP
+  expr <- expressionP
+  eol
+  return $ C.Pattern offset constructor variables expr
+
+  

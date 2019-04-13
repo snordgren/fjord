@@ -1,14 +1,38 @@
-module Parsing.Basics where
+module Parsing.Basics (
+  keyword,
+  nameP,
+  qualifiedNameP,
+  spaceP,
+  spaceInExpressionP,
+  Parser
+) where
 
 import Text.Megaparsec
 import Text.Megaparsec.Char
+import qualified Text.Megaparsec.Char.Lexer as Lexer
 
 
 type Parser = Parsec String String
 
 
+keywords = ["as", "case", "do", "enum", "let", "module", "of", "record", "use"]
+
+
+keyword :: String -> Parser String
+keyword s = 
+  try $ do
+    string s
+    notFollowedBy alphaNumChar
+    return s
+
+
 nameP :: Parser String
-nameP = some letterChar
+nameP = do
+  s <- some letterChar
+  if elem s keywords then
+    fail (s ++ " is a keyword")
+  else
+    return s
 
 
 qualifiedNameP :: Parser String
@@ -18,8 +42,10 @@ qualifiedNameP = do
   return (head ++ tail)
 
 
-spaceP :: Parser Char
-spaceP = oneOf " \t\r"
+spaceP :: Parser ()
+spaceP = do 
+  oneOf " \r\t"
+  return ()
 
 
 spaceInExpressionP :: Parser ()

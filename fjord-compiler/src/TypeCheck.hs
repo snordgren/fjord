@@ -80,7 +80,15 @@ createDeclarationScope moduleDeclarations parameters typ =
   in
     R.Scope (parameterBindings ++ declarationBindings)
   
+
 bindingsOf :: R.Declaration -> [(String, R.Type)]
+bindingsOf (R.EnumDeclaration offset name constructors) = 
+  let 
+    bindConstructor :: R.EnumConstructor -> (String, R.Type)
+    bindConstructor c = (R.enumConstructorName c, R.enumConstructorType c)
+  in
+    fmap bindConstructor constructors
+
 bindingsOf (R.RecordDeclaration offset name fields) =
   let 
     constructorRetType = 
@@ -133,6 +141,17 @@ toTypedExpression scope _ (R.Apply _ a b) = do
   typedB <- toTypedExpression scope Nothing b
   return $ T.Apply typedA typedB
 
+toTypedExpression scope expectedType (R.Case offset expression patterns) = 
+  let 
+    toTypedPattern :: R.Pattern -> Either TypeError T.Pattern
+    toTypedPattern (R.Pattern offset constructor variables returnExpression) = do
+      typedReturnExpression <- toTypedExpression scope expectedType returnExpression
+      return $ T.Pattern constructor variables typedReturnExpression
+  in do
+    typedPatterns <- Monad.sequence $ fmap toTypedPattern patterns
+    typedSourceExpression <- toTypedExpression scope Nothing expression
+    return $ T.Case typedSourceExpression typedPatterns
+
 toTypedExpression scope expectedType (R.Lambda offset name expr) = do
   t <- Combinators.maybeToRight (CannotInferType offset "missing expected type") expectedType
   parT <- Combinators.maybeToRight (CannotInferType offset "missing parameter type") 
@@ -181,6 +200,9 @@ inferType scope _ (R.Apply offset a b) = do
   case inferA of 
     T.FunctionType param ret -> Right ret
     _ -> Left $ CannotInferType offset "cannot infer function type"
+
+inferType scope expectedType (R.Case offset expr patterns) =
+  inferType scope expectedType (R.patternExpression (head patterns))
 
 inferType scope expectedType (R.Lambda offset name expr) = 
   Combinators.maybeToRight (CannotInferType offset "cannot infer lambda type") expectedType

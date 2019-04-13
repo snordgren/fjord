@@ -10,6 +10,7 @@ data Expression
   | Name Int String 
   | Addition Int Expression Expression 
   | Apply Int Expression Expression
+  | Case Int Expression [Pattern]
   | Lambda Int String Expression
   | RecordUpdate Int Expression [FieldUpdate]
 
@@ -18,6 +19,14 @@ data FieldUpdate = FieldUpdate
     fieldUpdateOffset :: Int,
     fieldUpdateName :: String,
     fieldUpdateExpression :: Expression
+  }
+
+data Pattern = Pattern 
+  {
+    patternOffset :: Int,
+    patternConstructor :: String,
+    patternValues :: [String],
+    patternExpression :: Expression
   }
 
 data Declaration 

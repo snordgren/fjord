@@ -107,6 +107,17 @@ resolveExpression (C.Apply offset a b) = do
   resolvedB <- resolveExpression b
   return $ R.Apply offset resolvedA resolvedB
 
+resolveExpression (C.Case offset expr patterns) =
+  let 
+    resolvePattern :: C.Pattern -> Either ResolutionError R.Pattern
+    resolvePattern (C.Pattern offset constructor variables returnExpression) = do
+      resolvedReturnExpr <- resolveExpression returnExpression
+      return $ R.Pattern offset constructor variables resolvedReturnExpr
+  in do
+    resolvedExpression <- resolveExpression expr
+    resolvedPatterns <- Monad.sequence $ fmap resolvePattern patterns
+    return $ R.Case offset resolvedExpression resolvedPatterns
+
 resolveExpression (C.Lambda offset name expr) = do
   resolvedExpr <- resolveExpression expr
   return $ R.Lambda offset name resolvedExpr

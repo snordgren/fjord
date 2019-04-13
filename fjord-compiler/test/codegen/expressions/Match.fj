@@ -1,0 +1,17 @@
+module test.codegen.expressions.Match
+
+enum Binary
+  Zero : Binary
+  One : Binary
+
+toInt : Binary -> Int
+toInt b = 
+  case b of
+    Zero -> 0
+    One -> 1
+
+zero : Int
+zero = toInt Zero
+
+one : Int
+one = toInt One

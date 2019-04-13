@@ -6,19 +6,28 @@ module AST.Typed where
 
 data Module = Module { moduleName :: String, moduleDeclarations :: [Declaration] }
 data Expression 
-  = IntLiteral Integer 
-  | StringLiteral String 
-  | Name String Type 
-  | Addition Expression Expression 
+  = Addition Expression Expression 
   | Apply Expression Expression
+  | Case Expression [Pattern]
+  | IntLiteral Integer 
   | Lambda String Type Expression
+  | Name String Type 
   | RecordUpdate Expression [FieldUpdate]
+  | StringLiteral String 
   deriving (Eq, Show)
 
 data FieldUpdate = FieldUpdate 
   { 
     fieldUpdateName :: String, 
     fieldUpdateExpression :: Expression 
+  }
+  deriving (Eq, Show)
+
+data Pattern = Pattern 
+  {
+    patternConstructor :: String,
+    patternVariables :: [String],
+    patternReturnExpression :: Expression
   }
   deriving (Eq, Show)
 

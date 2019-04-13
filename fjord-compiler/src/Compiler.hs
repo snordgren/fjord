@@ -170,6 +170,21 @@ translateExpression indent (T.Apply a b) = do
   tell hiddenParams
   return ("(" ++ translatedRootF ++ "(" ++ params ++ "))")
 
+translateExpression indent (T.Case sourceExpr patterns) = 
+  let
+    indentS = List.concat $ fmap (const "  ") [0..(indent - 1)]
+    indentPlusS = indentS ++ "  "
+    tagS exprS = "(() => {\n" ++ indentS ++ "const tag = " ++ exprS ++ "[0];\n" ++ indentS
+
+    translatePattern (T.Pattern constructor variables returnExpr) = do
+      translatedReturnExpr <- translateExpression indent returnExpr
+      return ("if (tag === $Tag" ++ constructor ++ ") {\n" ++ indentPlusS ++ "return " ++ 
+        translatedReturnExpr ++ ";\n" ++ indentS ++ "}") 
+  in do
+    translatedSourceExpr <- translateExpression indent sourceExpr
+    patterns <- Monad.sequence $ fmap translatePattern patterns
+    return ((tagS translatedSourceExpr) ++ (List.intercalate " else " patterns) ++ "\n})()")
+
 translateExpression indent (T.Lambda name t expr) =
   let 
     lambdaParameters :: T.Expression -> [String]
