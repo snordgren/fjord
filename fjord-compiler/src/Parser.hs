@@ -109,6 +109,19 @@ parameterP = do
   many spaceP
   return $ C.Parameter offset name
 
+typeTermP :: Parser C.Type
+typeTermP = 
+  choice [parenthesizedTypeP, typeNameP]
+
+parenthesizedTypeP :: Parser C.Type
+parenthesizedTypeP = do
+  char '('
+  many spaceP
+  innerType <- typeP
+  many spaceP
+  char ')'
+  return innerType
+
 typeNameP :: Parser C.Type
 typeNameP = do
   offset <- getOffset
@@ -125,7 +138,7 @@ typeP =
       some spaceP
       return (C.FunctionType offset)
   in 
-    makeExprParser typeNameP [[thinArrow]]
+    makeExprParser typeTermP [[thinArrow]]
 
 
 instance ShowErrorComponent String where

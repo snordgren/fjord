@@ -24,7 +24,8 @@ expressionP =
 termP :: Parser C.Expression
 termP = 
   choice [
-    (try caseP), (try lambdaP), recordUpdateP, intLiteralP, stringLiteralP, nameExpressionP
+    (try caseP), (try lambdaP), recordUpdateP, intLiteralP, stringLiteralP, nameExpressionP,
+    parenthesizedExpressionP
   ]
 
 
@@ -105,6 +106,16 @@ nameExpressionP = do
   return $ C.Name offset name
 
 
+parenthesizedExpressionP :: Parser C.Expression
+parenthesizedExpressionP = do
+  char '('
+  spaceInExpressionP
+  innerExpression <- expressionP
+  spaceInExpressionP
+  char ')'
+  return innerExpression
+
+
 applyP = do
   offset <- getOffset
   some spaceP
@@ -149,5 +160,3 @@ patternP = label "pattern" $ do
   expr <- expressionP
   eol
   return $ C.Pattern offset constructor variables expr
-
-  

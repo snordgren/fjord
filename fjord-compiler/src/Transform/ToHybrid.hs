@@ -78,17 +78,25 @@ transformDeclaration (T.RecordDeclaration name fields) =
     ]
 
 transformDeclaration (T.ValueDeclaration name parameters typ expr) = 
-  let   
+  let
+    bodyParameters :: H.Expression -> [(String, H.Type)]
+    bodyParameters (H.Lambda p b) = p ++ (bodyParameters b)
+    bodyParameters _ = []
+
+    realBody :: H.Expression -> H.Expression
+    realBody (H.Lambda _ a) = realBody a
+    realBody a = a
+
     findReturnType (T.FunctionType _ a) = findReturnType a
     findReturnType a = a
 
-    (transformedExpression, hiddenParams) = runState (transformExpression expr) []
+    (transformedExpression, hiddenParams) = runState (transformExpression expr) 0
     transformedParameters = fmap (\(T.Parameter s t) -> (s, transformType t)) parameters
     returnType = transformType $ findReturnType typ
-    functionBody = H.SimpleFunctionBody transformedExpression
+    functionBody = H.SimpleFunctionBody (realBody transformedExpression)
 
     allParameters :: [(String, H.Type)]
-    allParameters = transformedParameters ++ hiddenParams
+    allParameters = transformedParameters ++ (bodyParameters transformedExpression)
   in if (List.length allParameters) == 0 then
     [
       H.ValueDefinition name (transformType typ) transformedExpression
@@ -99,7 +107,7 @@ transformDeclaration (T.ValueDeclaration name parameters typ expr) =
     ]
 
 
-transformExpression :: T.Expression -> State [(String, H.Type)] H.Expression
+transformExpression :: T.Expression -> State Int H.Expression
 transformExpression (T.Addition a b) = do
   ta <- transformExpression a
   tb <- transformExpression b
@@ -134,14 +142,18 @@ transformExpression (T.Apply a b) =
     missingParameters = fmap transformType $ drop passedParameterCount allParameters
     hiddenParamCount = requiredArgumentCount - passedParameterCount
     missingParamIx = List.zip missingParameters [0..(hiddenParamCount - 1)]
+    missingParamArr = fmap (\(t, n) -> ("_" ++ (show n), t)) missingParamIx
   in do
     transformedParameters <- Monad.sequence (fmap transformExpression passedParameters)
     transformedRootF <- transformExpression rootF
-    currentHiddenParams <- get
-    let hiddenParamStartN = List.length currentHiddenParams
+    hiddenParamStartN <- get
     let hiddenParams = fmap (mkMissingParam hiddenParamStartN) missingParamIx
-    put $ fmap (\(t, n) -> ("_" ++ (show n), t)) missingParamIx
-    return $ H.Invoke transformedRootF (transformedParameters ++ hiddenParams)
+    put (hiddenParamStartN + (List.length hiddenParams))
+    return (
+      if hiddenParamCount == 0 then 
+        H.Invoke transformedRootF (transformedParameters ++ hiddenParams)
+      else 
+        H.Lambda missingParamArr $ H.Invoke transformedRootF (transformedParameters ++ hiddenParams))
 
 transformExpression (T.Case sourceExpression patterns) = 
   let 
@@ -162,7 +174,7 @@ transformExpression (T.Case sourceExpression patterns) =
 
     readTag = H.Read H.BuiltInInt targetN
 
-    caseStatementFor :: T.Pattern -> State [(String, H.Type)] (H.Expression, H.Statement)
+    caseStatementFor :: T.Pattern -> State Int (H.Expression, H.Statement)
     caseStatementFor (T.Pattern ctor variables returnExpression) = 
       do
         transformedReturnExpression <- transformExpression returnExpression
@@ -205,7 +217,7 @@ transformExpression (T.RecordUpdate sourceExpression fieldUpdates) =
     readUpdateField = H.Read updateFieldType updateFieldName
     retStmt = H.Return readUpdateField
 
-    transformFieldUpdate :: T.FieldUpdate -> State [(String, H.Type)] [H.Statement]
+    transformFieldUpdate :: T.FieldUpdate -> State Int [H.Statement]
     transformFieldUpdate (T.FieldUpdate name expression) = do
       transformedExpression <- transformExpression expression
       return $ 

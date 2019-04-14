@@ -1,0 +1,10 @@
+module test.codegen.expressions.PartialApplication1
+
+first : Int -> Int -> Int
+first x y = x
+
+apply : (Int -> Int) -> Int
+apply f = f 2
+
+two : Int
+two = apply (first 0)

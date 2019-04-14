@@ -9,8 +9,8 @@ module Parsing.Basics (
 
 import Text.Megaparsec
 import Text.Megaparsec.Char
+import qualified Data.List as List
 import qualified Text.Megaparsec.Char.Lexer as Lexer
-
 
 type Parser = Parsec String String
 
@@ -27,20 +27,21 @@ keyword s =
 
 
 nameP :: Parser String
-nameP = do
+nameP = label "name" $ do
   s <- some letterChar
-  if elem s keywords then
-    fail (s ++ " is a keyword")
+  t <- many alphaNumChar
+  let n = s ++ t
+  if elem n keywords then
+    fail (n ++ " is a keyword")
   else
-    return s
+    return n
 
 
 qualifiedNameP :: Parser String
-qualifiedNameP = do
-  head <- some letterChar
-  tail <- many (letterChar <|> (char '.'))
-  return (head ++ tail)
-
+qualifiedNameP = label "qualified name" $ do
+  head <- nameP
+  tail <- try $ many (char '.' >> nameP)
+  return $ List.intercalate "." (head : (if length tail > 0 then [List.intercalate "." tail] else []))
 
 spaceP :: Parser ()
 spaceP = do 
