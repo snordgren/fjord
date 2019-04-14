@@ -17,17 +17,9 @@ main = do
 unitTests :: TestTree
 unitTests = testGroup "Unit Tests" 
   [
-    testGroup "Compiler" [
-      testCase "generateJSParameters" testGenerateJSParameters
-    ],
     ParserSpec.testParser,
     TypeCheckSpec.test
   ]
-
-testGenerateJSParameters :: Assertion
-testGenerateJSParameters = 
-  assertEqual "generated parameter list" "(x, y) => " 
-    (C.generateJSParameters ["x", "y"])
 
 goldenTests :: IO TestTree
 goldenTests = do

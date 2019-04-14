@@ -2,17 +2,20 @@
 
 export const $TagZero = 1;
 
-export const Zero = Object.freeze([$TagZero]);
-
 export const $TagOne = 2;
+
+export const Zero = Object.freeze([$TagZero]);
 
 export const One = Object.freeze([$TagOne]);
 
 export const toInt = b => (() => {
-  const tag = b[0];
-  if (tag === $TagZero) {
+  var tag;
+  var target;
+  target = b;
+  tag = (target)[0];
+  if ((target === $TagZero)) {
     return 0;
-  } else if (tag === $TagOne) {
+  } else if ((target === $TagOne)) {
     return 1;
   }
 })();

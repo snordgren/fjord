@@ -4,7 +4,12 @@
 -- has been verified correct. 
 module AST.Typed where
 
-data Module = Module { moduleName :: String, moduleDeclarations :: [Declaration] }
+data Module = 
+  Module { 
+    moduleName :: String, 
+    moduleDeclarations :: [Declaration] 
+  }
+  
 data Expression 
   = Addition Expression Expression 
   | Apply Expression Expression
@@ -44,7 +49,11 @@ data EnumConstructor = EnumConstructor
   }
   deriving (Eq, Show)
 
-data RecordField = RecordField { recordFieldName :: String, recordFieldType :: Type }
+data RecordField = 
+  RecordField { 
+    recordFieldName :: String, 
+    recordFieldType :: Type 
+  } 
   deriving (Eq, Show)
 
 data Parameter = Parameter { parameterName :: String, parameterType :: Type }
@@ -58,3 +67,21 @@ instance Show Type where
   show BuiltInInt = "BuiltIn.Int"
   show BuiltInString = "BuiltIn.String"
   show (FunctionType p r) = (show p) ++ " -> " ++ (show r)
+
+  
+expressionType :: Expression -> Type
+expressionType a = 
+  case a of 
+    Addition b _ -> expressionType b
+    Apply b _ -> returnType $ expressionType b
+    Case a p -> expressionType $ patternReturnExpression $ head p
+    IntLiteral _ -> BuiltInInt
+    Lambda _ t r -> FunctionType t $ expressionType r
+    Name _ t -> t
+    RecordUpdate a _ -> expressionType a
+    StringLiteral _ -> BuiltInString
+
+
+returnType :: Type -> Type 
+returnType (FunctionType _ a) = a
+returnType a = a
