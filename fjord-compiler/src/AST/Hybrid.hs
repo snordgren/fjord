@@ -70,7 +70,7 @@ data Block
 
 data Statement 
   = Assign String Expression
-  | If [(Expression, Statement)] (Maybe Statement)
+  | If [(Expression, Block)] (Maybe Block)
   | Mutate Expression String Expression
   | Return Expression
   deriving (Eq, Show)

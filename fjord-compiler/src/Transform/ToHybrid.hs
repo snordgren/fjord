@@ -157,29 +157,34 @@ transformExpression (T.Apply a b) =
 
 transformExpression (T.Case sourceExpression patterns) = 
   let 
-    sourceExpressionType = transformType $ T.expressionType sourceExpression
+    srcExprT = transformType $ T.expressionType sourceExpression
     targetN = "target"
     tagN = "tag"
+    readSrcExprS = H.Read srcExprT targetN
     declarations = 
       [
         (tagN, H.BuiltInInt),
-        (targetN, sourceExpressionType)
+        (targetN, srcExprT)
       ]
     
     assignments e = 
       [
         H.Assign targetN e,
-        H.Assign tagN $ H.ArrayAccess (H.Read sourceExpressionType targetN) (H.IntLiteral 0)
+        H.Assign tagN $ H.ArrayAccess (H.Read srcExprT targetN) (H.IntLiteral 0)
       ]
 
     readTag = H.Read H.BuiltInInt targetN
 
-    caseStatementFor :: T.Pattern -> State Int (H.Expression, H.Statement)
-    caseStatementFor (T.Pattern ctor variables returnExpression) = 
+    caseStatementFor :: T.Pattern -> State Int (H.Expression, H.Block)
+    caseStatementFor (T.Pattern ctor vars retExpr) = 
       do
-        transformedReturnExpression <- transformExpression returnExpression
-        return $ ((H.Equals readTag $ (H.Read H.BuiltInInt ("$Tag" ++ ctor))),
-          (H.Return transformedReturnExpression))
+        transformedReturnExpression <- transformExpression retExpr
+        let condition = H.Equals readTag $ (H.Read H.BuiltInInt ("$Tag" ++ ctor))
+        let ret = H.Return transformedReturnExpression
+        let declarations = fmap (\(s, t) -> (s, transformType t)) vars
+        let assignStatements = fmap (\((s, _), n) -> H.Assign s $ H.ArrayAccess readSrcExprS $ H.IntLiteral n) $ List.zip vars [1..]
+        let block = H.Block declarations (assignStatements ++ [ret])
+        return $ (condition, block)
   in 
     do
       transformedSourceExpression <- transformExpression sourceExpression

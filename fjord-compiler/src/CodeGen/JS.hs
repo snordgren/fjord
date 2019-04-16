@@ -95,20 +95,20 @@ statementToJS indent (H.If thenBranches elseBranch) =
     indentPlus = indentF (indent + 1)
     endBrace = "\n" ++ indentS ++ "}"
 
-    generateIf :: (H.Expression, H.Statement) -> String
-    generateIf (condition, thenStatement) = 
+    generateIf :: (H.Expression, H.Block) -> String
+    generateIf (condition, thenBlock) = 
       let 
         expressionJS = expressionToJS indent condition
-        bodyJS = statementToJS (indent + 1) thenStatement
+        bodyJS = blockToJS (indent + 1) thenBlock
       in
-        "if (" ++ expressionJS ++ ") {\n" ++ indentPlus ++ bodyJS ++ endBrace
+        "if (" ++ expressionJS ++ ") {\n" ++ bodyJS ++ endBrace
 
     thenBranchesJS = 
       List.intercalate " else " $ fmap generateIf thenBranches 
 
     elseBranchJS = 
       Maybe.fromMaybe "" $ 
-        fmap (\a -> " else {\n" ++ indentPlus ++ (statementToJS (indent + 1) a) ++ endBrace) elseBranch 
+        fmap (\a -> " else {\n" ++ (blockToJS (indent + 1) a) ++ endBrace) elseBranch 
   in
     thenBranchesJS ++ elseBranchJS
 

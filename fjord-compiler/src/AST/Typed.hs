@@ -31,7 +31,7 @@ data FieldUpdate = FieldUpdate
 data Pattern = Pattern 
   {
     patternConstructor :: String,
-    patternVariables :: [String],
+    patternVariables :: [(String, Type)],
     patternReturnExpression :: Expression
   }
   deriving (Eq, Show)

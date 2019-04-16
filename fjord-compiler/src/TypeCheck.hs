@@ -143,10 +143,20 @@ toTypedExpression scope _ (R.Apply _ a b) = do
 
 toTypedExpression scope expectedType (R.Case offset expression patterns) = 
   let 
+    createPatternScope constructorType variables scope = 
+      let
+        variableTypes = functionParameterList constructorType
+        bindings = List.zip variables variableTypes
+      in
+        R.Scope (bindings ++ (R.scopeBindings scope))
+
     toTypedPattern :: R.Pattern -> Either TypeError T.Pattern
-    toTypedPattern (R.Pattern offset constructor variables returnExpression) = do
-      typedReturnExpression <- toTypedExpression scope expectedType returnExpression
-      return $ T.Pattern constructor variables typedReturnExpression
+    toTypedPattern (R.Pattern offset ctor vars retExpr) = do
+      ctorType <- scopeVariableType scope offset ctor 
+      let patternScope = createPatternScope ctorType vars scope
+      let mergedVars = List.zip vars $ fmap toTypedType $ functionParameterList ctorType
+      typedRetExpr <- toTypedExpression patternScope expectedType retExpr
+      return $ T.Pattern ctor mergedVars typedRetExpr
   in do
     typedPatterns <- Monad.sequence $ fmap toTypedPattern patterns
     typedSourceExpression <- toTypedExpression scope Nothing expression
