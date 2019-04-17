@@ -10,10 +10,10 @@ import Text.Megaparsec.Char
 import qualified Control.Monad as Monad
 
 import Parsing.Basics
-import qualified AST.Contextual as C
+import qualified AST.Untyped as U
 
 
-expressionP :: Parser C.Expression
+expressionP :: Parser U.Expression
 expressionP = 
   label "expression" $ makeExprParser termP 
     [
@@ -21,7 +21,7 @@ expressionP =
       [InfixL (try additionP)]
     ]
 
-termP :: Parser C.Expression
+termP :: Parser U.Expression
 termP = 
   choice [
     (try caseP), (try lambdaP), recordUpdateP, intLiteralP, stringLiteralP, nameExpressionP,
@@ -29,7 +29,7 @@ termP =
   ]
 
 
-lambdaP :: Parser C.Expression
+lambdaP :: Parser U.Expression
 lambdaP = do
   offset <- getOffset
   name <- nameP
@@ -37,10 +37,10 @@ lambdaP = do
   string "->"
   many spaceP
   ret <- expressionP
-  return $ C.Lambda offset name ret
+  return $ U.Lambda offset name ret
 
 
-recordUpdateP :: Parser C.Expression
+recordUpdateP :: Parser U.Expression
 recordUpdateP = label "record update" $ do
   offset <- getOffset
   char '{'
@@ -54,10 +54,10 @@ recordUpdateP = label "record update" $ do
   many spaceP
   char '}'
   let updates = updateHead : updateTail
-  return $ C.RecordUpdate offset target updates
+  return $ U.RecordUpdate offset target updates
 
 
-fieldUpdateP :: Parser C.FieldUpdate
+fieldUpdateP :: Parser U.FieldUpdate
 fieldUpdateP = do
   offset <- getOffset
   fieldName <- nameP
@@ -65,23 +65,23 @@ fieldUpdateP = do
   char '='
   many spaceP
   value <- expressionP
-  return $ C.FieldUpdate offset fieldName value
+  return $ U.FieldUpdate offset fieldName value
 
 
-intLiteralP :: Parser C.Expression
+intLiteralP :: Parser U.Expression
 intLiteralP = label "integer" $ do
   offset <- getOffset
   num <- some (oneOf "1234567890")
-  return $ C.IntLiteral offset (read num :: Integer)
+  return $ U.IntLiteral offset (read num :: Integer)
 
 
-stringLiteralP :: Parser C.Expression
+stringLiteralP :: Parser U.Expression
 stringLiteralP = label "string" $ do
   offset <- getOffset
   char '"'
   strings <- many stringPartP 
   char '"'
-  return $ C.StringLiteral offset (concat strings)
+  return $ U.StringLiteral offset (concat strings)
 
 
 nonEscape :: Parser String
@@ -99,14 +99,14 @@ stringPartP :: Parser String
 stringPartP = nonEscape <|> escape
 
 
-nameExpressionP :: Parser C.Expression
+nameExpressionP :: Parser U.Expression
 nameExpressionP = do
   offset <- getOffset
   name <- nameP
-  return $ C.Name offset name
+  return $ U.Name offset name
 
 
-parenthesizedExpressionP :: Parser C.Expression
+parenthesizedExpressionP :: Parser U.Expression
 parenthesizedExpressionP = do
   char '('
   spaceInExpressionP
@@ -125,7 +125,7 @@ applyP = do
       fmap (const ()) $ oneOf "}|",
       fmap (const ()) $ string "of"
     ]
-  return $ C.Apply offset
+  return $ U.Apply offset
 
 
 additionP = do
@@ -133,7 +133,7 @@ additionP = do
   many spaceP
   char '+'
   many spaceP
-  return $ C.Addition offset
+  return $ U.Addition offset
 
 
 caseP = label "case expression" $ do
@@ -146,7 +146,7 @@ caseP = label "case expression" $ do
   many spaceP
   eol
   patterns <- some (try patternP)
-  return $ C.Case offset expr patterns
+  return $ U.Case offset expr patterns
 
 
 patternP = label "pattern" $ do
@@ -159,4 +159,4 @@ patternP = label "pattern" $ do
   many spaceP
   expr <- expressionP
   eol
-  return $ C.Pattern offset constructor variables expr
+  return $ U.Pattern offset constructor variables expr

@@ -11,7 +11,7 @@ import Test.Tasty.HUnit (assertEqual, testCase, Assertion)
 import Parser
 import Parsing.Basics (Parser)
 import Parsing.Expression (caseP, expressionP, patternP)
-import qualified AST.Contextual as AST
+import qualified AST.Untyped as AST
 
 testParser :: TestTree
 testParser = testGroup "ParserSpec" 

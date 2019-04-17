@@ -10,8 +10,8 @@ import qualified Data.Set as Set
 import Parser (runModuleParser)
 import Resolution (resolve, ResolutionError (..))
 import TypeCheck (typeCheck, TypeError (..))
-import qualified AST.Contextual as C
 import qualified AST.Typed as T
+import qualified AST.Untyped as U
 import qualified CodeGen.JS as JS
 import qualified Transform.ToHybrid as ToHybrid
 

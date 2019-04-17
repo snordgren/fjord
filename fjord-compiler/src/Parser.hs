@@ -9,15 +9,15 @@ import qualified Data.List as List
 
 import Parsing.Basics
 import Parsing.Expression
-import qualified AST.Contextual as C
+import qualified AST.Untyped as U
 
 
-runModuleParser :: String -> String -> Either (ParseErrorBundle String String) C.Module
+runModuleParser :: String -> String -> Either (ParseErrorBundle String String) U.Module
 runModuleParser = 
   runParser moduleP
 
   
-moduleP :: Parser C.Module
+moduleP :: Parser U.Module
 moduleP = do
   string "module"
   some spaceP
@@ -25,15 +25,15 @@ moduleP = do
   many spaceP
   some eol
   declarations <- many declarationP 
-  return $ C.Module moduleName declarations
+  return $ U.Module moduleName declarations
 
 
-declarationP :: Parser C.Declaration
+declarationP :: Parser U.Declaration
 declarationP = 
   enumDeclarationP <|> recordDeclarationP <|> valueDeclarationP
 
 
-enumDeclarationP :: Parser C.Declaration
+enumDeclarationP :: Parser U.Declaration
 enumDeclarationP = do
   offset <- getOffset
   string "enum"
@@ -42,10 +42,10 @@ enumDeclarationP = do
   eol
   constructors <- some enumConstructorP
   (fmap (\_ -> ()) $ some eol) <|> eof
-  return $ C.EnumDeclaration offset declarationName constructors
+  return $ U.EnumDeclaration offset declarationName constructors
 
 
-enumConstructorP :: Parser C.EnumConstructor
+enumConstructorP :: Parser U.EnumConstructor
 enumConstructorP = do
   some spaceP
   offset <- getOffset
@@ -55,10 +55,10 @@ enumConstructorP = do
   many spaceP
   t <- typeP
   eol
-  return $ C.EnumConstructor offset constructorName t 
+  return $ U.EnumConstructor offset constructorName t 
 
 
-recordDeclarationP :: Parser C.Declaration
+recordDeclarationP :: Parser U.Declaration
 recordDeclarationP = do
   offset <- getOffset
   string "record"
@@ -67,10 +67,10 @@ recordDeclarationP = do
   eol
   fields <- some recordFieldP
   eol
-  return $ C.RecordDeclaration offset declarationName fields
+  return $ U.RecordDeclaration offset declarationName fields
 
 
-recordFieldP :: Parser C.RecordField
+recordFieldP :: Parser U.RecordField
 recordFieldP = do
   some spaceP
   offset <- getOffset
@@ -80,10 +80,10 @@ recordFieldP = do
   many spaceP
   fieldType <- typeP
   eol
-  return $ C.RecordField offset fieldName fieldType
+  return $ U.RecordField offset fieldName fieldType
 
 
-valueDeclarationP :: Parser C.Declaration
+valueDeclarationP :: Parser U.Declaration
 valueDeclarationP = do
   offset <- getOffset
   declarationName <- nameP
@@ -100,20 +100,20 @@ valueDeclarationP = do
   spaceInExpressionP
   value <- expressionP
   some eol
-  return $ C.ValueDeclaration offset declarationName parameters declaredType value
+  return $ U.ValueDeclaration offset declarationName parameters declaredType value
 
-parameterP :: Parser C.Parameter
+parameterP :: Parser U.Parameter
 parameterP = do
   offset <- getOffset
   name <- nameP
   many spaceP
-  return $ C.Parameter offset name
+  return $ U.Parameter offset name
 
-typeTermP :: Parser C.Type
+typeTermP :: Parser U.Type
 typeTermP = 
   choice [parenthesizedTypeP, typeNameP]
 
-parenthesizedTypeP :: Parser C.Type
+parenthesizedTypeP :: Parser U.Type
 parenthesizedTypeP = do
   char '('
   many spaceP
@@ -122,13 +122,13 @@ parenthesizedTypeP = do
   char ')'
   return innerType
 
-typeNameP :: Parser C.Type
+typeNameP :: Parser U.Type
 typeNameP = do
   offset <- getOffset
   name <- nameP
-  return $ C.Named offset name
+  return $ U.TypeName offset name
 
-typeP :: Parser C.Type
+typeP :: Parser U.Type
 typeP = 
   let 
     thinArrow = InfixR $ do 
@@ -136,7 +136,7 @@ typeP =
       some spaceP
       (string "->")
       some spaceP
-      return (C.FunctionType offset)
+      return (U.FunctionType offset)
   in 
     makeExprParser typeTermP [[thinArrow]]
 

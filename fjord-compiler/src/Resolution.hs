@@ -4,130 +4,129 @@ import qualified Data.Either.Combinators as Combinators
 import qualified Control.Monad as Monad
 import qualified Data.List as List
 
-import AST.Contextual as C
-import AST.Resolved as R
+import AST.Untyped as U
 
 data ResolutionError = TypeNotFound Int String 
 
-resolve :: C.Module -> Either ResolutionError R.Module 
+resolve :: U.Module -> Either ResolutionError U.Module 
 resolve m = 
   let 
     scope = buildScope m
   in do
-    declarations <- Monad.sequence (fmap (resolveDeclaration scope) (C.moduleDeclarations m))
-    return $ R.Module (C.moduleName m) declarations 
+    declarations <- Monad.sequence (fmap (resolveDeclaration scope) (U.moduleDeclarations m))
+    return $ U.Module (U.moduleName m) declarations 
 
     
-buildScope :: C.Module -> C.Scope
+buildScope :: U.Module -> U.Scope
 buildScope m = 
   let 
-    checkDeclaration :: C.Declaration -> [(String, String)]
-    checkDeclaration (C.EnumDeclaration offset name fields) = [(name, name)]
-    checkDeclaration (C.RecordDeclaration offset name fields) = [(name, name)]
-    checkDeclaration (C.ValueDeclaration _ _ _ _ _) = []
-  in C.Scope $ List.concat (fmap checkDeclaration (C.moduleDeclarations m))
+    checkDeclaration :: U.Declaration -> [(String, U.Type)]
+    checkDeclaration (U.EnumDeclaration offset name fields) = [(name, U.TypeName offset name)]
+    checkDeclaration (U.RecordDeclaration offset name fields) = [(name, U.TypeName offset name)]
+    checkDeclaration (U.ValueDeclaration _ _ _ _ _) = []
+  in U.Scope $ List.concat (fmap checkDeclaration (U.moduleDeclarations m))
 
 
 resolveDeclaration 
-  :: C.Scope
-  -> C.Declaration 
-  -> Either ResolutionError R.Declaration
+  :: U.Scope
+  -> U.Declaration 
+  -> Either ResolutionError U.Declaration
 
-resolveDeclaration scope (C.EnumDeclaration offset name constructors) = 
+resolveDeclaration scope (U.EnumDeclaration offset name constructors) = 
   let
-    resolveConstructor (C.EnumConstructor offset name t) = 
-      fmap (R.EnumConstructor offset name) (resolveType scope t) 
+    resolveConstructor (U.EnumConstructor offset name t) = 
+      fmap (U.EnumConstructor offset name) (resolveType scope t) 
   in do
     resolvedConstructors <- Monad.sequence (fmap resolveConstructor constructors)
-    return $ R.EnumDeclaration offset name resolvedConstructors
+    return $ U.EnumDeclaration offset name resolvedConstructors
 
-resolveDeclaration scope (C.RecordDeclaration offset name fields) = 
+resolveDeclaration scope (U.RecordDeclaration offset name fields) = 
   let 
-    resolveField (C.RecordField offset name t) = 
-      fmap (R.RecordField offset name) (resolveType scope t)
+    resolveField (U.RecordField offset name t) = 
+      fmap (U.RecordField offset name) (resolveType scope t)
   in do
     resolvedFields <- Monad.sequence (fmap resolveField fields)
-    return $ R.RecordDeclaration offset name resolvedFields
+    return $ U.RecordDeclaration offset name resolvedFields
 
-resolveDeclaration scope (C.ValueDeclaration offset name parameters declaredType expr) = 
+resolveDeclaration scope (U.ValueDeclaration offset name parameters declaredType expr) = 
   do 
     resolvedType <- resolveType scope declaredType
     resolvedExpression <- resolveExpression expr
-    return $ R.ValueDeclaration offset name (fmap resolveParameter parameters) 
+    return $ U.ValueDeclaration offset name (fmap resolveParameter parameters) 
       resolvedType resolvedExpression
 
 
-resolveParameter :: C.Parameter -> R.Parameter
-resolveParameter (C.Parameter offset name) = R.Parameter offset name
+resolveParameter :: U.Parameter -> U.Parameter
+resolveParameter (U.Parameter offset name) = U.Parameter offset name
 
 
-resolveType :: C.Scope -> C.Type -> Either ResolutionError R.Type
-resolveType _ (C.Named offset "Int") = 
-  Right $ R.BuiltInInt offset
+resolveType :: U.Scope -> U.Type -> Either ResolutionError U.Type
+resolveType _ (U.TypeName offset "Int") = 
+  Right $ U.BuiltInInt offset
 
-resolveType _ (C.Named offset "String") = 
-  Right $ R.BuiltInString offset
+resolveType _ (U.TypeName offset "String") = 
+  Right $ U.BuiltInString offset
 
-resolveType scope (C.Named offset name) = 
+resolveType scope (U.TypeName offset name) = 
   let
-    resolution :: Maybe (String, String)
-    resolution = List.find (\(a, _) -> a == name) (C.scopeTypes scope)
+    resolution :: Maybe (String, U.Type)
+    resolution = List.find (\(a, _) -> a == name) (U.scopeBindings scope)
 
-    resolved :: Maybe R.Type
-    resolved = fmap (\(_, b) -> R.Canonical offset b) resolution
+    resolved :: Maybe U.Type
+    resolved = fmap snd resolution
 
     err :: ResolutionError
     err = TypeNotFound offset name
   in
     Combinators.maybeToRight err resolved
 
-resolveType scope (C.FunctionType offset parameterType returnType) = do
+resolveType scope (U.FunctionType offset parameterType returnType) = do
   resolvedParameterType <- resolveType scope parameterType
   resolvedReturnType <- resolveType scope returnType
-  return $ R.FunctionType offset resolvedParameterType resolvedReturnType
+  return $ U.FunctionType offset resolvedParameterType resolvedReturnType
 
 
-resolveExpression :: C.Expression -> Either ResolutionError R.Expression
-resolveExpression (C.IntLiteral offset value) =
-  Right $ R.IntLiteral offset value
+resolveExpression :: U.Expression -> Either ResolutionError U.Expression
+resolveExpression (U.IntLiteral offset value) =
+  Right $ U.IntLiteral offset value
 
-resolveExpression (C.StringLiteral offset value) = 
-  Right $ R.StringLiteral offset value
+resolveExpression (U.StringLiteral offset value) = 
+  Right $ U.StringLiteral offset value
 
-resolveExpression (C.Name offset value) = 
-  Right $ R.Name offset value
+resolveExpression (U.Name offset value) = 
+  Right $ U.Name offset value
 
-resolveExpression (C.Addition offset a b) = do
+resolveExpression (U.Addition offset a b) = do
   resolvedA <- resolveExpression a
   resolvedB <- resolveExpression b
-  return $ R.Addition offset resolvedA resolvedB
+  return $ U.Addition offset resolvedA resolvedB
 
-resolveExpression (C.Apply offset a b) = do
+resolveExpression (U.Apply offset a b) = do
   resolvedA <- resolveExpression a
   resolvedB <- resolveExpression b
-  return $ R.Apply offset resolvedA resolvedB
+  return $ U.Apply offset resolvedA resolvedB
 
-resolveExpression (C.Case offset expr patterns) =
+resolveExpression (U.Case offset expr patterns) =
   let 
-    resolvePattern :: C.Pattern -> Either ResolutionError R.Pattern
-    resolvePattern (C.Pattern offset constructor variables returnExpression) = do
+    resolvePattern :: U.Pattern -> Either ResolutionError U.Pattern
+    resolvePattern (U.Pattern offset constructor variables returnExpression) = do
       resolvedReturnExpr <- resolveExpression returnExpression
-      return $ R.Pattern offset constructor variables resolvedReturnExpr
+      return $ U.Pattern offset constructor variables resolvedReturnExpr
   in do
     resolvedExpression <- resolveExpression expr
     resolvedPatterns <- Monad.sequence $ fmap resolvePattern patterns
-    return $ R.Case offset resolvedExpression resolvedPatterns
+    return $ U.Case offset resolvedExpression resolvedPatterns
 
-resolveExpression (C.Lambda offset name expr) = do
+resolveExpression (U.Lambda offset name expr) = do
   resolvedExpr <- resolveExpression expr
-  return $ R.Lambda offset name resolvedExpr
+  return $ U.Lambda offset name resolvedExpr
 
-resolveExpression (C.RecordUpdate offset target updates) = do
+resolveExpression (U.RecordUpdate offset target updates) = do
   resolvedTarget <- resolveExpression target
   resolvedUpdates <- Monad.sequence (fmap resolveFieldUpdate updates)
-  return $ R.RecordUpdate offset resolvedTarget resolvedUpdates
+  return $ U.RecordUpdate offset resolvedTarget resolvedUpdates
 
-resolveFieldUpdate :: C.FieldUpdate -> Either ResolutionError R.FieldUpdate
+resolveFieldUpdate :: U.FieldUpdate -> Either ResolutionError U.FieldUpdate
 resolveFieldUpdate a = do
-  resolvedExpression <- resolveExpression (C.fieldUpdateExpression a)
-  return $ R.FieldUpdate (C.fieldUpdateOffset a) (C.fieldUpdateName a) resolvedExpression
+  resolvedExpression <- resolveExpression (U.fieldUpdateExpression a)
+  return $ U.FieldUpdate (U.fieldUpdateOffset a) (U.fieldUpdateName a) resolvedExpression
