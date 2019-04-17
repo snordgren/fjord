@@ -123,7 +123,14 @@ blockToJS :: Int -> H.Block -> String
 blockToJS indent b = 
   let
     indentS = indentF indent
-    declJS = fmap (\(s, _) -> indentS ++ "var " ++ s ++ ";") (H.blockDeclarations b)
+
+    declEToJS :: Maybe H.Expression -> String
+    declEToJS e = Maybe.fromMaybe "" $ fmap (\a -> " = " ++ (expressionToJS indent a)) e
+
+    declToJS :: (String, H.Type, Maybe H.Expression) -> String
+    declToJS (s, _, e) = indentS ++ "var " ++ s ++ (declEToJS e) ++ ";"
+    
+    declJS = fmap declToJS (H.blockDeclarations b)
     stmtJS = fmap (\a -> indentS ++ (statementToJS indent a)) (H.blockStatements b)
     blockJS = List.intercalate "\n" (declJS ++ stmtJS)
   in 

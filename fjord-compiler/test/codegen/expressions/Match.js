@@ -9,10 +9,8 @@ export const Zero = Object.freeze([$TagZero]);
 export const One = Object.freeze([$TagOne]);
 
 export const toInt = b => (() => {
-  var tag;
-  var target;
-  target = b;
-  tag = (target)[0];
+  var target = b;
+  var tag = (target)[0];
   if ((target === $TagZero)) {
     return 0;
   } else if ((target === $TagOne)) {

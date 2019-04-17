@@ -63,7 +63,7 @@ data Expression
 
 data Block 
   = Block {
-    blockDeclarations :: [(String, Type)],
+    blockDeclarations :: [(String, Type, Maybe Expression)],
     blockStatements :: [Statement]
   }
   deriving (Eq, Show)

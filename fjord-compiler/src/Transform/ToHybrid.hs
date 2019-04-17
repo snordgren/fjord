@@ -67,11 +67,10 @@ transformDeclaration (T.RecordDeclaration name fields) =
     returnType = transformType (T.TypeName name)
     objName = "_a"
     readObj = H.Read returnType objName 
-    decls = [(objName, returnType)]
-    allocStmt = H.Assign objName $ H.Allocate returnType
+    decls = [(objName, returnType, Just $ H.Allocate returnType)]
     initStmts = fmap (\(name, t) -> H.Mutate readObj name $ H.Read t name) parameters
     retStmt = H.Return $ H.Read returnType objName
-    body = H.BlockFunctionBody $ H.Block decls (allocStmt : initStmts ++ [retStmt])
+    body = H.BlockFunctionBody $ H.Block decls (initStmts ++ [retStmt])
   in
     [
       H.FunctionDefinition name parameters returnType body
@@ -161,37 +160,33 @@ transformExpression (T.Case sourceExpression patterns) =
     targetN = "target"
     tagN = "tag"
     readSrcExprS = H.Read srcExprT targetN
-    declarations = 
+    declarations srcExprH = 
       [
-        (tagN, H.BuiltInInt),
-        (targetN, srcExprT)
-      ]
-    
-    assignments e = 
-      [
-        H.Assign targetN e,
-        H.Assign tagN $ H.ArrayAccess (H.Read srcExprT targetN) (H.IntLiteral 0)
+        (targetN, srcExprT, Just srcExprH),
+        (tagN, H.BuiltInInt, Just $ H.ArrayAccess (H.Read srcExprT targetN) (H.IntLiteral 0))
       ]
 
     readTag = H.Read H.BuiltInInt targetN
 
     caseStatementFor :: T.Pattern -> State Int (H.Expression, H.Block)
     caseStatementFor (T.Pattern ctor vars retExpr) = 
-      do
+      let 
+        condition = H.Equals readTag $ (H.Read H.BuiltInInt ("$Tag" ++ ctor))
+        accessFE n = H.ArrayAccess readSrcExprS $ H.IntLiteral n
+        declarations = 
+          fmap (\((s, t), n) -> (s, transformType t, Just $ accessFE n)) $ List.zip vars [1..]
+      in do
         transformedReturnExpression <- transformExpression retExpr
-        let condition = H.Equals readTag $ (H.Read H.BuiltInInt ("$Tag" ++ ctor))
         let ret = H.Return transformedReturnExpression
-        let declarations = fmap (\(s, t) -> (s, transformType t)) vars
-        let assignStatements = fmap (\((s, _), n) -> H.Assign s $ H.ArrayAccess readSrcExprS $ H.IntLiteral n) $ List.zip vars [1..]
-        let block = H.Block declarations (assignStatements ++ [ret])
+        let block = H.Block declarations [ret]
         return $ (condition, block)
   in 
     do
-      transformedSourceExpression <- transformExpression sourceExpression
+      transformedSrcExpr <- transformExpression sourceExpression
       caseStatements <- Monad.sequence $ fmap caseStatementFor patterns
       let ifStatement = H.If caseStatements Nothing
       return $ H.IIFE $ 
-        H.Block declarations ((assignments transformedSourceExpression) ++ [ifStatement])
+        H.Block (declarations transformedSrcExpr) [ifStatement]
         
 
 transformExpression (T.IntLiteral n) = 
@@ -230,11 +225,10 @@ transformExpression (T.RecordUpdate sourceExpression fieldUpdates) =
           H.Mutate readUpdateField name transformedExpression
         ]
   in do
-    transformedSourceExpression <- transformExpression sourceExpression
+    transformedSrcExpr <- transformExpression sourceExpression
     transformedFieldUpdates <- Monad.sequence $ fmap transformFieldUpdate fieldUpdates
-    let assignStmt = H.Assign updateFieldName transformedSourceExpression
-    let statements = [assignStmt] ++ (List.concat $ transformedFieldUpdates) ++ [retStmt]
-    return $ H.IIFE $ H.Block [(updateFieldName, updateFieldType)] statements
+    let statements = (List.concat $ transformedFieldUpdates) ++ [retStmt]
+    return $ H.IIFE $ H.Block [(updateFieldName, updateFieldType, Just transformedSrcExpr)] statements
 
 transformExpression (T.StringLiteral s) = 
   return $ H.StringLiteral s
