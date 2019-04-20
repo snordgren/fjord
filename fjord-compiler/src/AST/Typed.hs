@@ -4,6 +4,9 @@
 -- has been verified correct. 
 module AST.Typed where
 
+import qualified Data.List as List
+
+
 data Module = 
   Module { 
     moduleName :: String, 
@@ -19,6 +22,7 @@ data Expression
   | Operator String Type Expression Expression 
   | RecordUpdate Expression [FieldUpdate]
   | StringLiteral String 
+  | Tuple [Expression]
   deriving (Eq, Show)
 
 data FieldUpdate = FieldUpdate 
@@ -59,7 +63,12 @@ data RecordField =
 data Parameter = Parameter { parameterName :: String, parameterType :: Type }
   deriving (Eq, Show)
 
-data Type = TypeName String | BuiltInInt | BuiltInString | FunctionType Type Type
+data Type 
+  = BuiltInInt 
+  | BuiltInString 
+  | FunctionType Type Type
+  | TupleType [Type]
+  | TypeName String 
   deriving Eq
 
 instance Show Type where
@@ -67,7 +76,7 @@ instance Show Type where
   show BuiltInInt = "BuiltIn.Int"
   show BuiltInString = "BuiltIn.String"
   show (FunctionType p r) = (show p) ++ " -> " ++ (show r)
-
+  show (TupleType values) = "(" ++ (List.intercalate "," $ fmap show values) ++ ")"
   
 expressionType :: Expression -> Type
 expressionType a = 
@@ -80,6 +89,7 @@ expressionType a =
     Operator _ t _ _ -> returnType $ returnType t
     RecordUpdate a _ -> expressionType a
     StringLiteral _ -> BuiltInString
+    Tuple values -> TupleType $ fmap expressionType values
 
 
 returnType :: Type -> Type 

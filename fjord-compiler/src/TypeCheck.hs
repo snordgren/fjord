@@ -121,65 +121,77 @@ functionTypeList t =
     
 
 toTypedExpression :: U.Scope -> Maybe U.Type -> U.Expression -> Either TypeError T.Expression
-toTypedExpression _ _ (U.IntLiteral _ value) = 
-  Right $ T.IntLiteral value
+toTypedExpression scope expectedType expr =
+  case expr of 
+    U.Apply _ a b ->
+      do 
+        typedA <- toTypedExpression scope Nothing a
+        typedB <- toTypedExpression scope Nothing b
+        return $ T.Apply typedA typedB
 
-toTypedExpression _ _ (U.StringLiteral _ value) = 
-  Right $ T.StringLiteral value
+    U.Case offset expression patterns ->
+      let 
+        createPatternScope constructorType variables scope = 
+          let
+            variableTypes = functionParameterList constructorType
+            bindings = List.zip variables variableTypes
+          in
+            U.Scope (bindings ++ (U.scopeBindings scope))
+    
+        toTypedPattern :: U.Pattern -> Either TypeError T.Pattern
+        toTypedPattern (U.Pattern offset ctor vars retExpr) = do
+          ctorType <- scopeVariableType scope offset ctor 
+          let patternScope = createPatternScope ctorType vars scope
+          let mergedVars = List.zip vars $ fmap toTypedType $ functionParameterList ctorType
+          typedRetExpr <- toTypedExpression patternScope expectedType retExpr
+          return $ T.Pattern ctor mergedVars typedRetExpr
+      in do
+        typedPatterns <- Monad.sequence $ fmap toTypedPattern patterns
+        typedSourceExpression <- toTypedExpression scope Nothing expression
+        return $ T.Case typedSourceExpression typedPatterns
 
-toTypedExpression scope _ (U.Name n s) = do
-  t <- scopeVariableType scope n s
-  return $ T.Name s (toTypedType t)
-  
-toTypedExpression scope expectedType (U.Operator offset name a b) = 
-  do
-    opType <- scopeVariableType scope offset name 
-    let opTypeT = toTypedType opType
-    typedA <- toTypedExpression scope expectedType a
-    typedB <- toTypedExpression scope expectedType b
-    return $ T.Operator name opTypeT typedA typedB
+    U.IntLiteral _ value -> 
+      Right $ T.IntLiteral value
 
-toTypedExpression scope _ (U.Apply _ a b) = do 
-  typedA <- toTypedExpression scope Nothing a
-  typedB <- toTypedExpression scope Nothing b
-  return $ T.Apply typedA typedB
+    U.Lambda offset name expr ->
+      do
+        t <- Combinators.maybeToRight (CannotInferType offset "missing expected type") expectedType
+        parT <- Combinators.maybeToRight (CannotInferType offset "missing parameter type") 
+          (parameterType t)
+        retT <- Combinators.maybeToRight (CannotInferType offset "missing return type") (returnType t)
+        let lambdaScope = U.Scope ((name, parT) : U.scopeBindings scope)
+        exprT <- toTypedExpression lambdaScope (Just retT) expr
+        let typedT = toTypedType t
+        return $ T.Lambda name typedT exprT
+      
+    U.Name n s -> 
+      do
+        t <- scopeVariableType scope n s
+        return $ T.Name s (toTypedType t)
 
-toTypedExpression scope expectedType (U.Case offset expression patterns) = 
-  let 
-    createPatternScope constructorType variables scope = 
-      let
-        variableTypes = functionParameterList constructorType
-        bindings = List.zip variables variableTypes
-      in
-        U.Scope (bindings ++ (U.scopeBindings scope))
+    U.Operator offset name a b -> 
+      do
+        opType <- scopeVariableType scope offset name 
+        let opTypeT = toTypedType opType
+        typedA <- toTypedExpression scope expectedType a
+        typedB <- toTypedExpression scope expectedType b
+        return $ T.Operator name opTypeT typedA typedB
 
-    toTypedPattern :: U.Pattern -> Either TypeError T.Pattern
-    toTypedPattern (U.Pattern offset ctor vars retExpr) = do
-      ctorType <- scopeVariableType scope offset ctor 
-      let patternScope = createPatternScope ctorType vars scope
-      let mergedVars = List.zip vars $ fmap toTypedType $ functionParameterList ctorType
-      typedRetExpr <- toTypedExpression patternScope expectedType retExpr
-      return $ T.Pattern ctor mergedVars typedRetExpr
-  in do
-    typedPatterns <- Monad.sequence $ fmap toTypedPattern patterns
-    typedSourceExpression <- toTypedExpression scope Nothing expression
-    return $ T.Case typedSourceExpression typedPatterns
+    U.RecordUpdate _ target updates ->
+      do
+        typedTarget <- toTypedExpression scope expectedType target
+        typedUpdates <- Monad.sequence $ fmap (typedFieldUpdate scope) updates
+        return $ T.RecordUpdate typedTarget typedUpdates
 
-toTypedExpression scope expectedType (U.Lambda offset name expr) = do
-  t <- Combinators.maybeToRight (CannotInferType offset "missing expected type") expectedType
-  parT <- Combinators.maybeToRight (CannotInferType offset "missing parameter type") 
-    (parameterType t)
-  retT <- Combinators.maybeToRight (CannotInferType offset "missing return type") (returnType t)
-  let lambdaScope = U.Scope ((name, parT) : U.scopeBindings scope)
-  exprT <- toTypedExpression lambdaScope (Just retT) expr
-  let typedT = toTypedType t
-  return $ T.Lambda name typedT exprT
+    U.StringLiteral _ value -> 
+      Right $ T.StringLiteral value
 
-toTypedExpression scope expectedType (U.RecordUpdate _ target updates) = do
-  typedTarget <- toTypedExpression scope expectedType target
-  typedUpdates <- Monad.sequence $ fmap (typedFieldUpdate scope) updates
-  return $ T.RecordUpdate typedTarget typedUpdates
-
+    U.Tuple _ values -> 
+      do
+        -- TODO Propagate types here. 
+        typedValues <- Monad.sequence $ fmap (toTypedExpression scope Nothing) values
+        return $ T.Tuple typedValues
+      
 
 typedFieldUpdate :: U.Scope -> U.FieldUpdate -> Either TypeError T.FieldUpdate
 typedFieldUpdate scope a = 
@@ -190,39 +202,61 @@ typedFieldUpdate scope a =
 
 
 inferType :: U.Scope -> Maybe T.Type -> U.Expression -> Either TypeError T.Type
-inferType _ _ (U.IntLiteral offset _) = 
-  Right T.BuiltInInt 
+inferType scope expectedType expr = 
+  case expr of 
+    U.Apply offset a b ->
+      do
+        inferA <- inferType scope Nothing a
+        inferB <- inferType scope Nothing b
+        case inferA of 
+          T.FunctionType param ret -> Right ret
+          _ -> Left $ CannotInferType offset "cannot infer function type"
 
-inferType _ _ (U.StringLiteral offset _) = 
-  Right T.BuiltInString
+    U.Case offset expr patterns -> 
+      inferType scope expectedType (U.patternExpression (head patterns))
 
-inferType scope _ (U.Name offset name) = 
-  fmap toTypedType (scopeVariableType scope offset name)
+    U.IntLiteral offset _ -> 
+      Right T.BuiltInInt
 
-inferType scope expectedType (U.Operator offset name a b) =
-  fmap (T.returnType . T.returnType) $ inferType scope expectedType (U.Name offset name)
+    U.Lambda offset name expr ->
+      Combinators.maybeToRight (CannotInferType offset "cannot infer lambda type") expectedType
+
+    U.Name offset name ->
+      fmap toTypedType (scopeVariableType scope offset name)
+
+    U.Operator offset name a b ->
+      fmap (T.returnType . T.returnType) $ inferType scope expectedType (U.Name offset name)
+
+    U.RecordUpdate _ target _ ->
+      inferType scope expectedType target
+
+    U.StringLiteral offset _ -> 
+      Right T.BuiltInString
+
+    -- TODO Propagate expected type if expected type is a tuple.
+    U.Tuple offset values -> 
+      do
+        inferredValueTypes <- Monad.sequence $ fmap (inferType scope Nothing) values
+        return $ T.TupleType inferredValueTypes
+
+
+toTypedType :: U.Type -> T.Type
+toTypedType a =
+  case a of 
+    U.BuiltInInt _ -> 
+      T.BuiltInInt
+
+    U.BuiltInString _ -> 
+      T.BuiltInString
+
+    U.FunctionType _ par ret ->
+      T.FunctionType (toTypedType par) (toTypedType ret)
+
+    U.TupleType _ types ->
+      T.TupleType $ fmap toTypedType types
     
-inferType scope _ (U.Apply offset a b) = do
-  inferA <- inferType scope Nothing a
-  inferB <- inferType scope Nothing b
-  case inferA of 
-    T.FunctionType param ret -> Right ret
-    _ -> Left $ CannotInferType offset "cannot infer function type"
-
-inferType scope expectedType (U.Case offset expr patterns) =
-  inferType scope expectedType (U.patternExpression (head patterns))
-
-inferType scope expectedType (U.Lambda offset name expr) = 
-  Combinators.maybeToRight (CannotInferType offset "cannot infer lambda type") expectedType
-
-inferType scope expectedType (U.RecordUpdate _ target _) =
-  inferType scope expectedType target
-
-toTypedType (U.BuiltInInt _) = T.BuiltInInt
-toTypedType (U.BuiltInString _) = T.BuiltInString
-toTypedType (U.TypeName _ n) = T.TypeName n
-toTypedType (U.FunctionType offset par ret) = 
-  T.FunctionType (toTypedType par) (toTypedType ret)
+    U.TypeName _ n ->
+      T.TypeName n
 
 
 scopeVariableType :: U.Scope -> Int -> String -> Either TypeError U.Type

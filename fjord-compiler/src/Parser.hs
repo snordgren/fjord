@@ -110,18 +110,41 @@ parameterP = do
   many spaceP
   return $ U.Parameter offset name
 
+
 typeTermP :: Parser U.Type
 typeTermP = 
-  choice [parenthesizedTypeP, typeNameP]
+  choice [(try tupleTypeP), parenTypeP, typeNameP]
 
-parenthesizedTypeP :: Parser U.Type
-parenthesizedTypeP = do
+
+tupleTypeP :: Parser U.Type
+tupleTypeP = label "tuple type" $
+  let 
+    rhsP = do
+      many spaceP
+      char ','
+      many spaceP
+      expr <- typeP
+      return expr
+  in do
+    offset <- getOffset
+    char '('
+    many spaceP
+    head <- typeP
+    tail <- some rhsP
+    many spaceP
+    char ')'
+    return $ U.TupleType offset $ head : tail
+
+
+parenTypeP :: Parser U.Type
+parenTypeP = do
   char '('
   many spaceP
   innerType <- typeP
   many spaceP
   char ')'
   return innerType
+
 
 typeNameP :: Parser U.Type
 typeNameP = do

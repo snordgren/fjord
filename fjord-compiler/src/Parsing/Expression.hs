@@ -34,13 +34,13 @@ expressionP =
 termP :: Parser U.Expression
 termP = 
   choice [
-    (try caseP), (try lambdaP), recordUpdateP, intLiteralP, stringLiteralP, nameExpressionP,
-    parenthesizedExpressionP
+    (try caseP), (try lambdaP), (try tupleExprP), recordUpdateP, intLiteralP, stringLiteralP, 
+    nameExpressionP, parenExprP
   ]
 
 
 lambdaP :: Parser U.Expression
-lambdaP = do
+lambdaP = label "lambda" $ do
   offset <- getOffset
   name <- nameP
   many spaceP
@@ -116,8 +116,27 @@ nameExpressionP = do
   return $ U.Name offset name
 
 
-parenthesizedExpressionP :: Parser U.Expression
-parenthesizedExpressionP = do
+tupleExprP :: Parser U.Expression
+tupleExprP = 
+  let 
+    rhsP = do
+      many spaceP
+      char ',' 
+      many spaceP
+      expr <- expressionP
+      return $ expr
+  in do
+    offset <- getOffset
+    char '('
+    many spaceP
+    head <- expressionP
+    tail <- some $ try rhsP
+    char ')'
+    return $ U.Tuple offset $ head : tail
+
+
+parenExprP :: Parser U.Expression
+parenExprP = do
   char '('
   spaceInExpressionP
   innerExpression <- expressionP
@@ -131,7 +150,7 @@ applyP = do
   some spaceP
   notFollowedBy $ choice 
     [
-      fmap (const ()) $ oneOf $ "})" ++ opSym,
+      fmap (const ()) $ oneOf $ "})," ++ opSym,
       fmap (const ()) $ string "of"
     ]
   return $ U.Apply offset

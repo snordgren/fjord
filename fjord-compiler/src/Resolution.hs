@@ -85,6 +85,11 @@ resolveType scope (U.FunctionType offset parameterType returnType) = do
   resolvedReturnType <- resolveType scope returnType
   return $ U.FunctionType offset resolvedParameterType resolvedReturnType
 
+resolveType scope (U.TupleType offset types) = do
+  resolvedTypes <- Monad.sequence $ fmap (resolveType scope) types
+  return $ U.TupleType offset resolvedTypes
+
+
 
 resolveExpression :: U.Expression -> Either ResolutionError U.Expression
 resolveExpression (U.IntLiteral offset value) =
@@ -125,6 +130,11 @@ resolveExpression (U.RecordUpdate offset target updates) = do
   resolvedTarget <- resolveExpression target
   resolvedUpdates <- Monad.sequence (fmap resolveFieldUpdate updates)
   return $ U.RecordUpdate offset resolvedTarget resolvedUpdates
+
+resolveExpression (U.Tuple offset values) = do
+  resolvedValues <- Monad.sequence $ fmap resolveExpression values
+  return $ U.Tuple offset resolvedValues
+
 
 resolveFieldUpdate :: U.FieldUpdate -> Either ResolutionError U.FieldUpdate
 resolveFieldUpdate a = do

@@ -241,6 +241,11 @@ transformExpression (T.RecordUpdate sourceExpression fieldUpdates) =
 transformExpression (T.StringLiteral s) = 
   return $ H.StringLiteral s
 
+transformExpression (T.Tuple values) = 
+  do
+    transExprs <- Monad.sequence $ fmap transformExpression values
+    return $ H.Immutable $ H.Array transExprs
+
 
 transformType :: T.Type -> H.Type
 transformType (T.BuiltInInt) = H.BuiltInInt

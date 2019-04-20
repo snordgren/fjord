@@ -6,6 +6,7 @@ data Module = Module { moduleName :: String, moduleDeclarations :: [Declaration]
 data Type 
   = TypeName Int String
   | FunctionType Int Type Type 
+  | TupleType Int [Type]
   | BuiltInInt Int 
   | BuiltInString Int
   deriving (Eq, Show)
@@ -51,6 +52,10 @@ data Expression
   | StringLiteral {
     expressionOffset :: Int,
     stringLiteralVal :: String 
+  }
+  | Tuple {
+    expressionOffset :: Int,
+    tupleValues :: [Expression]
   }
   deriving (Eq, Show)
 
