@@ -9,6 +9,7 @@ import qualified Data.List as List
 
 import qualified AST.Hybrid as H
 import qualified AST.Typed as T
+import qualified CodeGen.NameMangling as NameMangling
 
 transformModule :: T.Module -> H.Source
 transformModule m = 
@@ -107,10 +108,6 @@ transformDeclaration (T.ValueDeclaration name parameters typ expr) =
 
 
 transformExpression :: T.Expression -> State Int H.Expression
-transformExpression (T.Addition a b) = do
-  ta <- transformExpression a
-  tb <- transformExpression b
-  return $ H.Addition (transformType $ T.expressionType a) ta tb
 
 transformExpression (T.Apply a b) = 
   let 
@@ -209,6 +206,17 @@ transformExpression (T.Lambda variable variableType body) =
 
 transformExpression (T.Name a t) = 
   return $ H.Read (transformType t) a
+
+transformExpression (T.Operator name opType a b) = do
+  ta <- transformExpression a
+  tb <- transformExpression b
+  case name of 
+    "+" -> return $ H.Addition (transformType $ T.expressionType a) ta tb
+    _ -> 
+      let
+        opFunName = NameMangling.mangle name 
+      in
+        return $ H.Invoke (H.Read (transformType opType) opFunName) [ta, tb] 
 
 transformExpression (T.RecordUpdate sourceExpression fieldUpdates) = 
   let

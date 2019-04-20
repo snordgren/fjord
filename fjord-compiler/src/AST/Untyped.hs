@@ -12,13 +12,7 @@ data Type
 
 
 data Expression 
-  = Addition 
-  {
-    expressionOffset :: Int,
-    additionLHS :: Expression,
-    additionRHS :: Expression 
-  }
-  | Apply 
+  = Apply 
   {
     expressionOffset :: Int,
     applyF :: Expression,
@@ -41,6 +35,13 @@ data Expression
   | Name {
     expressionOffset :: Int,
     nameExpressionVal :: String 
+  }
+  | Operator
+  {
+    expressionOffset :: Int,
+    operatorName :: String,
+    operatorLHS :: Expression,
+    operatorRHS :: Expression 
   }
   | RecordUpdate {
     expressionOffset :: Int,

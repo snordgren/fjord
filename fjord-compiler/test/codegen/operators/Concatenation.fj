@@ -1,0 +1,7 @@
+module test.codegen.operators.Concatenation
+
+(++) : String -> String -> String
+(++) x y = x
+
+helloWorld : String
+helloWorld = "Hello, " ++ "world!"

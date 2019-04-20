@@ -24,17 +24,17 @@ moduleP = do
   moduleName <- qualifiedNameP
   many spaceP
   some eol
-  declarations <- many declarationP 
+  declarations <- some declarationP 
   return $ U.Module moduleName declarations
 
 
 declarationP :: Parser U.Declaration
 declarationP = 
-  enumDeclarationP <|> recordDeclarationP <|> valueDeclarationP
+  label "declaration" $ enumDeclarationP <|> recordDeclarationP <|> valueDeclarationP
 
 
 enumDeclarationP :: Parser U.Declaration
-enumDeclarationP = do
+enumDeclarationP = label "enum declaration" $ do
   offset <- getOffset
   string "enum"
   some spaceP
@@ -46,7 +46,7 @@ enumDeclarationP = do
 
 
 enumConstructorP :: Parser U.EnumConstructor
-enumConstructorP = do
+enumConstructorP = label "enum constructor" $ do
   some spaceP
   offset <- getOffset
   constructorName <- nameP
@@ -59,7 +59,7 @@ enumConstructorP = do
 
 
 recordDeclarationP :: Parser U.Declaration
-recordDeclarationP = do
+recordDeclarationP = label "record declaration" $ do
   offset <- getOffset
   string "record"
   some spaceP
@@ -84,9 +84,9 @@ recordFieldP = do
 
 
 valueDeclarationP :: Parser U.Declaration
-valueDeclarationP = do
+valueDeclarationP = label "value declaration" $ do
   offset <- getOffset
-  declarationName <- nameP
+  declarationName <- nameP <|> operatorNameP
   many spaceP
   char ':'
   many spaceP
@@ -100,7 +100,8 @@ valueDeclarationP = do
   spaceInExpressionP
   value <- expressionP
   some eol
-  return $ U.ValueDeclaration offset declarationName parameters declaredType value
+  let useName = filter (\a -> a /= '(' && a /= ')') declarationName
+  return $ U.ValueDeclaration offset useName parameters declaredType value
 
 parameterP :: Parser U.Parameter
 parameterP = do

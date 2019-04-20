@@ -11,12 +11,12 @@ data Module =
   }
   
 data Expression 
-  = Addition Expression Expression 
-  | Apply Expression Expression
+  = Apply Expression Expression
   | Case Expression [Pattern]
   | IntLiteral Integer 
   | Lambda String Type Expression
   | Name String Type 
+  | Operator String Type Expression Expression 
   | RecordUpdate Expression [FieldUpdate]
   | StringLiteral String 
   deriving (Eq, Show)
@@ -72,12 +72,12 @@ instance Show Type where
 expressionType :: Expression -> Type
 expressionType a = 
   case a of 
-    Addition b _ -> expressionType b
     Apply b _ -> returnType $ expressionType b
     Case a p -> expressionType $ patternReturnExpression $ head p
     IntLiteral _ -> BuiltInInt
     Lambda _ t r -> FunctionType t $ expressionType r
     Name _ t -> t
+    Operator _ t _ _ -> returnType $ returnType t
     RecordUpdate a _ -> expressionType a
     StringLiteral _ -> BuiltInString
 

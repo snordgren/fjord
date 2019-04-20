@@ -1,7 +1,10 @@
 module Parsing.Basics (
   keyword,
   nameP,
+  operatorNameP,
+  opSym,
   qualifiedNameP,
+  reservedSym,
   spaceP,
   spaceInExpressionP,
   Parser
@@ -15,7 +18,16 @@ import qualified Text.Megaparsec.Char.Lexer as Lexer
 type Parser = Parsec String String
 
 
-keywords = ["as", "case", "do", "enum", "let", "module", "of", "record", "use"]
+keywords = 
+  ["as", "case", "do", "enum", "forall", "let", "module", "of", "record", "use"]
+
+
+opSym = 
+  "+-/*^:<>&|?@~=%!"
+
+
+reservedSym = 
+  ["->", "<-", ":", "=", "=>", "|", "&"]
 
 
 keyword :: String -> Parser String
@@ -36,6 +48,16 @@ nameP = label "name" $ do
   else
     return n
 
+
+operatorNameP :: Parser String
+operatorNameP = label "operator name" $ do
+  char '('
+  s <- some $ oneOf opSym
+  char ')'
+  if elem s reservedSym then
+    fail $ s ++ " is a reserved symbol"
+  else
+    return $ "(" ++ s ++ ")"
 
 qualifiedNameP :: Parser String
 qualifiedNameP = label "qualified name" $ do

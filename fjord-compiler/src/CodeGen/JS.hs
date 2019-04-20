@@ -4,6 +4,7 @@ import qualified Data.List as List
 import qualified Data.Maybe as Maybe
 
 import qualified AST.Hybrid as H
+import qualified CodeGen.NameMangling as NameMangling
 
 generateJS :: H.Source -> String
 generateJS s = 
@@ -29,11 +30,16 @@ definitionToJS (H.FunctionDefinition name parameters returnType body) =
       H.BlockFunctionBody b -> "{\n" ++ (blockToJS 1 b) ++ "\n}"
       H.SimpleFunctionBody a -> expressionToJS 0 a
 
+    mangledName = NameMangling.mangle name
   in 
-    "export const " ++ name ++ " = " ++ paramsJS ++ " => " ++ bodyJS ++ ";"
+    "export const " ++ mangledName ++ " = " ++ paramsJS ++ " => " ++ bodyJS ++ ";"
 
 definitionToJS (H.ValueDefinition name typ expr) = 
-  "export const " ++ name ++ " = " ++ (expressionToJS 0 expr) ++ ";"
+  let 
+    mangledName = NameMangling.mangle name
+    exprJS = expressionToJS 0 expr
+  in
+    "export const " ++ mangledName ++ " = " ++ exprJS ++ ";"
 
 
 expressionToJS :: Int -> H.Expression -> String

@@ -131,10 +131,13 @@ toTypedExpression scope _ (U.Name n s) = do
   t <- scopeVariableType scope n s
   return $ T.Name s (toTypedType t)
   
-toTypedExpression scope expectedType (U.Addition _ a b) = do
-  typedA <- toTypedExpression scope expectedType a
-  typedB <- toTypedExpression scope expectedType b
-  return $ T.Addition typedA typedB
+toTypedExpression scope expectedType (U.Operator offset name a b) = 
+  do
+    opType <- scopeVariableType scope offset name 
+    let opTypeT = toTypedType opType
+    typedA <- toTypedExpression scope expectedType a
+    typedB <- toTypedExpression scope expectedType b
+    return $ T.Operator name opTypeT typedA typedB
 
 toTypedExpression scope _ (U.Apply _ a b) = do 
   typedA <- toTypedExpression scope Nothing a
@@ -196,13 +199,8 @@ inferType _ _ (U.StringLiteral offset _) =
 inferType scope _ (U.Name offset name) = 
   fmap toTypedType (scopeVariableType scope offset name)
 
-inferType scope expectedType (U.Addition offset a b) = do
-  inferA <- inferType scope expectedType a
-  inferB <- inferType scope expectedType b
-  if inferA == inferB then 
-    Right $ inferA 
-  else 
-    Left $ WrongType (U.expressionOffset b) inferA inferB
+inferType scope expectedType (U.Operator offset name a b) =
+  fmap (T.returnType . T.returnType) $ inferType scope expectedType (U.Name offset name)
     
 inferType scope _ (U.Apply offset a b) = do
   inferA <- inferType scope Nothing a

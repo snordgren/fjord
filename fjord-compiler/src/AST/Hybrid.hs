@@ -41,12 +41,12 @@ data Expression
     expression returns the index of the element to access. 
   -}
   | ArrayAccess Expression Expression
+  | Equals Expression Expression
   {-|
     An immediately invoked function expression, used when we need to use 
     features only statements can have, but need to return an expression, 
     such as in mutating a record. 
   -}
-  | Equals Expression Expression
   | IIFE Block
   {-|
     Prevent the result of this expression from being mutated. 

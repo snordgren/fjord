@@ -1,0 +1,4 @@
+module test.errors.UndefinedOperator
+
+undefinedOp : Int -> Int
+undefinedOp a = a ++ 1

@@ -96,11 +96,6 @@ resolveExpression (U.StringLiteral offset value) =
 resolveExpression (U.Name offset value) = 
   Right $ U.Name offset value
 
-resolveExpression (U.Addition offset a b) = do
-  resolvedA <- resolveExpression a
-  resolvedB <- resolveExpression b
-  return $ U.Addition offset resolvedA resolvedB
-
 resolveExpression (U.Apply offset a b) = do
   resolvedA <- resolveExpression a
   resolvedB <- resolveExpression b
@@ -120,6 +115,11 @@ resolveExpression (U.Case offset expr patterns) =
 resolveExpression (U.Lambda offset name expr) = do
   resolvedExpr <- resolveExpression expr
   return $ U.Lambda offset name resolvedExpr
+
+resolveExpression (U.Operator offset opName a b) = do
+  resolvedA <- resolveExpression a
+  resolvedB <- resolveExpression b
+  return $ U.Operator offset opName resolvedA resolvedB
 
 resolveExpression (U.RecordUpdate offset target updates) = do
   resolvedTarget <- resolveExpression target

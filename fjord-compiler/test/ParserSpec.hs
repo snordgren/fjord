@@ -24,7 +24,7 @@ testParser = testGroup "ParserSpec"
 testParseAddition :: Assertion
 testParseAddition = 
   let 
-    expected = AST.Addition 1 (AST.IntLiteral 0 1) (AST.IntLiteral 4 2)
+    expected = AST.Operator 1 "+" (AST.IntLiteral 0 1) (AST.IntLiteral 4 2)
   in
     runTest expressionP expected "1 + 2"
 

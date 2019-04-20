@@ -15,11 +15,21 @@ import qualified AST.Untyped as U
 
 expressionP :: Parser U.Expression
 expressionP = 
-  label "expression" $ makeExprParser termP 
-    [
-      [InfixL (try applyP)], 
-      [InfixL (try additionP)]
-    ]
+  let 
+    mkOps xs = fmap (\a -> InfixL $ try $ operatorP a) xs
+  in 
+    label "expression" $ makeExprParser termP 
+      [
+        [InfixL $ try applyP], 
+        mkOps ['*', '/', '%'],
+        mkOps ['+', '-'],
+        mkOps [':'],
+        mkOps ['<', '>'],
+        mkOps ['=', '!'],
+        mkOps ['&'],
+        mkOps ['^'],
+        mkOps ['|']
+      ]
 
 termP :: Parser U.Expression
 termP = 
@@ -121,19 +131,27 @@ applyP = do
   some spaceP
   notFollowedBy $ choice 
     [
-      fmap (const ()) additionP, 
-      fmap (const ()) $ oneOf "}|",
+      fmap (const ()) $ oneOf $ "})" ++ opSym,
       fmap (const ()) $ string "of"
     ]
   return $ U.Apply offset
 
 
-additionP = do
+{-|
+Matches operators starting with character c.
+-}
+operatorP :: Char -> Parser (U.Expression -> U.Expression -> U.Expression)
+operatorP c = do
   offset <- getOffset
   many spaceP
-  char '+'
+  head <- char c
+  tail <- many $ oneOf opSym
   many spaceP
-  return $ U.Addition offset
+  let name = head : tail
+  if elem name reservedSym then
+    fail $ name ++ " is a reserved symbol"
+  else 
+    return $ U.Operator offset name
 
 
 caseP = label "case expression" $ do

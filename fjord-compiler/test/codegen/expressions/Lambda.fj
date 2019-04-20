@@ -1,5 +1,8 @@
 module test.codegen.expressions.Lambda
 
+(+) : Int -> Int -> Int
+(+) x y = x
+
 addLambda : Int -> Int -> Int
 addLambda = x -> y -> x + y
 

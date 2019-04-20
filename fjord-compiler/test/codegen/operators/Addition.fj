@@ -1,5 +1,8 @@
 module test.codegen.operators.Addition
 
+(+) : Int -> Int -> Int
+(+) x y = x
+
 three : Int
 three = 1 + 2
 
