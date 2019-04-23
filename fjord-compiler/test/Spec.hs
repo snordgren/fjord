@@ -3,6 +3,7 @@ import Test.Tasty (defaultMain, testGroup, TestTree)
 import Test.Tasty.Golden (goldenVsString, findByExtension)
 import Test.Tasty.HUnit (assertEqual, testCase, Assertion)
 import qualified Data.ByteString.Lazy.Char8 as LBS
+import qualified Data.List as List
 
 import qualified Compiler as  C
 import qualified AST.Typed as T
@@ -25,28 +26,34 @@ goldenTests :: IO TestTree
 goldenTests = do
   js <- jsGoldenTests
   errors <- errorGoldenTests
-  return $ testGroup "Golden Tests" [js, errors]
+  typeDef <- typeDefGoldenTests
+  return $ testGroup "Golden Tests" [js, errors, typeDef]
 
 jsGoldenTests :: IO TestTree
-jsGoldenTests = createGoldenTestTree "JS CodeGen" "./test/codegen" ".js"
+jsGoldenTests = createGoldenTestTree "JS CodeGen" "./test/codegen" ".js" fst
 
 errorGoldenTests :: IO TestTree
 errorGoldenTests = createGoldenTestTree "Error Reporting" "./test/errors" 
-  ".golden"
+  ".golden" fst
 
-createGoldenTestTree name dir extension = do
+typeDefGoldenTests :: IO TestTree
+typeDefGoldenTests = createGoldenTestTree "Definition file generation" "./test/typedef" 
+  ".d.fj" (\(a, b) -> if length b > 0 then b else a)
+
+createGoldenTestTree name dir extension f = do
   files <- findByExtension [".fj"] dir
-  tests <- mapM (mkGoldenTest extension) files
+  tests <- mapM (mkGoldenTest extension f) $ 
+    filter (\a -> not $ List.isInfixOf ".d.fj" $ takeFileName a) files
   return $ testGroup name tests
 
-mkGoldenTest :: String -> FilePath -> IO TestTree
-mkGoldenTest extension path = do
+mkGoldenTest :: String -> ((String, String) -> String) -> FilePath -> IO TestTree
+mkGoldenTest extension f path = do
   let testName = takeBaseName path
   let goldenPath = replaceExtension path extension
-  return (goldenVsString testName goldenPath action)
+  return $ goldenVsString testName goldenPath action
   where
     action :: IO LBS.ByteString
     action = do
-      source <- readFile path
-      let actual = C.compile (takeFileName path) source
-      return (LBS.pack actual)
+      src <- readFile path
+      let res = C.compile (takeFileName path) src
+      return $ LBS.pack $ f res

@@ -1,0 +1,19 @@
+module test.typedef.TypeDef
+
+record OneMember
+  funds : OneMember -> Int
+
+record TwoMembers
+  fn : Int -> OneMember
+  count : Int
+
+enum ThreeMembers
+  First : ThreeMembers
+  Second : Int -> ThreeMembers
+  Third : (TwoMembers -> String, Int) -> ThreeMembers
+
+five : Int
+
+stringIdentity : String -> String
+
+fn0 : (String -> String) -> String

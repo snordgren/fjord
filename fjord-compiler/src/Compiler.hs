@@ -13,11 +13,16 @@ import TypeCheck (typeCheck, TypeError (..))
 import qualified AST.Typed as T
 import qualified AST.Untyped as U
 import qualified CodeGen.JS as JS
+import qualified CodeGen.TypeDef as TypeDef
 import qualified Transform.ToHybrid as ToHybrid
 
-compile :: String -> String -> String
+compile :: String -> String -> (String, String)
 compile fileName source = 
-  either errorBundlePretty generateJSModule (parseModuleSource fileName source)
+  let 
+    handleErr bundle = (errorBundlePretty bundle, "")
+    handleSucc mod = (generateJSModule mod, TypeDef.genDefStr mod)
+  in 
+    either handleErr handleSucc $ parseModuleSource fileName source
 
 parseModuleSource :: String -> String -> Either (ParseErrorBundle String String) T.Module
 parseModuleSource fileName source = 
