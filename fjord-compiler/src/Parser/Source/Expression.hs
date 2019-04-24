@@ -1,4 +1,4 @@
-module Parsing.Expression (
+module Parser.Source.Expression (
   caseP, 
   expressionP, 
   patternP
@@ -9,7 +9,7 @@ import Text.Megaparsec
 import Text.Megaparsec.Char
 import qualified Control.Monad as Monad
 
-import Parsing.Basics
+import Parser.Common
 import qualified AST.Untyped as U
 
 
@@ -64,7 +64,7 @@ recordUpdateP = label "record update" $ do
   many spaceP
   char '}'
   let updates = updateHead : updateTail
-  return $ U.RecordUpdate offset target updates
+  return $ U.RecUpdate offset target updates
 
 
 fieldUpdateP :: Parser U.FieldUpdate

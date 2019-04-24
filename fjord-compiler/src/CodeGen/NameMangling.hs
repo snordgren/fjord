@@ -23,6 +23,8 @@ mangle name =
         '=' -> "$eq"
         '%' -> "$pct"
         '!' -> "$bang"
+        '(' -> []
+        ')' -> []
         a -> a : []
   in 
     List.concat $ fmap opFunNameChar name

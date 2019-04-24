@@ -14,97 +14,101 @@ import qualified CodeGen.NameMangling as NameMangling
 transformModule :: T.Module -> H.Source
 transformModule m = 
   let 
-    decls = List.concat $ fmap transformDeclaration (T.moduleDeclarations m)
+    decls = List.concat $ fmap transformDef (T.moduleDefs m)
   in
     H.Source (T.moduleName m) decls
 
 
-transformDeclaration :: T.Declaration -> [H.Definition]
-transformDeclaration (T.EnumDeclaration name constructors) = 
-  if (List.length constructors) == 0 then
-    error "constructor length should be greater than 0"
-  else let 
-    enumType :: H.Type
-    enumType = transformType $ T.TypeName name
-
-    enumTagType = H.BuiltInInt
+transformDef :: T.Definition -> [H.Definition]
+transformDef a = 
+  case a of 
+    T.EnumDef name constructors -> 
+      if (List.length constructors) == 0 then
+        error "constructor length should be greater than 0"
+      else let 
+        enumType :: H.Type
+        enumType = transformType $ T.TypeName name
     
-    ctorTagName :: T.EnumConstructor -> String
-    ctorTagName (T.EnumConstructor n _) = "$Tag" ++ n
+        enumTagType = H.BuiltInInt
+        
+        ctorTagName :: T.EnumConstructor -> String
+        ctorTagName (T.EnumConstructor n _) = "$Tag" ++ n
+    
+        ctorTag :: (T.EnumConstructor, Integer) -> H.Definition
+        ctorTag (ctor, ix) = 
+          H.ValueDefinition (ctorTagName ctor) enumTagType $ H.IntLiteral ix
+    
+        ctorParameters :: T.Type -> [T.Type]
+        ctorParameters (T.FunctionType a b) = a : (ctorParameters b)
+        ctorParameters _ = []
+    
+        ctorFun :: T.EnumConstructor -> H.Definition
+        ctorFun ctor =
+          let 
+            ctorParameterTypes = fmap transformType $ ctorParameters $ T.enumConstructorType ctor
+            ctorParameterCount = List.length ctorParameterTypes
+            ctorParameterH = fmap (\(t, s) -> (("_" ++ (show s)), t)) $ zip ctorParameterTypes [0..]
+            ctorName = T.enumConstructorName ctor
+            ctorParameterExprs = fmap (\(s, t) -> H.Read t s) ctorParameterH 
+            ctorBody = H.Immutable $ H.Array ((H.Read enumTagType $ (ctorTagName ctor)) : ctorParameterExprs)
+          in 
+            if ctorParameterCount == 0 then
+              H.ValueDefinition ctorName enumType ctorBody
+            else
+              H.FunctionDefinition ctorName ctorParameterH enumType $ H.SimpleFunctionBody ctorBody
+    
+        tags = fmap ctorTag $ zip constructors [1..]
+        functions = fmap ctorFun constructors
+      in tags ++ functions
 
-    ctorTag :: (T.EnumConstructor, Integer) -> H.Definition
-    ctorTag (ctor, ix) = 
-      H.ValueDefinition (ctorTagName ctor) enumTagType $ H.IntLiteral ix
+    T.RecDef name fields ->
+      if length fields == 0 then
+        error "zero-field records are not yet implemented"
+      else let
+        tupleRecField f = 
+          (T.recFieldName f, transformType (T.recFieldType f))
+    
+        parameters = fmap tupleRecField fields
+        returnType = transformType (T.TypeName name)
+        objName = "_a"
+        readObj = H.Read returnType objName 
+        decls = [(objName, returnType, Just $ H.Allocate returnType)]
+        initStmts = fmap (\(name, t) -> H.Mutate readObj name $ H.Read t name) parameters
+        retStmt = H.Return $ H.Read returnType objName
+        body = H.BlockFunctionBody $ H.Block decls (initStmts ++ [retStmt])
+      in
+        [
+          H.FunctionDefinition name parameters returnType body
+        ]
 
-    ctorParameters :: T.Type -> [T.Type]
-    ctorParameters (T.FunctionType a b) = a : (ctorParameters b)
-    ctorParameters _ = []
-
-    ctorFun :: T.EnumConstructor -> H.Definition
-    ctorFun ctor =
-      let 
-        ctorParameterTypes = fmap transformType $ ctorParameters $ T.enumConstructorType ctor
-        ctorParameterCount = List.length ctorParameterTypes
-        ctorParameterH = fmap (\(t, s) -> (("_" ++ (show s)), t)) $ zip ctorParameterTypes [0..]
-        ctorName = T.enumConstructorName ctor
-        ctorParameterExprs = fmap (\(s, t) -> H.Read t s) ctorParameterH 
-        ctorBody = H.Immutable $ H.Array ((H.Read enumTagType $ (ctorTagName ctor)) : ctorParameterExprs)
-      in 
-        if ctorParameterCount == 0 then
-          H.ValueDefinition ctorName enumType ctorBody
-        else
-          H.FunctionDefinition ctorName ctorParameterH enumType $ H.SimpleFunctionBody ctorBody
-
-    tags = fmap ctorTag $ zip constructors [1..]
-    functions = fmap ctorFun constructors
-  in tags ++ functions
-
-transformDeclaration (T.RecordDeclaration name fields) = 
-  if length fields == 0 then
-    error "zero-field records are not yet implemented"
-  else let
-    tupleRecordField f = (T.recordFieldName f, transformType (T.recordFieldType f))
-    parameters = fmap tupleRecordField fields
-    returnType = transformType (T.TypeName name)
-    objName = "_a"
-    readObj = H.Read returnType objName 
-    decls = [(objName, returnType, Just $ H.Allocate returnType)]
-    initStmts = fmap (\(name, t) -> H.Mutate readObj name $ H.Read t name) parameters
-    retStmt = H.Return $ H.Read returnType objName
-    body = H.BlockFunctionBody $ H.Block decls (initStmts ++ [retStmt])
-  in
-    [
-      H.FunctionDefinition name parameters returnType body
-    ]
-
-transformDeclaration (T.ValueDeclaration name parameters typ expr) = 
-  let
-    bodyParameters :: H.Expression -> [(String, H.Type)]
-    bodyParameters (H.Lambda p b) = p ++ (bodyParameters b)
-    bodyParameters _ = []
-
-    realBody :: H.Expression -> H.Expression
-    realBody (H.Lambda _ a) = realBody a
-    realBody a = a
-
-    findReturnType (T.FunctionType _ a) = findReturnType a
-    findReturnType a = a
-
-    (transformedExpression, hiddenParams) = runState (transformExpression expr) 0
-    transformedParameters = fmap (\(T.Parameter s t) -> (s, transformType t)) parameters
-    returnType = transformType $ findReturnType typ
-    functionBody = H.SimpleFunctionBody (realBody transformedExpression)
-
-    allParameters :: [(String, H.Type)]
-    allParameters = transformedParameters ++ (bodyParameters transformedExpression)
-  in if (List.length allParameters) == 0 then
-    [
-      H.ValueDefinition name (transformType typ) transformedExpression
-    ]
-  else 
-    [
-      H.FunctionDefinition name allParameters returnType functionBody
-    ]
+    T.ValDef name parameters typ expr ->
+      let
+        bodyParameters :: H.Expression -> [(String, H.Type)]
+        bodyParameters (H.Lambda p b) = p ++ (bodyParameters b)
+        bodyParameters _ = []
+    
+        realBody :: H.Expression -> H.Expression
+        realBody (H.Lambda _ a) = realBody a
+        realBody a = a
+    
+        findReturnType (T.FunctionType _ a) = findReturnType a
+        findReturnType a = a
+    
+        (transformedExpression, hiddenParams) = runState (transformExpression expr) 0
+        transformedParameters = fmap (\(T.Parameter s t) -> (s, transformType t)) parameters
+        returnType = transformType $ findReturnType typ
+        functionBody = H.SimpleFunctionBody (realBody transformedExpression)
+    
+        allParameters :: [(String, H.Type)]
+        allParameters = transformedParameters ++ (bodyParameters transformedExpression)
+      in if (List.length allParameters) == 0 then
+        [
+          H.ValueDefinition name (transformType typ) transformedExpression
+        ]
+      else 
+        [
+          H.FunctionDefinition name allParameters returnType functionBody
+        ]
 
 
 transformExpression :: T.Expression -> State Int H.Expression
@@ -157,7 +161,7 @@ transformExpression (T.Case sourceExpression patterns) =
     targetN = "target"
     tagN = "tag"
     readSrcExprS = H.Read srcExprT targetN
-    declarations srcExprH = 
+    decls srcExprH = 
       [
         (targetN, srcExprT, Just srcExprH),
         (tagN, H.BuiltInInt, Just $ H.ArrayAccess (H.Read srcExprT targetN) (H.IntLiteral 0))
@@ -170,12 +174,12 @@ transformExpression (T.Case sourceExpression patterns) =
       let 
         condition = H.Equals readTag $ (H.Read H.BuiltInInt ("$Tag" ++ ctor))
         accessFE n = H.ArrayAccess readSrcExprS $ H.IntLiteral n
-        declarations = 
+        decls = 
           fmap (\((s, t), n) -> (s, transformType t, Just $ accessFE n)) $ List.zip vars [1..]
       in do
         transformedReturnExpression <- transformExpression retExpr
         let ret = H.Return transformedReturnExpression
-        let block = H.Block declarations [ret]
+        let block = H.Block decls [ret]
         return $ (condition, block)
   in 
     do
@@ -183,7 +187,7 @@ transformExpression (T.Case sourceExpression patterns) =
       caseStatements <- Monad.sequence $ fmap caseStatementFor patterns
       let ifStatement = H.If caseStatements Nothing
       return $ H.IIFE $ 
-        H.Block (declarations transformedSrcExpr) [ifStatement]
+        H.Block (decls transformedSrcExpr) [ifStatement]
         
 
 transformExpression (T.IntLiteral n) = 
@@ -218,7 +222,7 @@ transformExpression (T.Operator name opType a b) = do
       in
         return $ H.Invoke (H.Read (transformType opType) opFunName) [ta, tb] 
 
-transformExpression (T.RecordUpdate sourceExpression fieldUpdates) = 
+transformExpression (T.RecUpdate sourceExpression fieldUpdates) = 
   let
     updateFieldName = "_m"
     updateFieldType = transformType (T.expressionType sourceExpression)

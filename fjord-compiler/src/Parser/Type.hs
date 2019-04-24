@@ -1,0 +1,63 @@
+module Parser.Type (
+  typeP,
+) where
+
+import Text.Megaparsec
+import Text.Megaparsec.Char
+import qualified Control.Monad.Combinators.Expr as Expr
+
+import Parser.Common
+import qualified AST.Untyped as U
+
+typeTermP :: Parser U.Type
+typeTermP = 
+  choice [(try tupleTypeP), parenTypeP, typeNameP]
+
+
+tupleTypeP :: Parser U.Type
+tupleTypeP = label "tuple type" $
+  let 
+    rhsP = do
+      many spaceP
+      char ','
+      many spaceP
+      expr <- typeP
+      return expr
+  in do
+    offset <- getOffset
+    char '('
+    many spaceP
+    head <- typeP
+    tail <- some rhsP
+    many spaceP
+    char ')'
+    return $ U.TupleType offset $ head : tail
+
+
+parenTypeP :: Parser U.Type
+parenTypeP = do
+  char '('
+  many spaceP
+  innerType <- typeP
+  many spaceP
+  char ')'
+  return innerType
+
+
+typeNameP :: Parser U.Type
+typeNameP = do
+  offset <- getOffset
+  name <- nameP
+  return $ U.TypeName offset name
+
+typeP :: Parser U.Type
+typeP = 
+  let 
+    thinArrow = Expr.InfixR $ do 
+      offset <- getOffset
+      some spaceP
+      (string "->")
+      some spaceP
+      return (U.FunctionType offset)
+  in 
+    Expr.makeExprParser typeTermP [[thinArrow]]

@@ -1,7 +1,24 @@
 module AST.Untyped where
 
-data Module = Module { moduleName :: String, moduleDeclarations :: [Declaration] }
+data Module 
+  = Module { 
+    moduleName :: String, 
+    moduleDefs :: [Definition]
+  }
+  deriving (Eq, Show)
 
+data TypeDef 
+  = TypeDef {
+    typeDefName :: String,
+    typeDefDecls :: [Declaration]
+  }
+  deriving (Eq, Show)
+
+data Declaration 
+  = DeclEnumDecl EnumDecl
+  | DeclRecDecl RecDecl
+  | DeclValDecl ValDecl
+  deriving (Eq, Show)
 
 data Type 
   = TypeName Int String
@@ -44,7 +61,7 @@ data Expression
     operatorLHS :: Expression,
     operatorRHS :: Expression 
   }
-  | RecordUpdate {
+  | RecUpdate {
     expressionOffset :: Int,
     recordUpdateSrcExpr :: Expression,
     recordUpdateFieldUpdates :: [FieldUpdate]
@@ -79,10 +96,37 @@ data FieldUpdate = FieldUpdate
   deriving (Eq, Show)
 
 
-data Declaration 
-  = EnumDeclaration Int String [EnumConstructor]
-  | RecordDeclaration Int String [RecordField]
-  | ValueDeclaration Int String [Parameter] Type Expression
+data Definition 
+  = EnumDef EnumDecl
+  | RecDef RecDecl
+  | ValDef ValDecl [Parameter] Expression
+  deriving (Eq, Show)
+
+
+data EnumDecl
+  = EnumDecl {
+    enumDeclOffset :: Int,
+    enumDefName :: String,
+    enumDefCtors :: [EnumConstructor]
+  }
+  deriving (Eq, Show)
+
+
+data RecDecl
+  = RecDecl {
+    recDeclOffset :: Int,
+    recDeclName :: String,
+    recDeclFields :: [RecField]
+  }
+  deriving (Eq, Show)
+
+
+data ValDecl
+  = ValDecl {
+    valDeclOffset :: Int,
+    valDeclName :: String,
+    valDeclType :: Type
+  }
   deriving (Eq, Show)
 
 
@@ -95,11 +139,11 @@ data EnumConstructor
   deriving (Eq, Show)
 
 
-data RecordField 
-  = RecordField {
-    recordFieldOffset :: Int,
-    recordFieldName :: String,
-    recordFieldType :: Type
+data RecField 
+  = RecField {
+    recFieldOffset :: Int,
+    recFieldName :: String,
+    recFieldType :: Type
   }
   deriving (Eq, Show)
 
@@ -117,3 +161,15 @@ data Scope
     scopeBindings :: [(String, Type)]
   }
 
+
+defToDecl :: Definition -> Declaration
+defToDecl d = 
+  case d of 
+    EnumDef a -> 
+      DeclEnumDecl a
+
+    RecDef a -> 
+      DeclRecDecl a
+
+    ValDef a _ _ ->
+      DeclValDecl a

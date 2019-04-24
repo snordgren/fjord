@@ -10,7 +10,7 @@ import qualified Data.List as List
 data Module = 
   Module { 
     moduleName :: String, 
-    moduleDeclarations :: [Declaration] 
+    moduleDefs :: [Definition] 
   }
   
 data Expression 
@@ -20,7 +20,7 @@ data Expression
   | Lambda String Type Expression
   | Name String Type 
   | Operator String Type Expression Expression 
-  | RecordUpdate Expression [FieldUpdate]
+  | RecUpdate Expression [FieldUpdate]
   | StringLiteral String 
   | Tuple [Expression]
   deriving (Eq, Show)
@@ -40,10 +40,10 @@ data Pattern = Pattern
   }
   deriving (Eq, Show)
 
-data Declaration 
-  = EnumDeclaration String [EnumConstructor]
-  | RecordDeclaration String [RecordField]
-  | ValueDeclaration String [Parameter] Type Expression
+data Definition 
+  = EnumDef String [EnumConstructor]
+  | RecDef String [RecField]
+  | ValDef String [Parameter] Type Expression
   deriving (Eq, Show)
 
 data EnumConstructor = EnumConstructor 
@@ -53,14 +53,18 @@ data EnumConstructor = EnumConstructor
   }
   deriving (Eq, Show)
 
-data RecordField = 
-  RecordField { 
-    recordFieldName :: String, 
-    recordFieldType :: Type 
+data RecField = 
+  RecField { 
+    recFieldName :: String, 
+    recFieldType :: Type 
   } 
   deriving (Eq, Show)
 
-data Parameter = Parameter { parameterName :: String, parameterType :: Type }
+data Parameter = 
+  Parameter { 
+    parameterName :: String, 
+    parameterType :: Type 
+  }
   deriving (Eq, Show)
 
 data Type 
@@ -87,7 +91,7 @@ expressionType a =
     Lambda _ t r -> FunctionType t $ expressionType r
     Name _ t -> t
     Operator _ t _ _ -> returnType $ returnType t
-    RecordUpdate a _ -> expressionType a
+    RecUpdate a _ -> expressionType a
     StringLiteral _ -> BuiltInString
     Tuple values -> TupleType $ fmap expressionType values
 

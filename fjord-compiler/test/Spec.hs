@@ -9,6 +9,7 @@ import qualified Compiler as  C
 import qualified AST.Typed as T
 import qualified ParserSpec as ParserSpec
 import qualified TypeCheckSpec as TypeCheckSpec
+import qualified TypeDefParserSpec as TypeDefParserSpec
 
 main :: IO ()
 main = do
@@ -19,7 +20,8 @@ unitTests :: TestTree
 unitTests = testGroup "Unit Tests" 
   [
     ParserSpec.testParser,
-    TypeCheckSpec.test
+    TypeCheckSpec.test,
+    TypeDefParserSpec.testParser
   ]
 
 goldenTests :: IO TestTree

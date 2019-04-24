@@ -10,21 +10,21 @@ Generates the text content of the .d.fj file.
 genDefStr :: T.Module -> String
 genDefStr m =
   "module " ++ (T.moduleName m) ++ "\n\n" ++ 
-    (List.intercalate "\n\n" $ fmap genDeclDefStr $ T.moduleDeclarations m) ++ 
+    (List.intercalate "\n\n" $ fmap defToTypeDefStr $ T.moduleDefs m) ++ 
     "\n"
 
 
-genDeclDefStr :: T.Declaration -> String
-genDeclDefStr decl = 
+defToTypeDefStr :: T.Definition -> String
+defToTypeDefStr decl = 
   case decl of 
 
-    T.EnumDeclaration name ctors ->
+    T.EnumDef name ctors ->
       let
         ctorStr = List.intercalate "\n" $ fmap genCtorStr ctors 
       in
         "enum " ++ name ++ "\n" ++ ctorStr
 
-    T.RecordDeclaration name fields -> 
+    T.RecDef name fields -> 
       let 
         fieldStrList :: [String]
         fieldStrList = 
@@ -37,7 +37,7 @@ genDeclDefStr decl =
       in
         "record " ++ name ++ "\n" ++ fieldStr
 
-    T.ValueDeclaration name parameters typ expr ->
+    T.ValDef name parameters typ expr ->
       name ++ " : " ++ (genTypeDefStr typ)
 
 
@@ -46,9 +46,9 @@ genCtorStr (T.EnumConstructor name t) =
   "  " ++ name ++ " : " ++ genTypeDefStr t
 
 
-genFieldStr :: T.RecordField -> String
-genFieldStr (T.RecordField recordFieldName recordFieldType) = 
-  "  " ++ recordFieldName ++ " : " ++ genTypeDefStr recordFieldType
+genFieldStr :: T.RecField -> String
+genFieldStr (T.RecField recFieldName recFieldType) = 
+  "  " ++ recFieldName ++ " : " ++ genTypeDefStr recFieldType
 
 
 genTypeDefStr :: T.Type -> String

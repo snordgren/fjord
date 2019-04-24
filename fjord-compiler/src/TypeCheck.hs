@@ -18,43 +18,45 @@ data TypeError
 
 typeCheck :: U.Module -> Either TypeError T.Module
 typeCheck m = do
-  declarations <- sequence (fmap (toTypedDeclaration (U.moduleDeclarations m))
-    (U.moduleDeclarations m))
-  return $ T.Module (U.moduleName m) declarations
+  decls <- sequence (fmap (toTypedDef (U.moduleDefs m))
+    (U.moduleDefs m))
+  return $ T.Module (U.moduleName m) decls
 
 
-toTypedDeclaration :: [U.Declaration] -> U.Declaration -> Either TypeError T.Declaration
+toTypedDef :: [U.Definition] -> U.Definition -> Either TypeError T.Definition
+toTypedDef decls a =
+  case a of 
+    U.EnumDef (U.EnumDecl offset name constructors) ->
+      let 
+        toTypedEnumConstructor :: U.EnumConstructor -> T.EnumConstructor
+        toTypedEnumConstructor (U.EnumConstructor _ s t) = T.EnumConstructor s (toTypedType t)
+      in
+        return $ T.EnumDef name (fmap toTypedEnumConstructor constructors)
 
-toTypedDeclaration decls (U.EnumDeclaration offset name constructors) = 
-  let 
-    toTypedEnumConstructor :: U.EnumConstructor -> T.EnumConstructor
-    toTypedEnumConstructor (U.EnumConstructor _ s t) = T.EnumConstructor s (toTypedType t)
-  in
-    return $ T.EnumDeclaration name (fmap toTypedEnumConstructor constructors)
+    U.RecDef (U.RecDecl offset name fields) ->
+      let 
+        toTypedRecField :: U.RecField -> T.RecField
+        toTypedRecField (U.RecField _ s t) =
+          T.RecField s (toTypedType t)
+          
+      in 
+        return $ T.RecDef name (fmap toTypedRecField fields)
 
-toTypedDeclaration decls (U.RecordDeclaration offset name fields) = 
-  let 
-    toTypedRecordField :: U.RecordField -> T.RecordField
-    toTypedRecordField (U.RecordField _ s t) = T.RecordField s (toTypedType t)
-      
-  in 
-    return $ T.RecordDeclaration name (fmap toTypedRecordField fields)
-
-toTypedDeclaration decls (U.ValueDeclaration offset name parameters declaredType expr) =
-  let 
-    typedDeclaredType = toTypedType declaredType
-    scope = createDeclarationScope decls parameters declaredType
-    requiredType = inferRequiredBody declaredType parameters
-    typedRequiredType = toTypedType requiredType
-    typedParameters = fmap (\(p, t) -> T.Parameter (U.parameterName p) (toTypedType t))
-      (zip parameters (functionParameterList declaredType))
-  in do
-    inferredType <- inferType scope (Just typedRequiredType) expr
-    typedExpr <- toTypedExpression scope (Just requiredType) expr 
-    if inferredType == typedRequiredType then 
-      Right $ T.ValueDeclaration name typedParameters typedDeclaredType typedExpr
-    else
-      Left $ WrongType (U.expressionOffset expr) typedRequiredType inferredType
+    U.ValDef (U.ValDecl offset name declType) params expr -> 
+      let 
+        typedDeclType = toTypedType declType
+        scope = createDefScope decls params declType
+        requiredType = inferRequiredBody declType params
+        typedRequiredType = toTypedType requiredType
+        typedParams = fmap (\(p, t) -> T.Parameter (U.parameterName p) (toTypedType t))
+          (zip params (functionParameterList declType))
+      in do
+        inferredType <- inferType scope (Just typedRequiredType) expr
+        typedExpr <- toTypedExpression scope (Just requiredType) expr 
+        if inferredType == typedRequiredType then 
+          Right $ T.ValDef name typedParams typedDeclType typedExpr
+        else
+          Left $ WrongType (U.expressionOffset expr) typedRequiredType inferredType
 
 
 inferRequiredBody :: U.Type -> [U.Parameter] -> U.Type
@@ -68,41 +70,44 @@ inferRequiredBody declaredType parameters =
     returnType
 
 
-createDeclarationScope :: [U.Declaration] -> [U.Parameter] -> U.Type -> U.Scope
-createDeclarationScope moduleDeclarations parameters typ = 
+createDefScope :: [U.Definition] -> [U.Parameter] -> U.Type -> U.Scope
+createDefScope moduleDefs parameters typ = 
   let
     parameterBindings = 
       (List.zip (fmap U.parameterName parameters) (functionParameterList typ))
 
-    declarationBindings :: [(String, U.Type)]
-    declarationBindings = 
-      List.concat $ fmap bindingsOf moduleDeclarations
+    declBindings :: [(String, U.Type)]
+    declBindings = 
+      List.concat $ fmap bindingsOf moduleDefs
   in
-    U.Scope (parameterBindings ++ declarationBindings)
+    U.Scope (parameterBindings ++ declBindings)
   
 
-bindingsOf :: U.Declaration -> [(String, U.Type)]
-bindingsOf (U.EnumDeclaration offset name constructors) = 
-  let 
-    bindConstructor :: U.EnumConstructor -> (String, U.Type)
-    bindConstructor c = (U.enumConstructorName c, U.enumConstructorType c)
-  in
-    fmap bindConstructor constructors
+bindingsOf :: U.Definition -> [(String, U.Type)]
+bindingsOf a = 
+  case a of 
+    U.EnumDef (U.EnumDecl offset name constructors) -> 
+      let 
+        bindConstructor :: U.EnumConstructor -> (String, U.Type)
+        bindConstructor c = (U.enumConstructorName c, U.enumConstructorType c)
+      in
+        fmap bindConstructor constructors
 
-bindingsOf (U.RecordDeclaration offset name fields) =
-  let 
-    constructorRetType = 
-      U.TypeName offset name
+    U.RecDef (U.RecDecl offset name fields) -> 
+      let 
+        constructorRetType = 
+          U.TypeName offset name
+        
+        fieldTypes = 
+          fmap U.recFieldType fields
     
-    fieldTypes = 
-      fmap U.recordFieldType fields
-
-    constructorType = 
-      List.foldr (U.FunctionType offset) constructorRetType fieldTypes
-  in 
-    [(name, constructorType)]
-
-bindingsOf (U.ValueDeclaration _ name _ t _) = [(name, t)]
+        constructorType = 
+          List.foldr (U.FunctionType offset) constructorRetType fieldTypes
+      in 
+        [(name, constructorType)]
+    
+    U.ValDef (U.ValDecl _ name t) _ _ -> 
+        [(filter (\a -> a /= '(' && a /= ')') name, t)]
 
 
 functionParameterList :: U.Type -> [U.Type]
@@ -177,11 +182,11 @@ toTypedExpression scope expectedType expr =
         typedB <- toTypedExpression scope expectedType b
         return $ T.Operator name opTypeT typedA typedB
 
-    U.RecordUpdate _ target updates ->
+    U.RecUpdate _ target updates ->
       do
         typedTarget <- toTypedExpression scope expectedType target
         typedUpdates <- Monad.sequence $ fmap (typedFieldUpdate scope) updates
-        return $ T.RecordUpdate typedTarget typedUpdates
+        return $ T.RecUpdate typedTarget typedUpdates
 
     U.StringLiteral _ value -> 
       Right $ T.StringLiteral value
@@ -227,7 +232,7 @@ inferType scope expectedType expr =
     U.Operator offset name a b ->
       fmap (T.returnType . T.returnType) $ inferType scope expectedType (U.Name offset name)
 
-    U.RecordUpdate _ target _ ->
+    U.RecUpdate _ target _ ->
       inferType scope expectedType target
 
     U.StringLiteral offset _ -> 

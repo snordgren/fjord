@@ -1,4 +1,5 @@
-module Parsing.Basics (
+{-# LANGUAGE FlexibleInstances #-}
+module Parser.Common (
   keyword,
   nameP,
   operatorNameP,
@@ -79,4 +80,9 @@ spaceInExpressionP = do
     many spaceP
     return ()
   return ()
+
+
+instance ShowErrorComponent String where
+  showErrorComponent = id
+  errorComponentLen = length
 

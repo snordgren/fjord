@@ -13,52 +13,58 @@ resolve m =
   let 
     scope = buildScope m
   in do
-    declarations <- Monad.sequence (fmap (resolveDeclaration scope) (U.moduleDeclarations m))
-    return $ U.Module (U.moduleName m) declarations 
+    decls <- Monad.sequence (fmap (resolveDef scope) (U.moduleDefs m))
+    return $ U.Module (U.moduleName m) decls 
 
     
 buildScope :: U.Module -> U.Scope
 buildScope m = 
   let 
     checkDeclaration :: U.Declaration -> [(String, U.Type)]
-    checkDeclaration (U.EnumDeclaration offset name fields) = [(name, U.TypeName offset name)]
-    checkDeclaration (U.RecordDeclaration offset name fields) = [(name, U.TypeName offset name)]
-    checkDeclaration (U.ValueDeclaration _ _ _ _ _) = []
-  in U.Scope $ List.concat (fmap checkDeclaration (U.moduleDeclarations m))
+    checkDeclaration a = 
+      case a of 
+        U.DeclEnumDecl (U.EnumDecl offset name fields) ->
+          [(name, U.TypeName offset name)]
+
+        U.DeclRecDecl (U.RecDecl offset name fields) ->
+          [(name, U.TypeName offset name)]
+
+        U.DeclValDecl (U.ValDecl _ _ _) ->
+          []
+
+  in 
+    U.Scope $ List.concat (fmap (checkDeclaration . U.defToDecl) (U.moduleDefs m))
 
 
-resolveDeclaration 
+resolveDef 
   :: U.Scope
-  -> U.Declaration 
-  -> Either ResolutionError U.Declaration
+  -> U.Definition 
+  -> Either ResolutionError U.Definition
+resolveDef scope a = 
+  case a of 
+    U.EnumDef (U.EnumDecl offset name constructors) ->
+      let
+        resolveConstructor (U.EnumConstructor offset name t) = 
+          fmap (U.EnumConstructor offset name) (resolveType scope t) 
+      in do
+        resolvedConstructors <- Monad.sequence (fmap resolveConstructor constructors)
+        return $ U.EnumDef $ U.EnumDecl offset name resolvedConstructors
 
-resolveDeclaration scope (U.EnumDeclaration offset name constructors) = 
-  let
-    resolveConstructor (U.EnumConstructor offset name t) = 
-      fmap (U.EnumConstructor offset name) (resolveType scope t) 
-  in do
-    resolvedConstructors <- Monad.sequence (fmap resolveConstructor constructors)
-    return $ U.EnumDeclaration offset name resolvedConstructors
+    U.RecDef (U.RecDecl offset name fields) ->
+      let 
+        resolveField (U.RecField offset name t) = 
+          fmap (U.RecField offset name) (resolveType scope t)
+      in do
+        resolvedFields <- Monad.sequence (fmap resolveField fields)
+        return $ U.RecDef $ U.RecDecl offset name resolvedFields
 
-resolveDeclaration scope (U.RecordDeclaration offset name fields) = 
-  let 
-    resolveField (U.RecordField offset name t) = 
-      fmap (U.RecordField offset name) (resolveType scope t)
-  in do
-    resolvedFields <- Monad.sequence (fmap resolveField fields)
-    return $ U.RecordDeclaration offset name resolvedFields
-
-resolveDeclaration scope (U.ValueDeclaration offset name parameters declaredType expr) = 
-  do 
-    resolvedType <- resolveType scope declaredType
-    resolvedExpression <- resolveExpression expr
-    return $ U.ValueDeclaration offset name (fmap resolveParameter parameters) 
-      resolvedType resolvedExpression
-
-
-resolveParameter :: U.Parameter -> U.Parameter
-resolveParameter (U.Parameter offset name) = U.Parameter offset name
-
+    U.ValDef (U.ValDecl offset name declaredType) params expr ->
+      do 
+        resType <- resolveType scope declaredType
+        resExpr <- resolveExpression expr
+        return $ U.ValDef (U.ValDecl offset name resType) 
+          params resExpr
+        
 
 resolveType :: U.Scope -> U.Type -> Either ResolutionError U.Type
 resolveType _ (U.TypeName offset "Int") = 
@@ -126,10 +132,10 @@ resolveExpression (U.Operator offset opName a b) = do
   resolvedB <- resolveExpression b
   return $ U.Operator offset opName resolvedA resolvedB
 
-resolveExpression (U.RecordUpdate offset target updates) = do
+resolveExpression (U.RecUpdate offset target updates) = do
   resolvedTarget <- resolveExpression target
   resolvedUpdates <- Monad.sequence (fmap resolveFieldUpdate updates)
-  return $ U.RecordUpdate offset resolvedTarget resolvedUpdates
+  return $ U.RecUpdate offset resolvedTarget resolvedUpdates
 
 resolveExpression (U.Tuple offset values) = do
   resolvedValues <- Monad.sequence $ fmap resolveExpression values

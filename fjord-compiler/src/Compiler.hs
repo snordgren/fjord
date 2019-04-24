@@ -7,13 +7,13 @@ import qualified Data.Either.Combinators as Combinators
 import qualified Data.List.NonEmpty as NonEmpty
 import qualified Data.Set as Set
 
-import Parser (runModuleParser)
 import Resolution (resolve, ResolutionError (..))
 import TypeCheck (typeCheck, TypeError (..))
 import qualified AST.Typed as T
 import qualified AST.Untyped as U
 import qualified CodeGen.JS as JS
 import qualified CodeGen.TypeDef as TypeDef
+import qualified Parser.Source.Parser as Source.Parser
 import qualified Transform.ToHybrid as ToHybrid
 
 compile :: String -> String -> (String, String)
@@ -35,7 +35,7 @@ parseModuleSource fileName source =
       pstateLinePrefix = ""
     } 
   in do
-    contextualModule <- runModuleParser fileName source
+    contextualModule <- Source.Parser.runModuleParser fileName source
     resolvedModule <- Combinators.mapLeft (resolvedizationErrorToErrorBundle initialPosState) 
       (resolve contextualModule)
     typedModule <- Combinators.mapLeft (typeErrorToErrorBundle initialPosState) 
