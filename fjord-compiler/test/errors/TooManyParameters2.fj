@@ -1,0 +1,5 @@
+module test.errors.TooManyParameters2
+
+myFun : Int -> Int -> Int
+myFun a b c =
+  a

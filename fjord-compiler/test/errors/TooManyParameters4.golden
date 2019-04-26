@@ -1,0 +1,5 @@
+TooManyParameters4.fj:12:10:
+   |
+12 | myFun ev x =
+   |          ^^^^
+too many parameters, expected 1

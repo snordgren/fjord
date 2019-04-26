@@ -67,6 +67,9 @@ typeErrorToErrorBundle initialPosState err =
       ImplicitNotFound offset typ name ->
         bundleMsg offset ("cannot find implicit " ++ name ++ " of type " ++ show typ)
 
+      TooManyParameters offset expectedCount -> 
+        bundleMsg offset ("too many parameters, expected " ++ (show expectedCount))
+
       UndefinedInScope offset ->
         bundleMsg offset ("undefined in scope")
 

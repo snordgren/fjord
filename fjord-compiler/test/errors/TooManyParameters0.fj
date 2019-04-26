@@ -1,0 +1,5 @@
+module test.errors.TooManyParameters0
+
+myVal : Int 
+myVal x =
+  0

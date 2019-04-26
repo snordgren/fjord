@@ -1,0 +1,5 @@
+TooManyParameters2.fj:4:11:
+  |
+4 | myFun a b c =
+  |           ^^^^
+too many parameters, expected 2

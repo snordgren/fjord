@@ -1,0 +1,13 @@
+module test.errors.TooManyParameters4
+
+record Zero
+  zero : Int
+
+implicit
+zeroInstance : Zero
+zeroInstance = 
+  Zero 0
+
+myFun : implicit Zero -> Int
+myFun ev x =
+  0

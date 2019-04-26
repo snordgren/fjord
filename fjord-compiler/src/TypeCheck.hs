@@ -11,7 +11,7 @@ import qualified AST.Untyped as U
 data TypeError 
   = CannotInferType Int String
   | ImplicitNotFound Int U.Type String
-  | TooManyParameters Int
+  | TooManyParameters Int Int
   | UndefinedInScope Int
   | UndefinedType Int String
   | WrongType Int T.Type T.Type 
@@ -69,75 +69,101 @@ toTypedDef defs a =
           fieldsT <- Monad.sequence $ fmap toTypedRecField fields
           return $ T.RecDef name fieldsT
 
-    U.ValDef (U.ValDecl offset name implicits declType) params expr -> 
+    U.ValDef valDecl params expr -> 
+      do
+        validated <- validateParamCount $ U.ValDef valDecl params expr
+        typeCheckValDef defs validated
+
+
+validateParamCount :: U.Definition -> Either TypeError U.Definition
+validateParamCount (U.ValDef valDecl params expr) =
+  let 
+    paramTypes =
+      fnParamList $ U.valDeclType valDecl
+
+    maxParamCount =
+      (length $ U.valDeclImplicits valDecl) + (length paramTypes)
+  in 
+    if length params > maxParamCount then
       let 
-        scope :: U.Scope
-        scope = 
-          createDefScope defs params declType
-
-        reqType :: U.Type
-        reqType = 
-          inferRequiredBody declType implicits params
-        
-        toTypedParam (p, t) =
-          do
-            typedT <- toTypedType scope t
-            return $ T.Parameter (U.parameterName p) typedT
-
-        implicitParNames :: [String]
-        implicitParNames = 
-          fmap U.parameterName $ take (length implicits) params
+        offset =
+          U.parameterOffset $ head (drop maxParamCount params)
+      in
+        Left $ TooManyParameters offset maxParamCount
+    else
+      Right $ U.ValDef valDecl params expr
 
 
-        compareTypEq :: U.Type -> U.Type -> Bool
-        compareTypEq a b = 
-          case a of 
-            U.FunctionType _ c d -> 
-              case b of 
-                U.FunctionType _ e f -> 
-                  (compareTypEq c e) && (compareTypEq d f)
+typeCheckValDef :: [U.Definition] -> U.Definition -> Either TypeError T.Definition
+typeCheckValDef defs (U.ValDef (U.ValDecl offset name implicits declType) params expr) =
+  let 
+    scope :: U.Scope
+    scope = 
+      createDefScope defs params declType
 
-                _ -> 
-                  False
+    reqType :: U.Type
+    reqType = 
+      inferRequiredBody declType implicits params
+    
+    toTypedParam (p, t) =
+      do
+        typedT <- toTypedType scope t
+        return $ T.Parameter (U.parameterName p) typedT
 
-            U.TypeName _ c ->
-              case b of 
-                U.TypeName _ d -> 
-                  c == d
+    implicitParNames :: [String]
+    implicitParNames = 
+      fmap U.parameterName $ take (length implicits) params
 
-                _ ->
-                  False
 
-            U.TupleType _ c ->
-              case b of 
-                U.TupleType _ d -> 
-                  c == d
+    compareTypEq :: U.Type -> U.Type -> Bool
+    compareTypEq a b = 
+      case a of 
+        U.FunctionType _ c d -> 
+          case b of 
+            U.FunctionType _ e f -> 
+              (compareTypEq c e) && (compareTypEq d f)
 
-                _ ->
-                  False
+            _ -> 
+              False
 
-        findImplicitDef :: U.Type -> Maybe (String, U.Type)
-        findImplicitDef t = 
-          List.find (\(_, it) -> compareTypEq t it) $ U.scopeImplicits scope 
+        U.TypeName _ c ->
+          case b of 
+            U.TypeName _ d -> 
+              c == d
 
-        resolveImplicit :: (String, U.Type) -> Either TypeError (String, T.Type, T.Expression)
-        resolveImplicit (a, t) = 
-          do
-            (name, _) <- Combinators.maybeToRight (ImplicitNotFound offset t a) $ findImplicitDef t
-            typedT <- toTypedType scope t
-            return (a, typedT, T.Name name typedT)
+            _ ->
+              False
 
-      in do
-        reqTypeT <- toTypedType scope reqType
-        declTypeT <- toTypedType scope declType
-        paramsT <- Monad.sequence $ fmap toTypedParam $ zip (drop (length implicits) params) $ fnParamList declType
-        implicitsT <- Monad.sequence $ fmap resolveImplicit $ zip implicitParNames implicits
-        inferredType <- inferType scope (Just reqTypeT) expr
-        typedExpr <- toTypedExpression scope (Just reqType) expr 
-        if inferredType == reqTypeT then 
-          Right $ T.ValDef name paramsT implicitsT declTypeT typedExpr
-        else
-          Left $ WrongType (U.expressionOffset expr) reqTypeT inferredType
+        U.TupleType _ c ->
+          case b of 
+            U.TupleType _ d -> 
+              c == d
+
+            _ ->
+              False
+
+    findImplicitDef :: U.Type -> Maybe (String, U.Type)
+    findImplicitDef t = 
+      List.find (\(_, it) -> compareTypEq t it) $ U.scopeImplicits scope 
+
+    resolveImplicit :: (String, U.Type) -> Either TypeError (String, T.Type, T.Expression)
+    resolveImplicit (a, t) = 
+      do
+        (name, _) <- Combinators.maybeToRight (ImplicitNotFound offset t a) $ findImplicitDef t
+        typedT <- toTypedType scope t
+        return (a, typedT, T.Name name typedT)
+
+  in do
+    reqTypeT <- toTypedType scope reqType
+    declTypeT <- toTypedType scope declType
+    paramsT <- Monad.sequence $ fmap toTypedParam $ zip (drop (length implicits) params) $ fnParamList declType
+    implicitsT <- Monad.sequence $ fmap resolveImplicit $ zip implicitParNames implicits
+    inferredType <- inferType scope (Just reqTypeT) expr
+    typedExpr <- toTypedExpression scope (Just reqType) expr 
+    if inferredType == reqTypeT then 
+      Right $ T.ValDef name paramsT implicitsT declTypeT typedExpr
+    else
+      Left $ WrongType (U.expressionOffset expr) reqTypeT inferredType
 
 
 inferRequiredBody :: U.Type -> [U.Type] -> [U.Parameter] -> U.Type

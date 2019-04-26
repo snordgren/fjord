@@ -1,0 +1,5 @@
+TooManyParameters0.fj:4:7:
+  |
+4 | myVal x =
+  |       ^^^^
+too many parameters, expected 0
