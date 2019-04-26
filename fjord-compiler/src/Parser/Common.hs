@@ -20,7 +20,7 @@ type Parser = Parsec String String
 
 
 keywords = 
-  ["as", "case", "do", "enum", "forall", "let", "module", "of", "record", "use"]
+  ["as", "case", "do", "enum", "forall", "implicit", "let", "module", "of", "record", "use"]
 
 
 opSym = 

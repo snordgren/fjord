@@ -24,6 +24,9 @@ defToTypeDefStr decl =
       in
         "enum " ++ name ++ "\n" ++ ctorStr
 
+    T.ImplicitDef name typ expr ->
+      "implicit\n" ++ name ++ ":" ++ genTypeDefStr typ
+
     T.RecDef name fields -> 
       let 
         fieldStrList :: [String]
@@ -37,7 +40,7 @@ defToTypeDefStr decl =
       in
         "record " ++ name ++ "\n" ++ fieldStr
 
-    T.ValDef name parameters typ expr ->
+    T.ValDef name implicits parameters typ expr ->
       name ++ " : " ++ (genTypeDefStr typ)
 
 

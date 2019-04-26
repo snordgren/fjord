@@ -1,11 +1,15 @@
 module AST.Untyped where
 
+import qualified Data.List as List
+
+
 data Module 
   = Module { 
     moduleName :: String, 
     moduleDefs :: [Definition]
   }
   deriving (Eq, Show)
+
 
 data TypeDef 
   = TypeDef {
@@ -14,19 +18,27 @@ data TypeDef
   }
   deriving (Eq, Show)
 
+
 data Declaration 
   = DeclEnumDecl EnumDecl
+  | DeclImplicitDecl ValDecl
   | DeclRecDecl RecDecl
   | DeclValDecl ValDecl
   deriving (Eq, Show)
 
 data Type 
-  = TypeName Int String
-  | FunctionType Int Type Type 
+  = FunctionType Int Type Type
+  | TypeName Int String
   | TupleType Int [Type]
-  | BuiltInInt Int 
-  | BuiltInString Int
-  deriving (Eq, Show)
+  deriving (Eq)
+
+
+instance Show Type where
+  show a = 
+    case a of 
+      FunctionType _ p r -> show p ++ " -> " ++ show r
+      TypeName _ t -> t
+      TupleType _ t -> "(" ++ (List.intercalate "," $ fmap show t) ++ ")"
 
 
 data Expression 
@@ -52,7 +64,7 @@ data Expression
   }
   | Name {
     expressionOffset :: Int,
-    nameExpressionVal :: String 
+    nameExpressionVal :: String
   }
   | Operator
   {
@@ -98,6 +110,7 @@ data FieldUpdate = FieldUpdate
 
 data Definition 
   = EnumDef EnumDecl
+  | ImplicitDef ValDecl Expression
   | RecDef RecDecl
   | ValDef ValDecl [Parameter] Expression
   deriving (Eq, Show)
@@ -125,6 +138,7 @@ data ValDecl
   = ValDecl {
     valDeclOffset :: Int,
     valDeclName :: String,
+    valDeclImplicits :: [Type],
     valDeclType :: Type
   }
   deriving (Eq, Show)
@@ -158,7 +172,9 @@ data Parameter
 
 data Scope 
   = Scope { 
-    scopeBindings :: [(String, Type)]
+    scopeValues :: [(String, Type)],
+    scopeTypes :: [String],
+    scopeImplicits :: [(String, Type)]
   }
 
 

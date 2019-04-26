@@ -1,5 +1,6 @@
 module Parser.Type (
   typeP,
+  typeTermP
 ) where
 
 import Text.Megaparsec
@@ -53,11 +54,11 @@ typeNameP = do
 typeP :: Parser U.Type
 typeP = 
   let 
-    thinArrow = Expr.InfixR $ do 
+    thinArrow = Expr.InfixR $ try $ do 
       offset <- getOffset
-      some spaceP
+      many spaceP
       (string "->")
-      some spaceP
+      many spaceP
       return (U.FunctionType offset)
   in 
     Expr.makeExprParser typeTermP [[thinArrow]]

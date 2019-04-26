@@ -1,0 +1,13 @@
+module test.codegen.implicits.Implicit
+
+record Zero
+  zero : Int
+
+implicit
+zeroInstance : Zero 
+zeroInstance = 
+  Zero 0
+
+zero : implicit Zero -> Int -> Int
+zero ev anything =
+  0

@@ -44,10 +44,10 @@ testParseTypeDef =
               )
               (U.TypeName 224 "ThreeMembers")
           ],
-        U.DeclValDecl (U.ValDecl 238 "five" $ U.TypeName 245 "Int"),
-        U.DeclValDecl (U.ValDecl 250 "stringIdentity" $ 
+        U.DeclValDecl (U.ValDecl 238 "five" [] $ U.TypeName 245 "Int"),
+        U.DeclValDecl (U.ValDecl 250 "stringIdentity" [] $ 
           U.FunctionType 273 (U.TypeName 267 "String") (U.TypeName 277 "String")),
-        U.DeclValDecl $ U.ValDecl 285 "fn0" $ 
+        U.DeclValDecl $ U.ValDecl 285 "fn0" [] $ 
           U.FunctionType 309 
             (U.FunctionType 298 (U.TypeName 292 "String") $ U.TypeName 302 "String")
             (U.TypeName 313 "String")

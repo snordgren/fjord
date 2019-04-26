@@ -42,9 +42,11 @@ data Pattern = Pattern
 
 data Definition 
   = EnumDef String [EnumConstructor]
+  | ImplicitDef String Type Expression
   | RecDef String [RecField]
-  | ValDef String [Parameter] Type Expression
+  | ValDef String [Parameter] [(String, Type, Expression)] Type Expression
   deriving (Eq, Show)
+
 
 data EnumConstructor = EnumConstructor 
   { 
@@ -53,6 +55,7 @@ data EnumConstructor = EnumConstructor
   }
   deriving (Eq, Show)
 
+
 data RecField = 
   RecField { 
     recFieldName :: String, 
@@ -60,8 +63,9 @@ data RecField =
   } 
   deriving (Eq, Show)
 
-data Parameter = 
-  Parameter { 
+
+data Parameter 
+  = Parameter { 
     parameterName :: String, 
     parameterType :: Type 
   }
@@ -76,11 +80,11 @@ data Type
   deriving Eq
 
 instance Show Type where
-  show (TypeName s) = s
   show BuiltInInt = "BuiltIn.Int"
   show BuiltInString = "BuiltIn.String"
   show (FunctionType p r) = (show p) ++ " -> " ++ (show r)
   show (TupleType values) = "(" ++ (List.intercalate "," $ fmap show values) ++ ")"
+  show (TypeName s) = s
   
 expressionType :: Expression -> Type
 expressionType a = 

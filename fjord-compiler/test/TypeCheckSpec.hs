@@ -10,25 +10,25 @@ import qualified TypeCheck as TypeCheck
 test :: TestTree
 test = testGroup "TypeCheckSpec"
   [
-    testCase "testFunctionParameterList" testFunctionParameterList,
+    testCase "testFnParamList" testFnParamList,
     testCase "testInferRequiredBody" testInferRequiredBody
   ]
 
-testFunctionParameterList =
+testFnParamList =
   let 
-    expected = [U.BuiltInInt 0, U.BuiltInInt 0]
+    expected = [U.TypeName 0 "Int", U.TypeName 0 "Int"]
 
-    result = TypeCheck.functionParameterList (U.FunctionType 0 (U.BuiltInInt 0)
-      (U.FunctionType 0 (U.BuiltInInt 0) (U.BuiltInInt 0)))
+    result = TypeCheck.fnParamList (U.FunctionType 0 (U.TypeName 0 "Int")
+      (U.FunctionType 0 (U.TypeName 0 "Int") (U.TypeName 0 "Int")))
   in
-    assertEqual "functionParameterList" expected result
+    assertEqual "fnParamList" expected result
 
 testInferRequiredBody = 
   let 
-    expected = U.FunctionType 0 (U.BuiltInString 0) (U.BuiltInInt 0)
+    expected = U.FunctionType 0 (U.TypeName 0 "String") (U.TypeName 0 "Int")
 
     result = (TypeCheck.inferRequiredBody 
-      (U.FunctionType 0 (U.BuiltInInt 0) 
-        (U.FunctionType 0 (U.BuiltInString 0) (U.BuiltInInt 0))) [U.Parameter 0 "a"])
+      (U.FunctionType 0 (U.TypeName 0 "Int") 
+        (U.FunctionType 0 (U.TypeName 0 "String") (U.TypeName 0 "Int"))) [] [U.Parameter 0 "a"])
   in 
     assertEqual "inferRequiredBody" expected result

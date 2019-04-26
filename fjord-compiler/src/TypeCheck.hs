@@ -9,60 +9,141 @@ import qualified AST.Untyped as U
 
 
 data TypeError 
-  = WrongType Int T.Type T.Type 
-  | CannotInferType Int String
+  = CannotInferType Int String
+  | ImplicitNotFound Int U.Type String
   | TooManyParameters Int
   | UndefinedInScope Int
+  | UndefinedType Int String
+  | WrongType Int T.Type T.Type 
   deriving (Eq, Show)
 
 
 typeCheck :: U.Module -> Either TypeError T.Module
 typeCheck m = do
-  decls <- sequence (fmap (toTypedDef (U.moduleDefs m))
+  defs <- sequence (fmap (toTypedDef (U.moduleDefs m))
     (U.moduleDefs m))
-  return $ T.Module (U.moduleName m) decls
+  return $ T.Module (U.moduleName m) defs
 
 
 toTypedDef :: [U.Definition] -> U.Definition -> Either TypeError T.Definition
-toTypedDef decls a =
+toTypedDef defs a =
   case a of 
     U.EnumDef (U.EnumDecl offset name constructors) ->
       let 
-        toTypedEnumConstructor :: U.EnumConstructor -> T.EnumConstructor
-        toTypedEnumConstructor (U.EnumConstructor _ s t) = T.EnumConstructor s (toTypedType t)
-      in
-        return $ T.EnumDef name (fmap toTypedEnumConstructor constructors)
+        scope = deriveModuleScope defs
+
+        toTypedEnumConstructor (U.EnumConstructor _ s t) = 
+          do
+            typedT <- toTypedType scope t
+            return $ T.EnumConstructor s typedT
+      in do
+        ctors <- Monad.sequence $ fmap toTypedEnumConstructor constructors
+        return $ T.EnumDef name ctors
+
+    U.ImplicitDef (U.ValDecl offset name implicits declType) expr -> 
+      let 
+        scope = createDefScope defs [] declType
+        reqType = inferRequiredBody declType implicits []          
+      in do
+        declTypeT <- toTypedType scope declType
+        reqTypeT <- toTypedType scope reqType
+        inferredType <- inferType scope (Just reqTypeT) expr
+        typedExpr <- toTypedExpression scope (Just reqType) expr 
+        if inferredType == reqTypeT then 
+          Right $ T.ImplicitDef name declTypeT typedExpr
+        else
+          Left $ WrongType (U.expressionOffset expr) reqTypeT inferredType
+
 
     U.RecDef (U.RecDecl offset name fields) ->
       let 
-        toTypedRecField :: U.RecField -> T.RecField
+        scope = 
+          deriveModuleScope defs
+
         toTypedRecField (U.RecField _ s t) =
-          T.RecField s (toTypedType t)
-          
+          do
+            typedT <- toTypedType scope t
+            return $ T.RecField s typedT
       in 
-        return $ T.RecDef name (fmap toTypedRecField fields)
+        do
+          fieldsT <- Monad.sequence $ fmap toTypedRecField fields
+          return $ T.RecDef name fieldsT
 
-    U.ValDef (U.ValDecl offset name declType) params expr -> 
+    U.ValDef (U.ValDecl offset name implicits declType) params expr -> 
       let 
-        typedDeclType = toTypedType declType
-        scope = createDefScope decls params declType
-        requiredType = inferRequiredBody declType params
-        typedRequiredType = toTypedType requiredType
-        typedParams = fmap (\(p, t) -> T.Parameter (U.parameterName p) (toTypedType t))
-          (zip params (functionParameterList declType))
+        scope :: U.Scope
+        scope = 
+          createDefScope defs params declType
+
+        reqType :: U.Type
+        reqType = 
+          inferRequiredBody declType implicits params
+        
+        toTypedParam (p, t) =
+          do
+            typedT <- toTypedType scope t
+            return $ T.Parameter (U.parameterName p) typedT
+
+        implicitParNames :: [String]
+        implicitParNames = 
+          fmap U.parameterName $ take (length implicits) params
+
+
+        compareTypEq :: U.Type -> U.Type -> Bool
+        compareTypEq a b = 
+          case a of 
+            U.FunctionType _ c d -> 
+              case b of 
+                U.FunctionType _ e f -> 
+                  (compareTypEq c e) && (compareTypEq d f)
+
+                _ -> 
+                  False
+
+            U.TypeName _ c ->
+              case b of 
+                U.TypeName _ d -> 
+                  c == d
+
+                _ ->
+                  False
+
+            U.TupleType _ c ->
+              case b of 
+                U.TupleType _ d -> 
+                  c == d
+
+                _ ->
+                  False
+
+        findImplicitDef :: U.Type -> Maybe (String, U.Type)
+        findImplicitDef t = 
+          List.find (\(_, it) -> compareTypEq t it) $ U.scopeImplicits scope 
+
+        resolveImplicit :: (String, U.Type) -> Either TypeError (String, T.Type, T.Expression)
+        resolveImplicit (a, t) = 
+          do
+            (name, _) <- Combinators.maybeToRight (ImplicitNotFound offset t a) $ findImplicitDef t
+            typedT <- toTypedType scope t
+            return (a, typedT, T.Name name typedT)
+
       in do
-        inferredType <- inferType scope (Just typedRequiredType) expr
-        typedExpr <- toTypedExpression scope (Just requiredType) expr 
-        if inferredType == typedRequiredType then 
-          Right $ T.ValDef name typedParams typedDeclType typedExpr
+        reqTypeT <- toTypedType scope reqType
+        declTypeT <- toTypedType scope declType
+        paramsT <- Monad.sequence $ fmap toTypedParam $ zip (drop (length implicits) params) $ fnParamList declType
+        implicitsT <- Monad.sequence $ fmap resolveImplicit $ zip implicitParNames implicits
+        inferredType <- inferType scope (Just reqTypeT) expr
+        typedExpr <- toTypedExpression scope (Just reqType) expr 
+        if inferredType == reqTypeT then 
+          Right $ T.ValDef name paramsT implicitsT declTypeT typedExpr
         else
-          Left $ WrongType (U.expressionOffset expr) typedRequiredType inferredType
+          Left $ WrongType (U.expressionOffset expr) reqTypeT inferredType
 
 
-inferRequiredBody :: U.Type -> [U.Parameter] -> U.Type
-inferRequiredBody declaredType parameters = 
+inferRequiredBody :: U.Type -> [U.Type] -> [U.Parameter] -> U.Type
+inferRequiredBody declaredType implicits parameters = 
   let 
-    remainingParameters = drop (length parameters) (functionParameterList declaredType)
+    remainingParameters = drop (length parameters) (fnParamList declaredType)
     returnType = last (functionTypeList declaredType)
   in if length remainingParameters > 0 then
     List.foldr (U.FunctionType 0) returnType remainingParameters
@@ -70,28 +151,60 @@ inferRequiredBody declaredType parameters =
     returnType
 
 
+deriveModuleScope :: [U.Definition] -> U.Scope
+deriveModuleScope defs =
+  List.foldl' mergeScope (U.Scope [] [] []) $ fmap scopeContrib defs
+
+{-|
+Merge two scopes, the tightest bound (innermost) scope should come first. 
+-}
+mergeScope :: U.Scope -> U.Scope -> U.Scope
+mergeScope a b = 
+  let 
+    mergedValues = U.scopeValues a ++ U.scopeValues b
+    mergedTypes = U.scopeTypes a ++ U.scopeTypes b
+    mergedImplicits = U.scopeImplicits a ++ U.scopeImplicits b
+  in
+    U.Scope mergedValues mergedTypes mergedImplicits
+
+
+{-|
+Derive the scope of a definition with parameters. 
+-}
 createDefScope :: [U.Definition] -> [U.Parameter] -> U.Type -> U.Scope
-createDefScope moduleDefs parameters typ = 
+createDefScope defs parameters typ = 
   let
     parameterBindings = 
-      (List.zip (fmap U.parameterName parameters) (functionParameterList typ))
+      (List.zip (fmap U.parameterName parameters) (fnParamList typ))
 
-    declBindings :: [(String, U.Type)]
-    declBindings = 
-      List.concat $ fmap bindingsOf moduleDefs
+    defScope = 
+      U.Scope parameterBindings [] []
   in
-    U.Scope (parameterBindings ++ declBindings)
-  
+    mergeScope defScope $ deriveModuleScope defs
+    
 
-bindingsOf :: U.Definition -> [(String, U.Type)]
-bindingsOf a = 
-  case a of 
+{-|
+Generates the individual contribution of the definition to the module scope.
+-}
+scopeContrib :: U.Definition -> U.Scope
+scopeContrib d =
+  case d of 
     U.EnumDef (U.EnumDecl offset name constructors) -> 
       let 
         bindConstructor :: U.EnumConstructor -> (String, U.Type)
-        bindConstructor c = (U.enumConstructorName c, U.enumConstructorType c)
+        bindConstructor c = 
+          (U.enumConstructorName c, U.enumConstructorType c)
+
+        values = 
+          fmap bindConstructor constructors
+
+        types =
+          [name]
       in
-        fmap bindConstructor constructors
+        U.Scope values types []
+
+    U.ImplicitDef (U.ValDecl offset name implicits t) _ -> 
+      U.Scope [(name, t)] [] [(name, t)]
 
     U.RecDef (U.RecDecl offset name fields) -> 
       let 
@@ -103,26 +216,40 @@ bindingsOf a =
     
         constructorType = 
           List.foldr (U.FunctionType offset) constructorRetType fieldTypes
+
+        values = 
+          [(name, constructorType)]
+
+        types = 
+          [name]
       in 
-        [(name, constructorType)]
+        U.Scope values types []
     
-    U.ValDef (U.ValDecl _ name t) _ _ -> 
-        [(filter (\a -> a /= '(' && a /= ')') name, t)]
+    U.ValDef (U.ValDecl _ name implicits t) _ _ -> 
+      let 
+        values = [(filter (\a -> a /= '(' && a /= ')') name, t)]
+      in
+        U.Scope values [] []
 
 
-functionParameterList :: U.Type -> [U.Type]
-functionParameterList t = 
+fnParamList :: U.Type -> [U.Type]
+fnParamList t = 
   case t of 
-    U.FunctionType _ parameterType returnType -> 
-      parameterType : functionParameterList (returnType)
-    _ -> []
+    U.FunctionType _ par ret -> 
+      par : fnParamList ret
+
+    _ -> 
+      []
 
 
 functionTypeList :: U.Type -> [U.Type]
 functionTypeList t =
   case t of 
-    U.FunctionType _ p r -> p : functionTypeList r
-    a -> [a]
+    U.FunctionType _ p r -> 
+      p : functionTypeList r
+      
+    a -> 
+      [a]
     
 
 toTypedExpression :: U.Scope -> Maybe U.Type -> U.Expression -> Either TypeError T.Expression
@@ -138,17 +265,19 @@ toTypedExpression scope expectedType expr =
       let 
         createPatternScope constructorType variables scope = 
           let
-            variableTypes = functionParameterList constructorType
+            variableTypes = fnParamList constructorType
             bindings = List.zip variables variableTypes
+            newScope = U.Scope bindings [] []
           in
-            U.Scope (bindings ++ (U.scopeBindings scope))
+            mergeScope newScope scope
     
         toTypedPattern :: U.Pattern -> Either TypeError T.Pattern
         toTypedPattern (U.Pattern offset ctor vars retExpr) = do
           ctorType <- scopeVariableType scope offset ctor 
-          let patternScope = createPatternScope ctorType vars scope
-          let mergedVars = List.zip vars $ fmap toTypedType $ functionParameterList ctorType
-          typedRetExpr <- toTypedExpression patternScope expectedType retExpr
+          let patScope = createPatternScope ctorType vars scope
+          types <- Monad.sequence $ fmap (toTypedType patScope) $ fnParamList ctorType
+          let mergedVars = List.zip vars types
+          typedRetExpr <- toTypedExpression patScope expectedType retExpr
           return $ T.Pattern ctor mergedVars typedRetExpr
       in do
         typedPatterns <- Monad.sequence $ fmap toTypedPattern patterns
@@ -164,20 +293,21 @@ toTypedExpression scope expectedType expr =
         parT <- Combinators.maybeToRight (CannotInferType offset "missing parameter type") 
           (parameterType t)
         retT <- Combinators.maybeToRight (CannotInferType offset "missing return type") (returnType t)
-        let lambdaScope = U.Scope ((name, parT) : U.scopeBindings scope)
+        let lambdaScope = U.Scope ((name, parT) : U.scopeValues scope) (U.scopeTypes scope) []
         exprT <- toTypedExpression lambdaScope (Just retT) expr
-        let typedT = toTypedType t
+        typedT <- toTypedType scope t
         return $ T.Lambda name typedT exprT
       
     U.Name n s -> 
       do
         t <- scopeVariableType scope n s
-        return $ T.Name s (toTypedType t)
+        typedT <- toTypedType scope t
+        return $ T.Name s typedT
 
     U.Operator offset name a b -> 
       do
         opType <- scopeVariableType scope offset name 
-        let opTypeT = toTypedType opType
+        opTypeT <- toTypedType scope opType
         typedA <- toTypedExpression scope expectedType a
         typedB <- toTypedExpression scope expectedType b
         return $ T.Operator name opTypeT typedA typedB
@@ -227,7 +357,9 @@ inferType scope expectedType expr =
       Combinators.maybeToRight (CannotInferType offset "cannot infer lambda type") expectedType
 
     U.Name offset name ->
-      fmap toTypedType (scopeVariableType scope offset name)
+      do
+        unT <- scopeVariableType scope offset name
+        toTypedType scope unT
 
     U.Operator offset name a b ->
       fmap (T.returnType . T.returnType) $ inferType scope expectedType (U.Name offset name)
@@ -245,29 +377,44 @@ inferType scope expectedType expr =
         return $ T.TupleType inferredValueTypes
 
 
-toTypedType :: U.Type -> T.Type
-toTypedType a =
+toTypedType :: U.Scope -> U.Type -> Either TypeError T.Type
+toTypedType scope a =
   case a of 
-    U.BuiltInInt _ -> 
-      T.BuiltInInt
-
-    U.BuiltInString _ -> 
-      T.BuiltInString
-
     U.FunctionType _ par ret ->
-      T.FunctionType (toTypedType par) (toTypedType ret)
+      do
+        parT <- toTypedType scope par
+        retT <- toTypedType scope ret
+        return $ T.FunctionType parT retT
 
     U.TupleType _ types ->
-      T.TupleType $ fmap toTypedType types
+      do
+        typesT <- Monad.sequence $ fmap (toTypedType scope) types
+        return $ T.TupleType typesT
     
-    U.TypeName _ n ->
-      T.TypeName n
+    U.TypeName offset "Int" -> 
+      return T.BuiltInInt
+
+    U.TypeName offset "String" -> 
+      return T.BuiltInString
+
+    U.TypeName offset n ->
+      let 
+        typeNames = 
+          U.scopeTypes scope 
+
+        result = 
+          List.find ((==) n) $ U.scopeTypes scope
+
+        resultE = 
+          Combinators.maybeToRight (UndefinedType offset n) result
+      in
+        fmap T.TypeName resultE
 
 
 scopeVariableType :: U.Scope -> Int -> String -> Either TypeError U.Type
 scopeVariableType scope offset name = 
   Combinators.maybeToRight (UndefinedInScope offset)
-    (fmap (\(_, t) -> t) (List.find (\(n, _) -> n == name) (U.scopeBindings scope)))
+    (fmap (\(_, t) -> t) (List.find (\(n, _) -> n == name) (U.scopeValues scope)))
 
 
 parameterType :: U.Type -> Maybe U.Type

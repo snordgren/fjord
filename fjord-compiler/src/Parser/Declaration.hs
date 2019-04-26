@@ -1,5 +1,6 @@
 module Parser.Declaration (
   enumDeclP, 
+  implicitDeclP,
   recDeclP,
   valDeclP
 ) where
@@ -8,7 +9,7 @@ import Text.Megaparsec
 import Text.Megaparsec.Char
 
 import Parser.Common
-import Parser.Type (typeP)
+import Parser.Type (typeP, typeTermP)
 import qualified AST.Untyped as U
 
 enumDeclP :: Parser U.EnumDecl
@@ -34,6 +35,21 @@ enumConstructorP = label "enum constructor" $ do
   t <- typeP
   eol
   return $ U.EnumConstructor offset constructorName t 
+
+
+implicitDeclP :: Parser U.ValDecl 
+implicitDeclP = do
+  string "implicit"
+  some eol
+  offset <- getOffset
+  declName <- nameP
+  many spaceP
+  char ':'
+  many spaceP
+  declaredType <- typeP
+  many spaceP
+  some eol
+  return $ U.ValDecl offset declName [] declaredType
 
 
 recDeclP :: Parser U.RecDecl
@@ -68,6 +84,19 @@ valDeclP = label "value declaration" $ do
   many spaceP
   char ':'
   many spaceP
+  implicits <- many $ try implicitParamP
+  many spaceP
   declaredType <- typeP
+  many spaceP
   some eol
-  return $ U.ValDecl offset declName declaredType
+  return $ U.ValDecl offset declName implicits declaredType
+
+implicitParamP :: Parser U.Type
+implicitParamP =
+  do
+    string "implicit"
+    some spaceP
+    t <- typeTermP
+    many spaceP
+    string "->"
+    return t

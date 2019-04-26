@@ -7,7 +7,6 @@ import qualified Data.Either.Combinators as Combinators
 import qualified Data.List.NonEmpty as NonEmpty
 import qualified Data.Set as Set
 
-import Resolution (resolve, ResolutionError (..))
 import TypeCheck (typeCheck, TypeError (..))
 import qualified AST.Typed as T
 import qualified AST.Untyped as U
@@ -35,50 +34,45 @@ parseModuleSource fileName source =
       pstateLinePrefix = ""
     } 
   in do
-    contextualModule <- Source.Parser.runModuleParser fileName source
-    resolvedModule <- Combinators.mapLeft (resolvedizationErrorToErrorBundle initialPosState) 
-      (resolve contextualModule)
-    typedModule <- Combinators.mapLeft (typeErrorToErrorBundle initialPosState) 
-      (typeCheck resolvedModule)
-    return typedModule
+    untypedMod <- Source.Parser.runModuleParser fileName source
+    typedMod <- Combinators.mapLeft (typeErrorToErrorBundle initialPosState) 
+      (typeCheck untypedMod)
+    return typedMod
   
 
 typeErrorToErrorBundle :: PosState String -> TypeError -> ParseErrorBundle String String
-typeErrorToErrorBundle initialPosState (WrongType offset expected actual) = 
+typeErrorToErrorBundle initialPosState err =
   let 
-    msg = "expression has type " ++ (show actual) ++ ", expected " ++ (show expected)
+    bundleMsg :: Int -> String -> ParseErrorBundle String String
+    bundleMsg offset msg =
+      ParseErrorBundle {
+        bundleErrors = NonEmpty.fromList [
+          FancyError offset (Set.fromList [
+            ErrorCustom msg
+          ])
+        ],
+        bundlePosState = initialPosState
+      }
   in
-    toErrorBundle initialPosState offset msg
+    case err of 
+      WrongType offset expected actual -> 
+        let 
+          msg = "expression has type " ++ (show actual) ++ ", expected " ++ (show expected)
+        in
+          bundleMsg offset msg
 
-typeErrorToErrorBundle initialPosState (CannotInferType offset s) = 
-  toErrorBundle initialPosState offset ("cannot infer type\n" ++ s)
+      CannotInferType offset s -> 
+        bundleMsg offset ("cannot infer type\n" ++ s)
 
-typeErrorToErrorBundle initialPosState (UndefinedInScope offset) =
-  toErrorBundle initialPosState offset ("undefined in scope")
+      ImplicitNotFound offset typ name ->
+        bundleMsg offset ("cannot find implicit " ++ name ++ " of type " ++ show typ)
 
-toErrorBundle initialPosState offset s = 
-  ParseErrorBundle {
-    bundleErrors = NonEmpty.fromList [
-      FancyError offset (Set.fromList [
-        ErrorCustom s
-      ])
-    ],
-    bundlePosState = initialPosState
-  }
+      UndefinedInScope offset ->
+        bundleMsg offset ("undefined in scope")
 
-resolvedizationErrorToErrorBundle 
-  :: PosState String 
-  -> ResolutionError 
-  -> ParseErrorBundle String String
-resolvedizationErrorToErrorBundle initialPosState (TypeNotFound offset name) =
-  ParseErrorBundle {
-    bundleErrors = NonEmpty.fromList [
-      FancyError offset (Set.fromList [
-        ErrorCustom ("type not found " ++ name)
-      ])
-    ],
-    bundlePosState = initialPosState
-  }
+      UndefinedType offset s -> 
+        bundleMsg offset $ "unknown type " ++ s
+
 
 generateJSModule :: T.Module -> String
 generateJSModule m = JS.generateJS $ ToHybrid.transformModule m

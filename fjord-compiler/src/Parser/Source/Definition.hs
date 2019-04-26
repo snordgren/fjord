@@ -6,13 +6,19 @@ import Text.Megaparsec.Char.Lexer
 
 import Parser.Common
 import Parser.Type (typeP)
-import Parser.Declaration (enumDeclP, recDeclP, valDeclP)
+import Parser.Declaration (enumDeclP, implicitDeclP, recDeclP, valDeclP)
 import Parser.Source.Expression (expressionP)
 import qualified AST.Untyped as U
 
 defP :: Parser U.Definition
 defP = 
-  label "definition" $ enumDefP <|> recDefP <|> valDefP
+  label "definition" $ choice
+    [
+      enumDefP,
+      implicitDefP,
+      recDefP,
+      valDefP
+    ]
 
 
 enumDefP :: Parser U.Definition
@@ -20,6 +26,19 @@ enumDefP =
   label "enum definition" $ do
     e <- enumDeclP
     return $ U.EnumDef e
+
+
+implicitDefP :: Parser U.Definition
+implicitDefP =
+  label "implicit definition" $ do
+    v <- implicitDeclP
+    string $ U.valDeclName v
+    many spaceP
+    char '='
+    spaceInExpressionP
+    value <- expressionP
+    some eol
+    return $ U.ImplicitDef v value
 
 
 recDefP :: Parser U.Definition
@@ -35,13 +54,13 @@ valDefP =
     v <- valDeclP
     string $ U.valDeclName v
     many spaceP
-    parameters <- many parameterP
+    params <- many parameterP
     many spaceP
     char '='
     spaceInExpressionP
     value <- expressionP
     some eol
-    return $ U.ValDef v parameters value
+    return $ U.ValDef v params value
     
 
 parameterP :: Parser U.Parameter
