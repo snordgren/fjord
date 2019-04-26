@@ -2,10 +2,12 @@ module AST.Untyped where
 
 import qualified Data.List as List
 
+import qualified AST.Common as Common
 
 data Module 
   = Module { 
     moduleName :: String, 
+    moduleImports :: [Import],
     moduleDefs :: [Definition]
   }
   deriving (Eq, Show)
@@ -18,6 +20,18 @@ data TypeDef
   }
   deriving (Eq, Show)
 
+
+data Import 
+  = Import {
+    importModule :: String,
+    importSource :: Maybe String
+  } 
+  deriving (Eq, Show)
+
+
+data ImportPattern
+  = ImportAll  
+  | ImportSome [(String, Maybe String)]
 
 data Declaration 
   = DeclEnumDecl EnumDecl
@@ -172,9 +186,9 @@ data Parameter
 
 data Scope 
   = Scope { 
-    scopeValues :: [(String, Type)],
-    scopeTypes :: [String],
-    scopeImplicits :: [(String, Type)]
+    scopeValues :: [(String, Type, Common.Origin)],
+    scopeTypes :: [(String, Common.Origin)],
+    scopeImplicits :: [(String, Type, Common.Origin)]
   }
 
 

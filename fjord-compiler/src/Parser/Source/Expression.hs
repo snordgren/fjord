@@ -1,7 +1,8 @@
 module Parser.Source.Expression (
   caseP, 
   expressionP, 
-  patternP
+  patternP,
+  stringP
 ) where
   
 import Control.Monad.Combinators.Expr
@@ -85,13 +86,19 @@ intLiteralP = label "integer" $ do
   return $ U.IntLiteral offset (read num :: Integer)
 
 
-stringLiteralP :: Parser U.Expression
-stringLiteralP = label "string" $ do
-  offset <- getOffset
+stringP :: Parser String
+stringP = label "string" $ do
   char '"'
   strings <- many stringPartP 
   char '"'
-  return $ U.StringLiteral offset (concat strings)
+  return $ concat strings
+
+  
+stringLiteralP :: Parser U.Expression
+stringLiteralP = label "string" $ do
+  offset <- getOffset
+  str <- stringP
+  return $ U.StringLiteral offset str
 
 
 nonEscape :: Parser String

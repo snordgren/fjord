@@ -6,6 +6,8 @@ module AST.Typed where
 
 import qualified Data.List as List
 
+import qualified AST.Common as Common
+
 
 data Module = 
   Module { 
@@ -18,7 +20,7 @@ data Expression
   | Case Expression [Pattern]
   | IntLiteral Integer 
   | Lambda String Type Expression
-  | Name String Type 
+  | Name String Type Common.Origin
   | Operator String Type Expression Expression 
   | RecUpdate Expression [FieldUpdate]
   | StringLiteral String 
@@ -93,7 +95,7 @@ expressionType a =
     Case a p -> expressionType $ patternReturnExpression $ head p
     IntLiteral _ -> BuiltInInt
     Lambda _ t r -> FunctionType t $ expressionType r
-    Name _ t -> t
+    Name _ t _ -> t
     Operator _ t _ _ -> returnType $ returnType t
     RecUpdate a _ -> expressionType a
     StringLiteral _ -> BuiltInString

@@ -4,14 +4,15 @@ module Transform.ToHybrid (
 
 import Control.Monad.State.Lazy
 import Data.Maybe
+import Debug.Trace
 import qualified Control.Monad as Monad
 import qualified Data.List as List
 
-import Debug.Trace
-
+import qualified AST.Common as Common
 import qualified AST.Hybrid as H
 import qualified AST.Typed as T
 import qualified CodeGen.NameMangling as NameMangling
+
 
 transformModule :: T.Module -> H.Source
 transformModule m = 
@@ -264,8 +265,11 @@ transformExpr (T.Lambda variable variableType body) =
       transformedBody <- transformExpr (lambdaBody body)
       return $ H.Lambda retVariables transformedBody
 
-transformExpr (T.Name a t) = 
-  return $ H.Read (transformType t) a
+transformExpr (T.Name a t origin) = 
+  return $ case origin of 
+    Common.SameModule -> H.Read (transformType t) a
+    Common.OtherModule b -> H.ReadImport (transformType t) a b
+
 
 transformExpr (T.Operator name opType a b) = do
   ta <- transformExpr a

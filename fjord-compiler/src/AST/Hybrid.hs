@@ -58,6 +58,7 @@ data Expression
   | Invoke Expression [Expression]
   | Lambda [(String, Type)] Expression
   | Read Type String 
+  | ReadImport Type String String
   | StringLiteral String
   deriving (Eq, Show)
 

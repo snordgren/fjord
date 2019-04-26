@@ -3,4 +3,4 @@ MissingDef.fj:4:1:
 4 | <empty line>
   | ^
 unexpected end of input
-expecting definition or end of line
+expecting definition, end of line, or import

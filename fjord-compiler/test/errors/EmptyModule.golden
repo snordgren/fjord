@@ -3,4 +3,4 @@ EmptyModule.fj:1:1:
 1 | <empty line>
   | ^
 unexpected end of input
-expecting "module"
+expecting module

@@ -1,0 +1,7 @@
+module test.codegen.Imports
+
+import test.codegen.types.Point
+
+position : Int -> Int -> Point
+position x y = 
+  Point x y
