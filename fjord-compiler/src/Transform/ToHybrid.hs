@@ -18,8 +18,14 @@ transformModule :: T.Module -> H.Source
 transformModule m = 
   let 
     decls = List.concat $ fmap transformDef (T.moduleDefs m)
+    imports = T.moduleImports m
   in
-    H.Source (T.moduleName m) decls
+    H.Source (T.moduleName m) (fmap transformDep $ imports) decls
+
+
+transformDep :: T.Import -> H.Dependency
+transformDep imp =
+  H.Dependency (T.importModule imp) $ T.importPath imp
 
 
 transformDef :: T.Definition -> [H.Definition]

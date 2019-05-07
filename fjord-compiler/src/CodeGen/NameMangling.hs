@@ -1,6 +1,10 @@
-module CodeGen.NameMangling (mangle) where
+module CodeGen.NameMangling (
+  mangle,
+  mangleImport,
+) where
 
 import qualified Data.List as List
+
 
 mangle :: String -> String
 mangle name = 
@@ -29,3 +33,13 @@ mangle name =
   in 
     List.concat $ fmap opFunNameChar name
   
+
+mangleImport :: String -> String
+mangleImport s =
+  let 
+    mapF a = 
+      case a of 
+        '.' -> '_'
+        _ -> a
+  in
+    fmap mapF s

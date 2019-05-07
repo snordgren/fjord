@@ -1,6 +1,6 @@
 module test.codegen.Imports
 
-import test.codegen.types.Point
+import test.typedef.TypeDef
 
 position : Int -> Int -> Point
 position x y = 

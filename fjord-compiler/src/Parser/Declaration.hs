@@ -58,6 +58,7 @@ recDeclP = label "record declaration" $ do
   string "record"
   some spaceP
   declName <- nameP
+  many spaceP
   eol
   fields <- some recFieldP
   eol

@@ -10,9 +10,18 @@ generateJS :: H.Source -> String
 generateJS s = 
   let 
     moduleS = "// module " ++ (H.sourceName s) ++ "\n\n"
-    definitionS = List.intercalate "\n\n" $ fmap definitionToJS (H.sourceDefinitions s)
+    importsS = List.concat $ fmap depToJS $ H.sourceDeps s
+    definitionS = List.intercalate "\n\n" $ fmap definitionToJS $ H.sourceDefinitions s
   in 
-    moduleS ++ definitionS ++ "\n"    
+    moduleS ++ importsS ++ (if (List.length importsS > 0) then "\n" else "") ++ definitionS ++ "\n"    
+
+
+depToJS dep =
+  let 
+    alias = NameMangling.mangleImport $ H.dependencyAlias dep
+    src = H.dependencySource dep
+  in
+    "var " ++ alias ++ " = require(\"" ++ src ++ "\");\n"
 
 
 definitionToJS :: H.Definition -> String
@@ -86,6 +95,9 @@ expressionToJS indent (H.Lambda variables body) =
 
 expressionToJS _ (H.Read _ n) = 
   n
+
+expressionToJS _ (H.ReadImport _ n imp) =
+  (NameMangling.mangleImport imp) ++ "." ++ n
 
 expressionToJS _ (H.StringLiteral s) = 
   show s

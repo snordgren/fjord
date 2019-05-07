@@ -13,25 +13,23 @@ data Module
   deriving (Eq, Show)
 
 
-data TypeDef 
-  = TypeDef {
-    typeDefName :: String,
-    typeDefDecls :: [Declaration]
-  }
-  deriving (Eq, Show)
-
-
 data Import 
   = Import {
+    importOffset :: Int,
     importModule :: String,
     importSource :: Maybe String
   } 
   deriving (Eq, Show)
 
 
-data ImportPattern
-  = ImportAll  
-  | ImportSome [(String, Maybe String)]
+data TypeDef 
+  = TypeDef {
+    typeDefSource :: String,
+    typeDefName :: String,
+    typeDefDecls :: [Declaration]
+  }
+  deriving (Eq, Show)
+
 
 data Declaration 
   = DeclEnumDecl EnumDecl
@@ -190,6 +188,7 @@ data Scope
     scopeTypes :: [(String, Common.Origin)],
     scopeImplicits :: [(String, Type, Common.Origin)]
   }
+  deriving (Eq, Show)
 
 
 defToDecl :: Definition -> Declaration
@@ -197,6 +196,9 @@ defToDecl d =
   case d of 
     EnumDef a -> 
       DeclEnumDecl a
+
+    ImplicitDef a _ -> 
+      DeclImplicitDecl a
 
     RecDef a -> 
       DeclRecDecl a

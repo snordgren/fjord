@@ -12,8 +12,18 @@ import qualified AST.Common as Common
 data Module = 
   Module { 
     moduleName :: String, 
+    moduleImports :: [Import],
     moduleDefs :: [Definition] 
   }
+
+
+data Import 
+  = Import {
+    importModule :: String,
+    importPath :: String
+  } 
+  deriving (Eq, Show)
+
   
 data Expression 
   = Apply Expression Expression

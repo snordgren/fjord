@@ -10,9 +10,19 @@ module AST.Hybrid where
 data Source = 
   Source {
     sourceName :: String,
+    sourceDeps :: [Dependency],
     sourceDefinitions :: [Definition]
   } 
   deriving (Eq, Show)
+
+
+data Dependency
+  = Dependency {
+    dependencyAlias :: String,
+    dependencySource :: String
+  }
+  deriving (Eq, Show)
+
 
 data Definition 
   = FunctionDefinition String [(String, Type)] Type FunctionBody

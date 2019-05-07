@@ -9,9 +9,9 @@ import Text.Megaparsec.Char.Lexer
 import qualified Data.List as List
 
 import Parser.Common
-import Parser.Common
 import Parser.Source.Definition (defP)
 import Parser.Source.Expression
+import qualified AST.Common as Common
 import qualified AST.Untyped as U
 
 
@@ -36,6 +36,7 @@ importP :: Parser U.Import
 importP = label "import" $ do
   string "import"
   some spaceP
+  offset <- getOffset
   moduleName <- qualifiedNameP
   many spaceP
   source <- option Nothing $ do
@@ -44,4 +45,4 @@ importP = label "import" $ do
     return $ Just s
 
   some eol
-  return $ U.Import moduleName source
+  return $ U.Import offset moduleName source

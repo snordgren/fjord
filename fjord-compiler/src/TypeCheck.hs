@@ -1,17 +1,20 @@
 module TypeCheck where
 
+import Debug.Trace
 import qualified Control.Monad as Monad
 import qualified Data.Either.Combinators as Combinators
 import qualified Data.List as List
+import qualified Data.Maybe as Maybe
 
+import Utils
 import qualified AST.Common as Common
 import qualified AST.Typed as T
 import qualified AST.Untyped as U
 
-
 data TypeError 
   = CannotInferType Int String
   | ImplicitNotFound Int U.Type String
+  | ImportNotFound Int String
   | TooManyParameters Int Int
   | UndefinedInScope Int
   | UndefinedType Int String
@@ -19,21 +22,69 @@ data TypeError
   deriving (Eq, Show)
 
 
-typeCheck :: U.Module -> Either TypeError T.Module
-typeCheck m = 
+typeCheck :: [U.TypeDef] -> U.Module -> Either TypeError T.Module
+typeCheck typeDefs m = 
   let
+
     importScope = 
-      List.foldl' mergeScope (U.Scope [] [] []) $ fmap scopeContrib (U.moduleDefs m)
+      List.foldl' mergeScope emptyScope $ fmap (deriveImportScope typeDefs) (U.moduleImports m)
 
     localDeclScope = 
-      List.foldl' mergeScope (U.Scope [] [] []) $ fmap scopeContrib (U.moduleDefs m)
+      List.foldl' mergeScope emptyScope $ 
+        fmap ((scopeContrib Common.SameModule) . U.defToDecl) $ 
+          U.moduleDefs m
 
     modScope = 
       mergeScope localDeclScope importScope
   in
     do
-    defs <- sequence $ fmap (toTypedDef modScope) $ U.moduleDefs m
-    return $ T.Module (U.moduleName m) defs
+      defs <- Monad.sequence $ fmap (toTypedDef modScope) $ U.moduleDefs m
+      imports <- Monad.sequence $ fmap (checkImport typeDefs) $ U.moduleImports m
+      return $ T.Module (U.moduleName m) imports defs
+
+
+checkImport :: [U.TypeDef] -> U.Import -> Either TypeError T.Import
+checkImport typeDefs imp = 
+  case findTypeDefForImport typeDefs imp of
+    Just a -> Right $ T.Import (U.importModule imp) $ U.typeDefSource a
+    Nothing -> Left $ ImportNotFound (U.importOffset imp) "import not found in path"
+
+
+findTypeDefForImport :: [U.TypeDef] -> U.Import -> Maybe U.TypeDef
+findTypeDefForImport typeDefs imp = 
+  let 
+    impSrc = 
+      U.importSource imp
+
+    typeDefMatchImport t = 
+      U.typeDefName t == (U.importModule imp) && 
+        ((Maybe.isNothing impSrc) || (maybeContains (U.typeDefSource t) impSrc))
+  in
+    List.find typeDefMatchImport typeDefs
+
+
+deriveImportScope :: [U.TypeDef] -> U.Import -> U.Scope
+deriveImportScope typeDefs imp =
+  let
+    matchingTypeDef = 
+      findTypeDefForImport typeDefs imp
+  in
+    case matchingTypeDef of 
+      Just t -> 
+        let 
+          scope = 
+            List.foldl' mergeScope emptyScope $ 
+              fmap (scopeContrib $ Common.OtherModule $ U.importModule imp) $ 
+              U.typeDefDecls t
+        in
+          scope
+
+      Nothing -> emptyScope
+
+
+emptyScope :: U.Scope
+emptyScope =
+  U.Scope [] [] []
 
 
 toTypedDef :: U.Scope -> U.Definition -> Either TypeError T.Definition
@@ -215,27 +266,27 @@ createDefScope modScope parameters typ =
 {-|
 Generates the individual contribution of the definition to the module scope.
 -}
-scopeContrib :: U.Definition -> U.Scope
-scopeContrib d =
+scopeContrib :: Common.Origin -> U.Declaration -> U.Scope
+scopeContrib origin d =
   case d of 
-    U.EnumDef (U.EnumDecl offset name constructors) -> 
+    U.DeclEnumDecl (U.EnumDecl offset name constructors) -> 
       let 
         bindConstructor :: U.EnumConstructor -> (String, U.Type, Common.Origin)
         bindConstructor c = 
-          (U.enumConstructorName c, U.enumConstructorType c, Common.SameModule)
+          (U.enumConstructorName c, U.enumConstructorType c, origin)
 
         values = 
           fmap bindConstructor constructors
 
         types =
-          [(name, Common.SameModule)]
+          [(name, origin)]
       in
         U.Scope values types []
 
-    U.ImplicitDef (U.ValDecl offset name implicits t) _ -> 
-      U.Scope [(name, t, Common.SameModule)] [] [(name, t, Common.SameModule)]
+    U.DeclImplicitDecl (U.ValDecl offset name implicits t) -> 
+      U.Scope [(name, t, origin)] [] [(name, t, origin)]
 
-    U.RecDef (U.RecDecl offset name fields) -> 
+    U.DeclRecDecl (U.RecDecl offset name fields) -> 
       let 
         constructorRetType = 
           U.TypeName offset name
@@ -247,16 +298,16 @@ scopeContrib d =
           List.foldr (U.FunctionType offset) constructorRetType fieldTypes
 
         values = 
-          [(name, constructorType, Common.SameModule)]
+          [(name, constructorType, origin)]
 
         types = 
-          [(name, Common.SameModule)]
+          [(name, origin)]
       in 
         U.Scope values types []
     
-    U.ValDef (U.ValDecl _ name implicits t) _ _ -> 
+    U.DeclValDecl (U.ValDecl _ name implicits t) -> 
       let 
-        values = [(filter (\a -> a /= '(' && a /= ')') name, t, Common.SameModule)]
+        values = [(filter (\a -> a /= '(' && a /= ')') name, t, origin)]
       in
         U.Scope values [] []
 

@@ -1,15 +1,16 @@
-import System.FilePath (takeBaseName, takeFileName, replaceExtension)
 import Test.Tasty (defaultMain, testGroup, TestTree)
 import Test.Tasty.Golden (goldenVsString, findByExtension)
 import Test.Tasty.HUnit (assertEqual, testCase, Assertion)
 import qualified Data.ByteString.Lazy.Char8 as LBS
 import qualified Data.List as List
+import qualified System.Directory as Directory
+import qualified System.FilePath as FilePath
 
-import qualified Compiler as  C
+import qualified Compiler as Compiler
 import qualified AST.Typed as T
 import qualified ParserSpec as ParserSpec
 import qualified TypeCheckSpec as TypeCheckSpec
-import qualified TypeDefParserSpec as TypeDefParserSpec
+
 
 main :: IO ()
 main = do
@@ -20,8 +21,7 @@ unitTests :: TestTree
 unitTests = testGroup "Unit Tests" 
   [
     ParserSpec.testParser,
-    TypeCheckSpec.test,
-    TypeDefParserSpec.testParser
+    TypeCheckSpec.test
   ]
 
 goldenTests :: IO TestTree
@@ -45,17 +45,22 @@ typeDefGoldenTests = createGoldenTestTree "Definition file generation" "./test/t
 createGoldenTestTree name dir extension f = do
   files <- findByExtension [".fj"] dir
   tests <- mapM (mkGoldenTest extension f) $ 
-    filter (\a -> not $ List.isInfixOf ".d.fj" $ takeFileName a) files
+    filter (\a -> not $ List.isInfixOf ".d.fj" $ FilePath.takeFileName a) files
   return $ testGroup name tests
 
 mkGoldenTest :: String -> ((String, String) -> String) -> FilePath -> IO TestTree
-mkGoldenTest extension f path = do
-  let testName = takeBaseName path
-  let goldenPath = replaceExtension path extension
+mkGoldenTest extension f path = do  
+  let testName = FilePath.takeBaseName path
+  let goldenPath = FilePath.replaceExtension path extension
   return $ goldenVsString testName goldenPath action
   where
     action :: IO LBS.ByteString
-    action = do
-      src <- readFile path
-      let res = C.compile (takeFileName path) src
-      return $ LBS.pack $ f res
+    action = 
+      let 
+        dir = "test"
+      in
+        do
+          typeDefs <- Compiler.readTypeDefs dir
+          src <- readFile path
+          let res = Compiler.compile dir typeDefs (FilePath.takeFileName path) src
+          return $ LBS.pack $ f res

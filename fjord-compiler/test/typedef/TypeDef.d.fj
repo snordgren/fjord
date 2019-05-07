@@ -1,5 +1,9 @@
 module test.typedef.TypeDef
 
+record Point
+  x : Int
+  y : Int
+
 record OneMember
   funds : OneMember -> Int
 

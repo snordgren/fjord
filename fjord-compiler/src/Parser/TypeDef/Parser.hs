@@ -7,8 +7,8 @@ import Parser.Common
 import Parser.Declaration (enumDeclP, recDeclP, valDeclP)
 import qualified AST.Untyped as U
 
-typeDefP :: Parser U.TypeDef
-typeDefP = 
+typeDefP :: String -> Parser U.TypeDef
+typeDefP fileName = 
   do
     string "module"
     some spaceP
@@ -16,7 +16,7 @@ typeDefP =
     many spaceP
     some eol
     decls <- some declP
-    return $ U.TypeDef name decls
+    return $ U.TypeDef fileName name decls
 
 
 declP :: Parser U.Declaration
