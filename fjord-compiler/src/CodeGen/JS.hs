@@ -8,29 +8,34 @@ import qualified AST.Hybrid as H
 import qualified CodeGen.NameMangling as NameMangling
 import qualified Utils as Utils
 
-generateJS :: H.Source -> String
-generateJS s = 
+generateJS :: String -> H.Source -> String
+generateJS srcPath s = 
   let 
     moduleS = "// module " ++ (H.sourceName s) ++ "\n\n"
-    importsS = List.concat $ fmap (depToJS $ H.sourceName s) $ H.sourceDeps s
+    importsS = List.concat $ fmap (depToJS srcPath) $ H.sourceDeps s
     definitionS = List.intercalate "\n\n" $ fmap definitionToJS $ H.sourceDefinitions s
   in 
     moduleS ++ importsS ++ (if (List.length importsS > 0) then "\n" else "") ++ definitionS ++ "\n"    
 
 
 depToJS :: String -> H.Dependency -> String
-depToJS moduleName dep =
+depToJS srcPath dep =
   let 
     alias = NameMangling.mangleImport $ H.dependencyAlias dep
-    srcHead = List.concat $ fmap (\_ -> "../") $ filter (\a -> a == '.') moduleName
+
+    srcHead = 
+      List.concat $ fmap (\_ -> "../") $ filter (\a -> a == '/') srcPath
 
     depSrc =
       H.dependencySource dep
 
     src = 
       List.Utils.replace ".d.fj" ".js" $ Utils.removeTopFolder depSrc
+
+    reqPath =
+      Utils.replaceRec "//" "/" (srcHead ++ src)
   in
-    "var " ++ alias ++ " = require(\"" ++ srcHead ++ src ++ "\");\n"
+    "var " ++ alias ++ " = require(\"" ++ reqPath ++ "\");\n"
 
 
 definitionToJS :: H.Definition -> String

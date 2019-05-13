@@ -1,6 +1,7 @@
 module Compiler ( 
   compile,
-  readTypeDefs
+  readTypeDefs,
+  runCompiler
 ) where
 
 import Debug.Trace
@@ -21,6 +22,13 @@ import qualified CodeGen.TypeDef as TypeDef
 import qualified Parser.Source.Parser as Source.Parser
 import qualified Parser.TypeDef.Parser as TypeDef.Parser
 import qualified Transform.ToHybrid as ToHybrid
+
+runCompiler :: FilePath -> FilePath -> IO (String, String)
+runCompiler dir path =
+  do
+    typeDefs <- Compiler.readTypeDefs dir
+    src <- readFile path
+    return $ Compiler.compile dir typeDefs (drop (length dir) path) src
 
 
 compile :: String -> [(String, String)] -> String -> String -> (String, String)
@@ -45,7 +53,7 @@ compileM dir typeDefSources fileName fileContents =
   do
     typeDefs <- handleErrBundle $ Monad.sequence $ fmap (\(a, b) -> parseTypeDef dir a b) typeDefSources
     mod <- handleErrBundle $ parseModuleSource typeDefs fileName fileContents
-    return (generateJSModule mod, TypeDef.genDefStr mod)
+    return (generateJSModule fileName mod, TypeDef.genDefStr mod)
 
 
 {-|
@@ -142,5 +150,5 @@ typeErrorToErrorBundle initialPosState err =
         bundleMsg offset $ "unknown type " ++ s
 
 
-generateJSModule :: T.Module -> String
-generateJSModule m = JS.generateJS $ ToHybrid.transformModule m
+generateJSModule :: String -> T.Module -> String
+generateJSModule srcPath m = JS.generateJS srcPath $ ToHybrid.transformModule m

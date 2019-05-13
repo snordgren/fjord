@@ -1,4 +1,4 @@
-MissingDef.fj:4:1:
+errors/MissingDef.fj:4:1:
   |
 4 | <empty line>
   | ^

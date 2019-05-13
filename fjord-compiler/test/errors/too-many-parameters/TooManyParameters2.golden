@@ -1,4 +1,4 @@
-TooManyParameters2.fj:4:11:
+errors/too-many-parameters/TooManyParameters2.fj:4:11:
   |
 4 | myFun a b c =
   |           ^^^^

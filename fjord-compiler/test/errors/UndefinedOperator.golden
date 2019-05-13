@@ -1,4 +1,4 @@
-UndefinedOperator.fj:4:18:
+errors/UndefinedOperator.fj:4:18:
   |
 4 | undefinedOp a = a ++ 1
   |                  ^^^^^^

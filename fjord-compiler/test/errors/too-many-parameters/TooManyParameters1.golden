@@ -1,4 +1,4 @@
-TooManyParameters1.fj:4:9:
+errors/too-many-parameters/TooManyParameters1.fj:4:9:
   |
 4 | myFun x y = 
   |         ^^^^^

@@ -1,4 +1,4 @@
-TooManyParameters0.fj:4:7:
+errors/too-many-parameters/TooManyParameters0.fj:4:7:
   |
 4 | myVal x =
   |       ^^^^

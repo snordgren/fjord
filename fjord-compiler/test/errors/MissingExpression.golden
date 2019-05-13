@@ -1,4 +1,4 @@
-MissingExpression.fj:5:1:
+errors/MissingExpression.fj:5:1:
   |
 5 | <empty line>
   | ^

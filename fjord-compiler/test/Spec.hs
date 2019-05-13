@@ -32,14 +32,14 @@ goldenTests = do
   return $ testGroup "Golden Tests" [js, errors, typeDef]
 
 jsGoldenTests :: IO TestTree
-jsGoldenTests = createGoldenTestTree "JS CodeGen" "./test/codegen" ".js" fst
+jsGoldenTests = createGoldenTestTree "JS CodeGen" "test/codegen" ".js" fst
 
 errorGoldenTests :: IO TestTree
-errorGoldenTests = createGoldenTestTree "Error Reporting" "./test/errors" 
+errorGoldenTests = createGoldenTestTree "Error Reporting" "test/errors" 
   ".golden" fst
 
 typeDefGoldenTests :: IO TestTree
-typeDefGoldenTests = createGoldenTestTree "Definition file generation" "./test/typedef" 
+typeDefGoldenTests = createGoldenTestTree "Definition file generation" "test/typedef" 
   ".d.fj" (\(a, b) -> if length b > 0 then b else a)
 
 createGoldenTestTree name dir extension f = do
@@ -57,10 +57,8 @@ mkGoldenTest extension f path = do
     action :: IO LBS.ByteString
     action = 
       let 
-        dir = "test"
+        dir = "test/"
       in
         do
-          typeDefs <- Compiler.readTypeDefs dir
-          src <- readFile path
-          let res = Compiler.compile dir typeDefs (FilePath.takeFileName path) src
+          res <- Compiler.runCompiler dir path
           return $ LBS.pack $ f res
