@@ -41,6 +41,7 @@ importP = label "import" $ do
   many spaceP
   source <- option Nothing $ do
     string "from"
+    some spaceP
     s <- stringP
     return $ Just s
 

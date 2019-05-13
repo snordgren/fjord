@@ -47,7 +47,7 @@ checkImport :: [U.TypeDef] -> U.Import -> Either TypeError T.Import
 checkImport typeDefs imp = 
   case findTypeDefForImport typeDefs imp of
     Just a -> Right $ T.Import (U.importModule imp) $ U.typeDefSource a
-    Nothing -> Left $ ImportNotFound (U.importOffset imp) "import not found in path"
+    Nothing -> Left $ ImportNotFound (U.importOffset imp) $ U.importModule imp
 
 
 findTypeDefForImport :: [U.TypeDef] -> U.Import -> Maybe U.TypeDef

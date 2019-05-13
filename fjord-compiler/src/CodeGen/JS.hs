@@ -1,6 +1,7 @@
 module CodeGen.JS where
 
 import qualified Data.List as List
+import qualified Data.List.Utils as List.Utils
 import qualified Data.Maybe as Maybe
 
 import qualified AST.Hybrid as H
@@ -10,18 +11,20 @@ generateJS :: H.Source -> String
 generateJS s = 
   let 
     moduleS = "// module " ++ (H.sourceName s) ++ "\n\n"
-    importsS = List.concat $ fmap depToJS $ H.sourceDeps s
+    importsS = List.concat $ fmap (depToJS $ H.sourceName s) $ H.sourceDeps s
     definitionS = List.intercalate "\n\n" $ fmap definitionToJS $ H.sourceDefinitions s
   in 
     moduleS ++ importsS ++ (if (List.length importsS > 0) then "\n" else "") ++ definitionS ++ "\n"    
 
 
-depToJS dep =
+depToJS :: String -> H.Dependency -> String
+depToJS moduleName dep =
   let 
     alias = NameMangling.mangleImport $ H.dependencyAlias dep
-    src = H.dependencySource dep
+    srcHead = List.concat $ fmap (\_ -> "../") $ filter (\a -> a == '.') moduleName
+    src = List.Utils.replace ".d.fj" ".js" $ H.dependencySource dep
   in
-    "var " ++ alias ++ " = require(\"" ++ src ++ "\");\n"
+    "var " ++ alias ++ " = require(\"" ++ srcHead ++ src ++ "\");\n"
 
 
 definitionToJS :: H.Definition -> String
