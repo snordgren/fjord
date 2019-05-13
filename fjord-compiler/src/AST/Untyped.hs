@@ -16,8 +16,7 @@ data Module
 data Import 
   = Import {
     importOffset :: Int,
-    importModule :: String,
-    importSource :: Maybe String
+    importModule :: String
   } 
   deriving (Eq, Show)
 

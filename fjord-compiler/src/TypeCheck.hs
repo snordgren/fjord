@@ -14,7 +14,7 @@ import qualified AST.Untyped as U
 data TypeError 
   = CannotInferType Int String
   | ImplicitNotFound Int U.Type String
-  | ImportNotFound Int String
+  | ImportNotFound U.Import
   | TooManyParameters Int Int
   | UndefinedInScope Int
   | UndefinedType Int String
@@ -47,18 +47,14 @@ checkImport :: [U.TypeDef] -> U.Import -> Either TypeError T.Import
 checkImport typeDefs imp = 
   case findTypeDefForImport typeDefs imp of
     Just a -> Right $ T.Import (U.importModule imp) $ U.typeDefSource a
-    Nothing -> Left $ ImportNotFound (U.importOffset imp) $ U.importModule imp
+    Nothing -> Left $ ImportNotFound imp
 
 
 findTypeDefForImport :: [U.TypeDef] -> U.Import -> Maybe U.TypeDef
 findTypeDefForImport typeDefs imp = 
   let 
-    impSrc = 
-      U.importSource imp
-
     typeDefMatchImport t = 
-      U.typeDefName t == (U.importModule imp) && 
-        ((Maybe.isNothing impSrc) || (maybeContains (U.typeDefSource t) impSrc))
+      U.typeDefName t == (U.importModule imp)
   in
     List.find typeDefMatchImport typeDefs
 

@@ -1,5 +1,6 @@
-// module test.codegen.Imports
+// module codegen.Imports
 
-var test_typedef_TypeDef = require("../../test/typedef/TypeDef.js");
+var typedef_TypeDef = require("../typedef/TypeDef.js");
+var WebGL = require("../node_modules/@fjord-lang/webgl/dist/WebGL.js");
 
-export const position = (x, y) => (test_typedef_TypeDef.Point(x, y));
+export const position = (typedef_TypeDef.Point(typedef_TypeDef.five, WebGL.originY));

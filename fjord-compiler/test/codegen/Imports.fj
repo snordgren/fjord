@@ -1,7 +1,8 @@
-module test.codegen.Imports
+module codegen.Imports
 
-import test.typedef.TypeDef
+import typedef.TypeDef
+import WebGL
 
-position : Int -> Int -> Point
-position x y = 
-  Point x y
+position : Point
+position = 
+  Point five originY

@@ -39,11 +39,5 @@ importP = label "import" $ do
   offset <- getOffset
   moduleName <- qualifiedNameP
   many spaceP
-  source <- option Nothing $ do
-    string "from"
-    some spaceP
-    s <- stringP
-    return $ Just s
-
   some eol
-  return $ U.Import offset moduleName source
+  return $ U.Import offset moduleName

@@ -1,4 +1,4 @@
-module test.typedef.TypeDef
+module typedef.TypeDef
 
 record Point
   x : Int

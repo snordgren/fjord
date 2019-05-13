@@ -6,6 +6,7 @@ import qualified Data.Maybe as Maybe
 
 import qualified AST.Hybrid as H
 import qualified CodeGen.NameMangling as NameMangling
+import qualified Utils as Utils
 
 generateJS :: H.Source -> String
 generateJS s = 
@@ -22,7 +23,12 @@ depToJS moduleName dep =
   let 
     alias = NameMangling.mangleImport $ H.dependencyAlias dep
     srcHead = List.concat $ fmap (\_ -> "../") $ filter (\a -> a == '.') moduleName
-    src = List.Utils.replace ".d.fj" ".js" $ H.dependencySource dep
+
+    depSrc =
+      H.dependencySource dep
+
+    src = 
+      List.Utils.replace ".d.fj" ".js" $ Utils.removeTopFolder depSrc
   in
     "var " ++ alias ++ " = require(\"" ++ srcHead ++ src ++ "\");\n"
 
