@@ -13,8 +13,8 @@ record TwoMembers
 
 enum ThreeMembers
   First : ThreeMembers
-  Second : Int -> ThreeMembers
-  Third : (TwoMembers -> String, Int) -> ThreeMembers
+  Second Int : ThreeMembers
+  Third (TwoMembers -> String, Int) : ThreeMembers
 
 five : Int
 

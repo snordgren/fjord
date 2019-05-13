@@ -45,8 +45,18 @@ defToTypeDefStr decl =
 
 
 genCtorStr :: T.EnumConstructor -> String
-genCtorStr (T.EnumConstructor name t) =
-  "  " ++ name ++ " : " ++ genTypeDefStr t
+genCtorStr (T.EnumConstructor name parTypes retType) =
+  let
+    parS = 
+      if List.length parTypes == 0 then
+        ""
+      else
+        (List.intercalate " " $ fmap genTypeDefStr parTypes) ++ " "
+
+    retS =
+      genTypeDefStr retType
+  in
+    "  " ++ name ++ " " ++ parS ++ ": " ++ retS
 
 
 genFieldStr :: T.RecField -> String

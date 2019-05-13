@@ -1,3 +1,7 @@
+{-
+Transforms the high-level typed AST to a hybrid procedural-functional AST 
+suitable for either lowering to C or generating JavaScript source. 
+-}
 module Transform.ToHybrid (
   transformModule
 ) where
@@ -41,20 +45,16 @@ transformDef a =
         enumTagType = H.BuiltInInt
         
         ctorTagName :: T.EnumConstructor -> String
-        ctorTagName (T.EnumConstructor n _) = "$Tag" ++ n
+        ctorTagName (T.EnumConstructor n _ _) = "$Tag" ++ n
     
         ctorTag :: (T.EnumConstructor, Integer) -> H.Definition
         ctorTag (ctor, ix) = 
           H.ValueDefinition (ctorTagName ctor) enumTagType $ H.IntLiteral ix
     
-        ctorParameters :: T.Type -> [T.Type]
-        ctorParameters (T.FunctionType a b) = a : (ctorParameters b)
-        ctorParameters _ = []
-    
         ctorFun :: T.EnumConstructor -> H.Definition
         ctorFun ctor =
           let 
-            ctorParameterTypes = fmap transformType $ ctorParameters $ T.enumConstructorType ctor
+            ctorParameterTypes = fmap transformType $ T.enumConstructorPars ctor
             ctorParameterCount = List.length ctorParameterTypes
             ctorParameterH = fmap (\(t, s) -> (("_" ++ (show s)), t)) $ zip ctorParameterTypes [0..]
             ctorName = T.enumConstructorName ctor

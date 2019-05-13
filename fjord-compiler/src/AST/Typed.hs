@@ -63,7 +63,8 @@ data Definition
 data EnumConstructor = EnumConstructor 
   { 
     enumConstructorName :: String, 
-    enumConstructorType :: Type
+    enumConstructorPars :: [Type],
+    enumConstructorRet :: Type
   }
   deriving (Eq, Show)
 

@@ -2,7 +2,7 @@ module test.codegen.types.MaybeInt
 
 enum MaybeInt
   None : MaybeInt
-  Some : Int -> MaybeInt
+  Some Int : MaybeInt
 
 maybeToInt : MaybeInt -> Int
 maybeToInt m = 

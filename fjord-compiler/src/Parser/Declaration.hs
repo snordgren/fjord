@@ -29,12 +29,14 @@ enumConstructorP = label "enum constructor" $ do
   some spaceP
   offset <- getOffset
   constructorName <- nameP
+  parTypes <- many $ try $ some spaceP >> typeP
   many spaceP
   char ':'
   many spaceP
-  t <- typeP
+  retType <- typeP
+  many spaceP
   eol
-  return $ U.EnumConstructor offset constructorName t 
+  return $ U.EnumConstructor offset constructorName parTypes retType
 
 
 implicitDeclP :: Parser U.ValDecl 

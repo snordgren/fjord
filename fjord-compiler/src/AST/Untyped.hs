@@ -159,7 +159,8 @@ data EnumConstructor
   = EnumConstructor {
     enumConstructorOffset :: Int,
     enumConstructorName :: String,
-    enumConstructorType :: Type
+    enumConstructorParTypes :: [Type],
+    enumConstructorRetType :: Type
   }
   deriving (Eq, Show)
 

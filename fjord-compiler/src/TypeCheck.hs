@@ -82,16 +82,20 @@ emptyScope :: U.Scope
 emptyScope =
   U.Scope [] [] []
 
-
+{-
+Generate a typed definition from an untyped one, or generate an error if there 
+is something wrong. 
+-}
 toTypedDef :: U.Scope -> U.Definition -> Either TypeError T.Definition
 toTypedDef modScope a =
   case a of 
     U.EnumDef (U.EnumDecl offset name constructors) ->
       let 
-        toTypedEnumConstructor (U.EnumConstructor _ s t) = 
+        toTypedEnumConstructor (U.EnumConstructor _ s parTypes retType) = 
           do
-            typedT <- toTypedType modScope t
-            return $ T.EnumConstructor s typedT
+            parTypesT <- Monad.sequence $ fmap (toTypedType modScope) parTypes
+            retTypeT <- toTypedType modScope retType
+            return $ T.EnumConstructor s parTypesT retTypeT
       in do
         ctors <- Monad.sequence $ fmap toTypedEnumConstructor constructors
         return $ T.EnumDef name ctors
@@ -267,12 +271,16 @@ scopeContrib origin d =
   case d of 
     U.DeclEnumDecl (U.EnumDecl offset name constructors) -> 
       let 
-        bindConstructor :: U.EnumConstructor -> (String, U.Type, Common.Origin)
-        bindConstructor c = 
-          (U.enumConstructorName c, U.enumConstructorType c, origin)
+        genCtorBinding :: U.EnumConstructor -> (String, U.Type, Common.Origin)
+        genCtorBinding c = 
+          let 
+            typ = 
+              List.foldr (\a -> \b -> U.FunctionType 0 a b) (U.enumConstructorRetType c) $ U.enumConstructorParTypes c
+          in
+            (U.enumConstructorName c, typ, origin)
 
         values = 
-          fmap bindConstructor constructors
+          fmap genCtorBinding constructors
 
         types =
           [(name, origin)]
