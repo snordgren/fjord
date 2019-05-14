@@ -36,7 +36,7 @@ termP :: Parser U.Expression
 termP = 
   choice [
     (try caseP), (try lambdaP), (try tupleExprP), recordUpdateP, intLiteralP, stringLiteralP, 
-    nameExpressionP, parenExprP
+    nameExpressionP, (try emptyTupleP), parenExprP
   ]
 
 
@@ -140,6 +140,15 @@ tupleExprP =
     tail <- some $ try rhsP
     char ')'
     return $ U.Tuple offset $ head : tail
+
+
+emptyTupleP :: Parser U.Expression
+emptyTupleP = do
+  offset <- getOffset
+  char '('
+  many spaceP
+  char ')'
+  return $ U.Tuple offset []
 
 
 parenExprP :: Parser U.Expression

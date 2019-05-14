@@ -12,7 +12,17 @@ import qualified AST.Untyped as U
 
 typeTermP :: Parser U.Type
 typeTermP = 
-  choice [(try tupleTypeP), parenTypeP, typeNameP]
+  choice [try emptyTupleP, try tupleTypeP, parenTypeP, typeNameP]
+
+
+emptyTupleP :: Parser U.Type
+emptyTupleP = 
+  label "empty tuple" $ do
+    offset <- getOffset
+    char '('
+    many spaceP
+    char ')'
+    return $ U.TupleType offset []
 
 
 tupleTypeP :: Parser U.Type
