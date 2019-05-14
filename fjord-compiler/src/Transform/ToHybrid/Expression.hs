@@ -25,6 +25,7 @@ transformExpr (T.Apply a b) =
 
     fnParamList :: T.Type -> [T.Type]
     fnParamList (T.FunctionType a b) = [a] ++ fnParamList b 
+    fnParamList (T.LinearFunctionType a b) = [a] ++ fnParamList b
     fnParamList _ = []
 
     parametersOfApply :: T.Expression -> [T.Expression]
