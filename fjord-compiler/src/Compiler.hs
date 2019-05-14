@@ -23,12 +23,12 @@ import qualified Parser.Source.Parser as Source.Parser
 import qualified Parser.TypeDef.Parser as TypeDef.Parser
 import qualified Transform.ToHybrid as ToHybrid
 
-runCompiler :: FilePath -> FilePath -> IO (String, String)
+runCompiler :: FilePath -> FilePath -> IO (Either String (String, String))
 runCompiler dir path =
   do
     typeDefs <- Compiler.readTypeDefs dir
     src <- readFile path
-    return $ Compiler.compile dir typeDefs (drop (length dir) path) src
+    return $ Compiler.compileM dir typeDefs (drop (length dir) path) src
 
 
 compile :: String -> [(String, String)] -> String -> String -> (String, String)

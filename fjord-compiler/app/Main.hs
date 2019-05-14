@@ -26,10 +26,26 @@ main =
 runCompilerWith :: FilePath -> FilePath -> FilePath -> IO ()
 runCompilerWith srcDir outDir file =
   do
-    (js, typeDef) <- Compiler.runCompiler srcDir file
+    result <- Compiler.runCompiler srcDir file
+    case result of 
+      Left msg -> 
+        emitError msg
+
+      Right (js, typeDef) ->
+        emitFiles srcDir outDir file js typeDef
+
+emitError :: String -> IO ()
+emitError msg = 
+  putStrLn msg
+
+
+emitFiles :: String -> String -> String -> String -> String -> IO ()
+emitFiles srcDir outDir file js typeDef =
+  do
     let outJSFile = outDir ++ (FilePath.replaceExtension (drop (length srcDir) file) ".js")
     let outTypeDefFile = outDir ++ (FilePath.replaceExtension (drop (length srcDir) file) ".d.fj")
     Directory.createDirectoryIfMissing True $ FilePath.takeDirectory outJSFile
     IO.writeFile outJSFile js
     IO.writeFile outTypeDefFile typeDef
     return ()
+
