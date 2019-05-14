@@ -22,14 +22,33 @@ runModuleParser =
   
 moduleP :: Parser U.Module
 moduleP = label "module" $ do
+  many commentP
   string "module"
   some spaceP
   moduleName <- qualifiedNameP
   many spaceP
   some eol
   imports <- many importP
-  defs <- some defP
+  defs <- some defWithCommentsP
   return $ U.Module moduleName imports defs
+
+
+defWithCommentsP :: Parser U.Definition
+defWithCommentsP =
+  label "definition" $ do 
+    many $ try $ (commentP <|> (newline >> return ()))
+    d <- defP
+    return d
+
+
+commentP :: Parser ()
+commentP =
+  do
+    many spaceP
+    char '#'
+    many $ noneOf "\n" 
+    eol
+    return ()
 
 
 importP :: Parser U.Import

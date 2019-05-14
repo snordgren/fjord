@@ -1,0 +1,11 @@
+# Ensure that we can take two empty lines between a record and a function 
+# definition. 
+module codegen.types.Record0
+
+record Record0
+  field : String
+
+
+fn : Record0 -> Record0
+fn x = 
+  x
