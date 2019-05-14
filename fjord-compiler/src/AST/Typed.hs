@@ -30,7 +30,7 @@ data Expression
   | Case Expression [Pattern]
   | IntLiteral Integer 
   | Lambda String Type Expression
-  | Name String Type Common.Origin
+  | Name String Type Common.Uniqueness Common.Origin
   | Operator String Type Expression Expression 
   | RecUpdate Expression [FieldUpdate]
   | StringLiteral String 
@@ -108,7 +108,7 @@ expressionType a =
     Case a p -> expressionType $ patternReturnExpression $ head p
     IntLiteral _ -> BuiltInInt
     Lambda _ t r -> FunctionType t $ expressionType r
-    Name _ t _ -> t
+    Name _ t _ _ -> t
     Operator _ t _ _ -> returnType $ returnType t
     RecUpdate a _ -> expressionType a
     StringLiteral _ -> BuiltInString

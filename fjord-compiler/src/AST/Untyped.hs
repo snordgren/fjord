@@ -186,7 +186,7 @@ data Parameter
 
 data Scope 
   = Scope { 
-    scopeValues :: [(String, Type, Common.Origin)],
+    scopeValues :: [(String, Type, Common.Uniqueness, Common.Origin)],
     scopeTypes :: [(String, Common.Origin)],
     scopeImplicits :: [(String, Type, Common.Origin)]
   }
