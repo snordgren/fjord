@@ -99,9 +99,9 @@ transformDef a =
         ]
 
     T.RecDef name fields ->
-      if length fields == 0 then
+      {-if length fields == 0 then
         error "zero-field records are not yet implemented"
-      else let
+      else-} let
         tupleRecField f = 
           (T.recFieldName f, transformType (T.recFieldType f))
     

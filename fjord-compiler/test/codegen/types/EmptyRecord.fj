@@ -1,0 +1,3 @@
+module EmptyRecord
+
+record EmptyRecord

@@ -62,8 +62,8 @@ recDeclP = label "record declaration" $ do
   declName <- nameP
   many spaceP
   eol
-  fields <- some recFieldP
-  eol
+  fields <- many $ try $ recFieldP
+  if length fields > 0 then (eol >> return ()) else (many spaceP >> return ())
   return $ U.RecDecl offset declName fields
 
 
