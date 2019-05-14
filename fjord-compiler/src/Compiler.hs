@@ -13,7 +13,7 @@ import qualified Data.Set as Set
 import qualified System.Directory as Directory
 
 
-import TypeCheck (typeCheck, TypeError (..))
+import Check.Types (typeCheck, TypeError (..))
 import qualified AST.Typed as T
 import qualified AST.Untyped as U
 import qualified CodeGen.JS as JS

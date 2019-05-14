@@ -1,11 +1,11 @@
-module TypeCheckSpec where 
+module Check.TypesSpec where 
 
 import Test.Tasty (testGroup, TestTree)
 import Test.Tasty.HUnit (assertEqual, testCase, testCaseSteps, Assertion)
 
 import qualified AST.Typed as T
 import qualified AST.Untyped as U
-import qualified TypeCheck as TypeCheck
+import qualified Check.Types as TypeCheck
   
 test :: TestTree
 test = testGroup "TypeCheckSpec"

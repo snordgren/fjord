@@ -1,4 +1,4 @@
-module TypeCheck where
+module Check.Types where
 
 import Debug.Trace
 import qualified Control.Monad as Monad

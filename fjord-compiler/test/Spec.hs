@@ -9,7 +9,7 @@ import qualified System.FilePath as FilePath
 import qualified Compiler as Compiler
 import qualified AST.Typed as T
 import qualified ParserSpec as ParserSpec
-import qualified TypeCheckSpec as TypeCheckSpec
+import qualified Check.TypesSpec as TypesSpec
 
 
 main :: IO ()
@@ -21,7 +21,7 @@ unitTests :: TestTree
 unitTests = testGroup "Unit Tests" 
   [
     ParserSpec.testParser,
-    TypeCheckSpec.test
+    TypesSpec.test
   ]
 
 goldenTests :: IO TestTree
