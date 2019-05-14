@@ -227,7 +227,7 @@ inferRequiredBody :: U.Type -> [U.Type] -> [U.Parameter] -> U.Type
 inferRequiredBody declaredType implicits parameters = 
   let 
     remainingParameters = drop (length parameters) (fnParamList declaredType)
-    returnType = last (functionTypeList declaredType)
+    returnType = last (fnTypeList declaredType)
   in if length remainingParameters > 0 then
     List.foldr (U.FunctionType 0) returnType remainingParameters
   else
@@ -316,22 +316,31 @@ scopeContrib origin d =
         U.Scope values [] []
 
 
+{-
+Get all the parameters of this type.
+-}
 fnParamList :: U.Type -> [U.Type]
 fnParamList t = 
   case t of 
     U.FunctionType _ par ret -> 
       par : fnParamList ret
 
+    U.LinearFunctionType _ par ret ->
+      par : fnParamList ret
+
     _ -> 
       []
 
 
-functionTypeList :: U.Type -> [U.Type]
-functionTypeList t =
+fnTypeList :: U.Type -> [U.Type]
+fnTypeList t =
   case t of 
     U.FunctionType _ p r -> 
-      p : functionTypeList r
+      p : fnTypeList r
       
+    U.LinearFunctionType _ p r ->
+      p : fnTypeList r
+
     a -> 
       [a]
     
@@ -434,6 +443,7 @@ inferType scope expectedType expr =
         inferB <- inferType scope Nothing b
         case inferA of 
           T.FunctionType param ret -> Right ret
+          T.LinearFunctionType par ret -> Right ret
           _ -> Left $ CannotInferType offset "cannot infer function type"
 
     U.Case offset expr patterns -> 
@@ -474,6 +484,12 @@ toTypedType scope a =
         parT <- toTypedType scope par
         retT <- toTypedType scope ret
         return $ T.FunctionType parT retT
+
+    U.LinearFunctionType _ par ret ->
+      do
+        parT <- toTypedType scope par
+        retT <- toTypedType scope ret
+        return $ T.LinearFunctionType parT retT
 
     U.TupleType _ types ->
       do

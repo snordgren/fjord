@@ -1,0 +1,7 @@
+module codegen.functions.LinearIdentity
+
+record Message
+
+id : Message -* Message
+id a =
+  a

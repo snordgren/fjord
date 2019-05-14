@@ -88,6 +88,7 @@ data Type
   = BuiltInInt 
   | BuiltInString 
   | FunctionType Type Type
+  | LinearFunctionType Type Type
   | TupleType [Type]
   | TypeName String 
   deriving Eq
@@ -96,6 +97,7 @@ instance Show Type where
   show BuiltInInt = "BuiltIn.Int"
   show BuiltInString = "BuiltIn.String"
   show (FunctionType p r) = (show p) ++ " -> " ++ (show r)
+  show (LinearFunctionType p r) = (show p) ++ " -* " ++ (show r)
   show (TupleType values) = "(" ++ (List.intercalate "," $ fmap show values) ++ ")"
   show (TypeName s) = s
   

@@ -54,11 +54,18 @@ typeNameP = do
 typeP :: Parser U.Type
 typeP = 
   let 
-    thinArrow = Expr.InfixR $ try $ do 
+    linearFunction = Expr.InfixR $ try $ do 
+      offset <- getOffset
+      many spaceP
+      (string "-*")
+      many spaceP
+      return (U.LinearFunctionType offset)
+
+    pureFunction = Expr.InfixR $ try $ do 
       offset <- getOffset
       many spaceP
       (string "->")
       many spaceP
       return (U.FunctionType offset)
   in 
-    Expr.makeExprParser typeTermP [[thinArrow]]
+    Expr.makeExprParser typeTermP [[pureFunction, linearFunction]]
