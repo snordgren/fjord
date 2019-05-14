@@ -1,5 +1,4 @@
 module Compiler ( 
-  compile,
   readTypeDefs,
   runCompiler
 ) where
@@ -29,11 +28,6 @@ runCompiler dir path =
     typeDefs <- Compiler.readTypeDefs dir
     src <- readFile path
     return $ Compiler.compileM dir typeDefs (drop (length dir) path) src
-
-
-compile :: String -> [(String, String)] -> String -> String -> (String, String)
-compile dir typeDefs fileName fileContents = 
-  either (\a -> (a, "")) (\a -> a) $ compileM dir typeDefs fileName fileContents
 
 
 handleErrBundle 

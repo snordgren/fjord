@@ -61,4 +61,12 @@ mkGoldenTest extension f path = do
       in
         do
           res <- Compiler.runCompiler dir path
-          return $ LBS.pack $ f res
+          return $ LBS.pack $ f $ normCompileRes res
+
+{-
+Utility method for testing.
+-}
+normCompileRes :: Either String (String, String) -> (String, String)
+normCompileRes =
+  either (\a -> (a, "")) (\a -> a)
+
