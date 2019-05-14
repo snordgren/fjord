@@ -1,0 +1,3 @@
+module types.EmptyRecord0
+
+record EmptyRecord

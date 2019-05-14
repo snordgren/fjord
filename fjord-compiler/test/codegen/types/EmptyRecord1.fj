@@ -1,0 +1,7 @@
+module types.EmptyRecord1
+
+record EmptyRecord
+
+six : Int
+six = 
+  6
