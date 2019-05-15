@@ -1,4 +1,4 @@
-module test.ModifySharedRecord
+module errors.uniqueness.ModifySharedRecord
 
 
 record Shared 

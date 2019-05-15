@@ -1,4 +1,4 @@
-module errors.Frugal
+module errors.uniqueness.Frugal
 
 record Message
   content : String

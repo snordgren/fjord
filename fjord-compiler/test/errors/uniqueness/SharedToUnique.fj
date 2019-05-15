@@ -1,4 +1,4 @@
-module errors.SharedToUnique
+module errors.uniqueness.SharedToUnique
 
 useUnique : Int -* Int
 useUnique x =

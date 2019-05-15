@@ -1,4 +1,4 @@
-module errors.ReturnShared
+module errors.uniqueness.ReturnShared
 
 returnShared : Int -> Int
 returnShared x =
