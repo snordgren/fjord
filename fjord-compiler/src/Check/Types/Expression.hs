@@ -13,14 +13,15 @@ import qualified Data.Maybe as Maybe
 import Check.Scope
 import Check.Types.InferUnique
 import Check.Types.Types
+import Check.Types.UseCounter (UseCounter (UseCounter))
 import qualified AST.Common as Common
 import qualified AST.Typed as T
 import qualified AST.Untyped as U
-
+import qualified Check.Types.UseCounter as UseCounter
 
 type UseCountM = 
   --StateT (Map.Map String Int) (Either TypeError)
-  ExceptT TypeError (State [(String, Int)])
+  ExceptT TypeError (State [UseCounter])
 
 
 toTypedExpression 
@@ -84,22 +85,22 @@ toTypedExpression scope expectType expectUniq expr =
     U.Name offset s -> 
       let 
         findUseCount =
-          List.find (\(name, _) -> s == name)
+          List.find (\a -> s == (UseCounter.name a))
 
-        removeUseCount :: [(String, Int)] -> [(String, Int)]
+        removeUseCount :: [UseCounter] -> [UseCounter]
         removeUseCount =
-          List.filter (\(name, _) -> s /= name)
+          List.filter (\a -> s /= (UseCounter.name a))
 
-        updateUseCount :: [(String, Int)] -> Either TypeError [(String, Int)]
+        updateUseCount :: [UseCounter] -> Either TypeError [UseCounter]
         updateUseCount useCounts =
           let
-            newUseCount = 
-              1 + (Maybe.fromMaybe 0 $ fmap (\(_, a) -> a) $ findUseCount useCounts)
+            useCounter =
+              Maybe.fromMaybe (UseCounter.for s) $ findUseCount useCounts
           in
-            if newUseCount > 1 then
+            if UseCounter.isUsedLinearly useCounter then
               Left $ TooManyUsages offset s
             else
-              return ((s, newUseCount) : (removeUseCount useCounts))
+              return ((UseCounter.markUsedLinearly useCounter) : (removeUseCount useCounts))
       in 
         do
           (t, uniq, orig) <- eitherToUseCountM $ scopeVariableType scope offset s
@@ -212,17 +213,17 @@ runUseCounting offset scope e =
       List.filter (\(_, _, uniq, _) -> uniq == Common.Unique) $ U.scopeValues scope
 
     initialMap =
-      fmap (\(name, _, _, _) -> (name, 0)) uniqueValues
+      fmap (\(name, _, _, _) -> UseCounter.for name) uniqueValues
 
     (eith, finalMap) = 
       runState (runExceptT e) initialMap
 
     tooFewUsages = 
-      List.find (\(name, useCount) -> useCount <= 0) finalMap
+      List.find (\a -> not $ UseCounter.isUsedLinearly a) finalMap
   in
     case tooFewUsages of
-      Just (x, useCount) -> 
-        Left $ TooFewUsages offset x
+      Just a -> 
+        Left $ TooFewUsages offset (UseCounter.name a)
 
       Nothing -> 
         eith
