@@ -1,14 +1,17 @@
 // module test.codegen.implicits.Implicit
 
-export const Zero = zero => {
+const Zero = zero => {
   var _a = {};
   _a.zero = zero;
   return _a;
 };
+exports.Zero = Zero;
 
-export const zeroInstance = (Zero(0));
+const zeroInstance = (Zero(0));
+exports.zeroInstance = zeroInstance;
 
-export const zero = anything => {
+const zero = anything => {
   var ev = zeroInstance;
   return 0;
 };
+exports.zero = zero;

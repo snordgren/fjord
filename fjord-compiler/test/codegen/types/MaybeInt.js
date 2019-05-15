@@ -1,14 +1,18 @@
 // module test.codegen.types.MaybeInt
 
-export const $TagNone = 1;
+const $TagNone = 1;
+exports.$TagNone = $TagNone;
 
-export const $TagSome = 2;
+const $TagSome = 2;
+exports.$TagSome = $TagSome;
 
-export const None = Object.freeze([$TagNone]);
+const None = Object.freeze([$TagNone]);
+exports.None = None;
 
-export const Some = _0 => Object.freeze([$TagSome, _0]);
+const Some = _0 => Object.freeze([$TagSome, _0]);
+exports.Some = Some;
 
-export const maybeToInt = m => (() => {
+const maybeToInt = m => (() => {
   var target = m;
   var tag = (target)[0];
   if ((target === $TagNone)) {
@@ -18,3 +22,4 @@ export const maybeToInt = m => (() => {
     return a;
   }
 })();
+exports.maybeToInt = maybeToInt;

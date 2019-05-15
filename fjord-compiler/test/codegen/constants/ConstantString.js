@@ -1,3 +1,4 @@
 // module test.codegen.constants.ConstantString
 
-export const helloWorld = "Hello, world!";
+const helloWorld = "Hello, world!";
+exports.helloWorld = helloWorld;

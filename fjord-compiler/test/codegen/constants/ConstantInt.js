@@ -1,3 +1,4 @@
 // module test.codegen.constants.ConstantInt
 
-export const five = 5;
+const five = 5;
+exports.five = five;

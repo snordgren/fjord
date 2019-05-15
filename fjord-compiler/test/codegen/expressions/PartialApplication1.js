@@ -1,7 +1,10 @@
 // module test.codegen.expressions.PartialApplication1
 
-export const first = (x, y) => x;
+const first = (x, y) => x;
+exports.first = first;
 
-export const apply = f => (f(2));
+const apply = f => (f(2));
+exports.apply = apply;
 
-export const two = (apply((_0) => (first(0, _0))));
+const two = (apply((_0) => (first(0, _0))));
+exports.two = two;

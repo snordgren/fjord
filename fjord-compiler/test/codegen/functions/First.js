@@ -1,5 +1,7 @@
 // module test.codegen.functions.First
 
-export const first = (x, y) => x;
+const first = (x, y) => x;
+exports.first = first;
 
-export const one = (first(1, 2));
+const one = (first(1, 2));
+exports.one = one;

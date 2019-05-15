@@ -1,5 +1,7 @@
 // module test.codegen.functions.Identity
 
-export const id = x => x;
+const id = x => x;
+exports.id = id;
 
-export const zero = (id(0));
+const zero = (id(0));
+exports.zero = zero;

@@ -1,7 +1,10 @@
 // module test.codegen.operators.Precedence
 
-export const $plus = (x, y) => y;
+const $plus = (x, y) => y;
+exports.$plus = $plus;
 
-export const $times = (x, y) => y;
+const $times = (x, y) => y;
+exports.$times = $times;
 
-export const eleven = (1 + ($times(2, 10)));
+const eleven = (1 + ($times(2, 10)));
+exports.eleven = eleven;

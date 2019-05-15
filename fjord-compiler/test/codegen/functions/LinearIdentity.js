@@ -1,8 +1,10 @@
 // module codegen.functions.LinearIdentity
 
-export const Message = () => {
+const Message = () => {
   var _a = {};
   return _a;
 };
+exports.Message = Message;
 
-export const id = a => a;
+const id = a => a;
+exports.id = id;

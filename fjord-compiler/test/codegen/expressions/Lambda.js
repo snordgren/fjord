@@ -1,7 +1,10 @@
 // module test.codegen.expressions.Lambda
 
-export const $plus = (x, y) => x;
+const $plus = (x, y) => x;
+exports.$plus = $plus;
 
-export const addLambda = (x, y) => (x + y);
+const addLambda = (x, y) => (x + y);
+exports.addLambda = addLambda;
 
-export const partiallyApplied = _0 => (addLambda(1, _0));
+const partiallyApplied = _0 => (addLambda(1, _0));
+exports.partiallyApplied = partiallyApplied;

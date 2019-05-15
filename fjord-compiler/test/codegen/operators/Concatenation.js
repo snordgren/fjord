@@ -1,5 +1,7 @@
 // module codegen.operators.Concatenation
 
-export const $plus$plus = (x, y) => y;
+const $plus$plus = (x, y) => y;
+exports.$plus$plus = $plus$plus;
 
-export const helloWorld = ($plus$plus("Hello, ", "world!"));
+const helloWorld = ($plus$plus("Hello, ", "world!"));
+exports.helloWorld = helloWorld;

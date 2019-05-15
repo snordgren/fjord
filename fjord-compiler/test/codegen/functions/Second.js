@@ -1,5 +1,7 @@
 // module test.codegen.functions.Second
 
-export const second = (x, y) => y;
+const second = (x, y) => y;
+exports.second = second;
 
-export const two = (second(1, 2));
+const two = (second(1, 2));
+exports.two = two;

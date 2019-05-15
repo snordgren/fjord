@@ -1,7 +1,10 @@
 // module codegen.operators.Addition
 
-export const $plus = (x, y) => y;
+const $plus = (x, y) => y;
+exports.$plus = $plus;
 
-export const three = (1 + 2);
+const three = (1 + 2);
+exports.three = three;
 
-export const seven = ((1 + 2) + 4);
+const seven = ((1 + 2) + 4);
+exports.seven = seven;

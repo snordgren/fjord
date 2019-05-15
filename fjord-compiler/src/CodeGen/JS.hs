@@ -55,14 +55,16 @@ definitionToJS (H.FunctionDefinition name parameters returnType body) =
 
     mangledName = NameMangling.mangle name
   in 
-    "export const " ++ mangledName ++ " = " ++ paramsJS ++ " => " ++ bodyJS ++ ";"
+    "const " ++ mangledName ++ " = " ++ paramsJS ++ " => " ++ bodyJS ++ ";\n" ++
+    "exports." ++ mangledName ++ " = " ++ mangledName ++ ";"
 
 definitionToJS (H.ValueDefinition name typ expr) = 
   let 
     mangledName = NameMangling.mangle name
     exprJS = expressionToJS 0 expr
   in
-    "export const " ++ mangledName ++ " = " ++ exprJS ++ ";"
+    "const " ++ mangledName ++ " = " ++ exprJS ++ ";\n" ++
+    "exports." ++ mangledName ++ " = " ++ mangledName ++ ";"
 
 
 expressionToJS :: Int -> H.Expression -> String

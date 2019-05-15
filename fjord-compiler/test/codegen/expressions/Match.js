@@ -1,14 +1,18 @@
 // module test.codegen.expressions.Match
 
-export const $TagZero = 1;
+const $TagZero = 1;
+exports.$TagZero = $TagZero;
 
-export const $TagOne = 2;
+const $TagOne = 2;
+exports.$TagOne = $TagOne;
 
-export const Zero = Object.freeze([$TagZero]);
+const Zero = Object.freeze([$TagZero]);
+exports.Zero = Zero;
 
-export const One = Object.freeze([$TagOne]);
+const One = Object.freeze([$TagOne]);
+exports.One = One;
 
-export const toInt = b => (() => {
+const toInt = b => (() => {
   var target = b;
   var tag = (target)[0];
   if ((target === $TagZero)) {
@@ -17,7 +21,10 @@ export const toInt = b => (() => {
     return 1;
   }
 })();
+exports.toInt = toInt;
 
-export const zero = (toInt(Zero));
+const zero = (toInt(Zero));
+exports.zero = zero;
 
-export const one = (toInt(One));
+const one = (toInt(One));
+exports.one = one;

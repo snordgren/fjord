@@ -1,6 +1,7 @@
 // module types.EmptyRecord0
 
-export const EmptyRecord = () => {
+const EmptyRecord = () => {
   var _a = {};
   return _a;
 };
+exports.EmptyRecord = EmptyRecord;

@@ -1,9 +1,11 @@
 // module codegen.types.Record0
 
-export const Record0 = field => {
+const Record0 = field => {
   var _a = {};
   _a.field = field;
   return _a;
 };
+exports.Record0 = Record0;
 
-export const fn = x => x;
+const fn = x => x;
+exports.fn = fn;

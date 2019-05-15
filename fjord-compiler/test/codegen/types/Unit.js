@@ -1,9 +1,11 @@
 // module codegen.types.Unit
 
-export const UnitContainer = value => {
+const UnitContainer = value => {
   var _a = {};
   _a.value = value;
   return _a;
 };
+exports.UnitContainer = UnitContainer;
 
-export const unitId = a => Object.freeze([]);
+const unitId = a => Object.freeze([]);
+exports.unitId = unitId;
