@@ -1,6 +1,6 @@
-// module test.codegen.operators.Addition
+// module codegen.operators.Addition
 
-export const $plus = (x, y) => x;
+export const $plus = (x, y) => y;
 
 export const three = (1 + 2);
 

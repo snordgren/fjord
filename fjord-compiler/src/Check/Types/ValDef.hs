@@ -2,6 +2,7 @@ module Check.Types.ValDef (
   typeCheckValDef
 ) where
 
+import Debug.Trace
 import qualified Control.Monad as Monad
 import qualified Data.Either.Combinators as Combinators
 import qualified Data.List as List
@@ -17,30 +18,38 @@ import qualified AST.Untyped as U
 typeCheckValDef :: U.Scope -> U.Definition -> Either TypeError T.Definition
 typeCheckValDef modScope (U.ValDef (U.ValDecl offset name implicits declType) params expr) =
   let 
-  defScope :: U.Scope
-  defScope = 
-    createDefScope modScope params declType
+    defScope :: U.Scope
+    defScope = 
+      createDefScope modScope params declType
 
-  reqType :: U.Type
-  reqType = 
-    inferRequiredBody declType implicits params
-  
-  toTypedParam (p, t) =
-    do
-      typedT <- toTypedType defScope t
-      return $ T.Parameter (U.parameterName p) typedT
+    reqType :: U.Type
+    reqType = 
+      inferRequiredBody declType implicits params
+    
+    toTypedParam (p, (t, uniq)) =
+      do
+        typedT <- toTypedType defScope uniq t
+        return $ T.Parameter (U.parameterName p) typedT
 
-  implicitParNames :: [String]
-  implicitParNames = 
-    fmap U.parameterName $ take (length implicits) params
+    implicitParNames :: [String]
+    implicitParNames = 
+      fmap U.parameterName $ take (length implicits) params
   
+    uniq :: Common.Uniqueness
+    uniq = 
+      Common.NonUnique
+
+    bodyUniq :: Common.Uniqueness
+    bodyUniq = 
+      Common.Unique
   in do
-    reqTypeT <- toTypedType defScope reqType
-    declTypeT <- toTypedType defScope declType
-    paramsT <- Monad.sequence $ fmap toTypedParam $ zip (drop (length implicits) params) $ fnParamList declType
-    implicitsT <- Monad.sequence $ fmap resolveImplicit $ zip implicitParNames implicits
-    inferredType <- inferType defScope (Just reqTypeT) expr
-    typedExpr <- toTypedExpression defScope (Just reqType) expr 
+    reqTypeT <- toTypedType defScope bodyUniq reqType
+    declTypeT <- toTypedType defScope uniq declType
+    paramsT <- Monad.sequence $ fmap toTypedParam $ zip (drop (length implicits) params) $ fnParListWithUniq declType
+    implicitsT <- Monad.sequence $ fmap (resolveImplicit offset defScope) $ zip implicitParNames implicits
+    inferredType <- inferType defScope (Just reqTypeT) bodyUniq expr
+    typedExpr <- toTypedExpression defScope (Just reqType) bodyUniq expr 
+    --trace ("reqTypeT " ++ (show reqTypeT)) (trace ("declTypeT " ++ (show declTypeT)) $ return ())
     if inferredType == reqTypeT then 
       Right $ T.ValDef name paramsT implicitsT declTypeT typedExpr
     else

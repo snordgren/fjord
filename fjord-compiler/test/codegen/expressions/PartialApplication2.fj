@@ -1,10 +1,11 @@
 module test.codegen.expressions.PartialApplication2
 
-first : Int -> Int -> Int -> Int
+first : Int -* Int -> Int -> Int
 first x y z = x
 
 apply : (Int -> Int -> Int) -> Int
-apply f = f 2 3
+apply f = 
+  f 2 3
 
 two : Int
 two = apply (first 0)

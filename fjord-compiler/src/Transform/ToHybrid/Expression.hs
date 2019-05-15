@@ -93,7 +93,7 @@ transformExpr (T.Case sourceExpression patterns) =
         H.Block (decls transformedSrcExpr) [ifStatement]
         
 
-transformExpr (T.IntLiteral n) = 
+transformExpr (T.IntLiteral n _) = 
   return $ H.IntLiteral n
 
 transformExpr (T.Lambda variable variableType body) = 
@@ -148,7 +148,7 @@ transformExpr (T.RecUpdate sourceExpression fieldUpdates) =
     let statements = (List.concat $ transformedFieldUpdates) ++ [retStmt]
     return $ H.IIFE $ H.Block [(updateFieldName, updateFieldType, Just transformedSrcExpr)] statements
 
-transformExpr (T.StringLiteral s) = 
+transformExpr (T.StringLiteral s _) = 
   return $ H.StringLiteral s
 
 transformExpr (T.Tuple uniq values) = 

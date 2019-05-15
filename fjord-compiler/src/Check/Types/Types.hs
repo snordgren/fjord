@@ -24,11 +24,13 @@ data TypeError
 
 parameterType :: U.Type -> Maybe U.Type
 parameterType (U.FunctionType _ p _) = Just p
+parameterType (U.LinearFunctionType _ p _) = Just p
 parameterType _ = Nothing
 
 
 returnType :: U.Type -> Maybe U.Type
 returnType (U.FunctionType _ _ ret) = Just ret
+returnType (U.LinearFunctionType _ _ ret) = Just ret
 returnType _ = Nothing
 
 

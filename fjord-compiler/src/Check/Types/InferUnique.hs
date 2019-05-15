@@ -24,7 +24,7 @@ inferExprUniq scope expr =
 resolveTupleUniq :: Int -> [Common.Uniqueness] -> Either TypeError Common.Uniqueness
 resolveTupleUniq offset uniqValues =
   if List.length uniqValues == 0 then
-    error "uniqueness handling for () is not yet implemented"
+    return Common.Unique
   else if List.length (List.nub uniqValues) == 1 then
     return $ List.head uniqValues
   else 

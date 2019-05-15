@@ -4,6 +4,6 @@ module codegen.types.Unit
 record UnitContainer
   value : ()
 
-unitId : () -> ()
+unitId : () -* ()
 unitId a =
   ()

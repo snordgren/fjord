@@ -1,10 +1,13 @@
 module test.codegen.operators.Precedence
 
-(+) : Int -> Int -> Int
-(+) x y = x
+(+) : Int -> Int -* Int
+(+) x y = 
+  y
 
-(*) : Int -> Int -> Int
-(*) x y = x
+(*) : Int -> Int -* Int
+(*) x y = 
+  y
 
 eleven : Int
-eleven = 1 + 2 * 10
+eleven =
+  1 + 2 * 10

@@ -1,7 +1,8 @@
 module test.codegen.functions.Second 
 
-second : Int -> Int -> Int
+second : Int -> Int -* Int
 second x y = y
 
 two : Int
-two = second 1 2
+two = 
+  second 1 2

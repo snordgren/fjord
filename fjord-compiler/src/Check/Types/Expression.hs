@@ -13,13 +13,18 @@ import qualified AST.Typed as T
 import qualified AST.Untyped as U
 
 
-toTypedExpression :: U.Scope -> Maybe U.Type -> U.Expression -> Either TypeError T.Expression
-toTypedExpression scope expectedType expr =
+toTypedExpression 
+  :: U.Scope
+  -> Maybe U.Type 
+  -> Common.Uniqueness 
+  -> U.Expression 
+  -> Either TypeError T.Expression
+toTypedExpression scope expectType expectUniq expr =
   case expr of 
     U.Apply _ a b ->
       do 
-        typedA <- toTypedExpression scope Nothing a
-        typedB <- toTypedExpression scope Nothing b
+        typedA <- toTypedExpression scope Nothing expectUniq a
+        typedB <- toTypedExpression scope Nothing expectUniq b
         return $ T.Apply typedA typedB
 
     U.Case offset expression patterns ->
@@ -44,25 +49,25 @@ toTypedExpression scope expectedType expr =
           let patScope = createPatternScope ctorType vars scope
           types <- Monad.sequence $ fmap (toTypedType patScope uniq) $ fnParamList ctorType
           let mergedVars = List.zip vars types
-          typedRetExpr <- toTypedExpression patScope expectedType retExpr
+          typedRetExpr <- toTypedExpression patScope expectType expectUniq retExpr
           return $ T.Pattern ctor mergedVars typedRetExpr
       in do
         typedPatterns <- Monad.sequence $ fmap toTypedPattern patterns
-        typedSourceExpression <- toTypedExpression scope Nothing expression
+        typedSourceExpression <- toTypedExpression scope Nothing expectUniq expression
         return $ T.Case typedSourceExpression typedPatterns
 
     U.IntLiteral _ value -> 
-      Right $ T.IntLiteral value
+      Right $ T.IntLiteral value expectUniq
 
     U.Lambda offset name expr ->
       do
-        t <- Combinators.maybeToRight (CannotInferType offset "missing expected type") expectedType
+        t <- Combinators.maybeToRight (CannotInferType offset "missing expected type") expectType
         parT <- Combinators.maybeToRight (CannotInferType offset "missing parameter type") 
           (parameterType t)
         retT <- Combinators.maybeToRight (CannotInferType offset "missing return type") (returnType t)
         let lambdaPar = (name, parT, Common.NonUnique, Common.SameModule)
         let lambdaScope = U.Scope (lambdaPar : U.scopeValues scope) (U.scopeTypes scope) []
-        exprT <- toTypedExpression lambdaScope (Just retT) expr
+        exprT <- toTypedExpression lambdaScope (Just retT) expectUniq expr
         typedT <- toTypedType scope Common.NonUnique t
         return $ T.Lambda name typedT exprT
       
@@ -76,23 +81,23 @@ toTypedExpression scope expectedType expr =
       do
         (opType, uniq, orig) <- scopeVariableType scope offset name 
         opTypeT <- toTypedType scope uniq opType
-        typedA <- toTypedExpression scope expectedType a
-        typedB <- toTypedExpression scope expectedType b
+        typedA <- toTypedExpression scope expectType expectUniq a
+        typedB <- toTypedExpression scope expectType expectUniq b
         return $ T.Operator name opTypeT typedA typedB
 
     U.RecUpdate _ target updates ->
       do
-        typedTarget <- toTypedExpression scope expectedType target
+        typedTarget <- toTypedExpression scope expectType expectUniq target
         typedUpdates <- Monad.sequence $ fmap (typedFieldUpdate scope) updates
         return $ T.RecUpdate typedTarget typedUpdates
 
     U.StringLiteral _ value -> 
-      Right $ T.StringLiteral value
+      Right $ T.StringLiteral value expectUniq
 
     U.Tuple offset values -> 
       do
         -- TODO Propagate types here. 
-        typedValues <- Monad.sequence $ fmap (toTypedExpression scope Nothing) values
+        typedValues <- Monad.sequence $ fmap (toTypedExpression scope Nothing expectUniq) values
         uniqValues <- Monad.sequence $ fmap (inferExprUniq scope) values
         uniq <- resolveTupleUniq offset uniqValues
         return $ T.Tuple uniq typedValues
@@ -101,9 +106,13 @@ toTypedExpression scope expectedType expr =
 typedFieldUpdate :: U.Scope -> U.FieldUpdate -> Either TypeError T.FieldUpdate
 typedFieldUpdate scope a = 
   let 
-    name = U.fieldUpdateName a
+    name = 
+      U.fieldUpdateName a
+
+    exprT = 
+      toTypedExpression scope Nothing Common.Unique $ U.fieldUpdateExpression a
   in
-    fmap (\expr -> T.FieldUpdate name expr) (toTypedExpression scope Nothing $ U.fieldUpdateExpression a)
+    fmap (\expr -> T.FieldUpdate name expr) exprT
 
 
 toTypedType :: U.Scope -> Common.Uniqueness -> U.Type -> Either TypeError T.Type
@@ -112,7 +121,7 @@ toTypedType scope uniq a =
     U.FunctionType _ par ret ->
       do
         parT <- toTypedType scope Common.NonUnique par
-        retT <- toTypedType scope Common.NonUnique ret
+        retT <- toTypedType scope Common.Unique ret
         return $ T.FunctionType parT retT
 
     U.LinearFunctionType _ par ret ->
@@ -127,10 +136,10 @@ toTypedType scope uniq a =
         return $ T.TupleType uniq typesT
     
     U.TypeName offset "Int" -> 
-      return T.BuiltInInt
+      return $ T.BuiltInInt uniq
 
     U.TypeName offset "String" -> 
-      return T.BuiltInString
+      return $ T.BuiltInString uniq
 
     U.TypeName offset n ->
       let 

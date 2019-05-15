@@ -1,0 +1,5 @@
+errors/ReturnShared.fj:5:3:
+  |
+5 |   x
+  |   ^^
+expression has type ?:(BuiltIn.Int), expected 1:(BuiltIn.Int)

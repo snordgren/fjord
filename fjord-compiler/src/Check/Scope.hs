@@ -71,7 +71,7 @@ scopeContrib origin d =
         genCtorBinding c = 
           let 
             typ = 
-              List.foldr (\a -> \b -> U.FunctionType 0 a b) (U.enumConstructorRetType c) $ U.enumConstructorParTypes c
+              List.foldr (\a -> \b -> U.LinearFunctionType 0 a b) (U.enumConstructorRetType c) $ U.enumConstructorParTypes c
           in
             (U.enumConstructorName c, typ, Common.NonUnique, origin)
 
@@ -95,7 +95,7 @@ scopeContrib origin d =
           fmap U.recFieldType fields
     
         constructorType = 
-          List.foldr (U.FunctionType offset) constructorRetType fieldTypes
+          List.foldr (U.LinearFunctionType offset) constructorRetType fieldTypes
 
         values = 
           [(name, constructorType, Common.NonUnique, origin)]

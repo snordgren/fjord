@@ -18,6 +18,6 @@ enum ThreeMembers
 
 five : Int
 
-stringIdentity : String -> String
+stringIdentity : String -* String
 
-fn0 : (String -> String) -> String
+fn0 : (String -> String) -* String

@@ -1,20 +1,25 @@
 module test.codegen.types.Tuple
 
 
-createTup2 : Int -> Int -> (Int, Int)
-createTup2 x y = (x, y)
+createTup2 : Int -* Int -* (Int, Int)
+createTup2 x y = 
+  (x, y)
 
 tup2Inst : (Int, Int)
 tup2Inst = createTup2 1 2
 
-createTup3 : Int -> Int -> Int -> (Int, Int, Int)
-createTup3 x y z = (x, y, z)
+createTup3 : Int -* Int -* Int -* (Int, Int, Int)
+createTup3 x y z = 
+  (x, y, z)
 
 tup3Inst : (Int, Int, Int)
-tup3Inst = createTup3 3 4 5
+tup3Inst = 
+  createTup3 3 4 5
 
-createTup4 : Int -> Int -> Int -> Int -> (Int, Int, Int, Int)
-createTup4 x y z w = (x, y, z, w)
+createTup4 : Int -* Int -* Int -* Int -* (Int, Int, Int, Int)
+createTup4 x y z w = 
+  (x, y, z, w)
 
 tup4Inst : (Int, Int, Int, Int)
-tup4Inst = createTup4 6 7 8 9
+tup4Inst = 
+  createTup4 6 7 8 9

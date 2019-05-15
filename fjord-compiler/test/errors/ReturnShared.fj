@@ -1,0 +1,5 @@
+module errors.ReturnShared
+
+returnShared : Int -> Int
+returnShared x =
+  x

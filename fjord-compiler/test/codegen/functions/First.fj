@@ -1,7 +1,9 @@
 module test.codegen.functions.First
 
-first : Int -> Int -> Int
-first x y = x
+first : Int -* Int -> Int
+first x y = 
+  x
 
 one : Int
-one = first 1 2
+one = 
+  first 1 2

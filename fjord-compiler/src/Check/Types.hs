@@ -23,6 +23,22 @@ import qualified AST.Typed as T
 import qualified AST.Untyped as U
 
 
+enumParUniq = 
+  Common.Unique
+  
+
+enumRetUniq =
+  Common.Unique
+
+
+implUniq =
+  Common.NonUnique
+
+
+recFieldUniq =
+  Common.Unique
+
+
 typeCheck :: [U.TypeDef] -> U.Module -> Either TypeError T.Module
 typeCheck typeDefs m = 
   let
@@ -61,8 +77,8 @@ toTypedDef modScope a =
       let 
         toTypedEnumConstructor (U.EnumConstructor _ s parTypes retType) = 
           do
-            parTypesT <- Monad.sequence $ fmap (toTypedType modScope) parTypes
-            retTypeT <- toTypedType modScope retType
+            parTypesT <- Monad.sequence $ fmap (toTypedType modScope enumParUniq) parTypes
+            retTypeT <- toTypedType modScope enumRetUniq retType
             return $ T.EnumConstructor s parTypesT retTypeT
       in do
         ctors <- Monad.sequence $ fmap toTypedEnumConstructor constructors
@@ -73,10 +89,10 @@ toTypedDef modScope a =
         defScope = createDefScope modScope [] declType
         reqType = inferRequiredBody declType implicits []          
       in do
-        declTypeT <- toTypedType defScope declType
-        reqTypeT <- toTypedType defScope reqType
-        inferredType <- inferType defScope (Just reqTypeT) expr
-        typedExpr <- toTypedExpression defScope (Just reqType) expr 
+        declTypeT <- toTypedType defScope implUniq declType
+        reqTypeT <- toTypedType defScope implUniq reqType
+        inferredType <- inferType defScope (Just reqTypeT) implUniq expr
+        typedExpr <- toTypedExpression defScope (Just reqType) implUniq expr 
         if inferredType == reqTypeT then 
           Right $ T.ImplicitDef name declTypeT typedExpr
         else
@@ -87,7 +103,7 @@ toTypedDef modScope a =
       let
         toTypedRecField (U.RecField _ s t) =
           do
-            typedT <- toTypedType modScope t
+            typedT <- toTypedType modScope recFieldUniq t
             return $ T.RecField s typedT
       in 
         do

@@ -1,7 +1,9 @@
-module test.codegen.operators.Concatenation
+module codegen.operators.Concatenation
 
-(++) : String -> String -> String
-(++) x y = x
+(++) : String -> String -* String
+(++) x y = 
+  y
 
 helloWorld : String
-helloWorld = "Hello, " ++ "world!"
+helloWorld = 
+  "Hello, " ++ "world!"

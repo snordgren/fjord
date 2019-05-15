@@ -13,26 +13,26 @@ import qualified AST.Typed as T
 import qualified AST.Untyped as U
 
 
-inferType :: U.Scope -> Maybe T.Type -> U.Expression -> Either TypeError T.Type
-inferType scope expectedType expr = 
+inferType :: U.Scope -> Maybe T.Type -> Common.Uniqueness -> U.Expression -> Either TypeError T.Type
+inferType scope expectType expectUniq expr = 
   case expr of 
     U.Apply offset a b ->
       do
-        inferA <- inferType scope Nothing a
-        inferB <- inferType scope Nothing b
+        inferA <- inferType scope Nothing expectUniq a
+        inferB <- inferType scope Nothing expectUniq b
         case inferA of 
           T.FunctionType param ret -> Right ret
           T.LinearFunctionType par ret -> Right ret
           _ -> Left $ CannotInferType offset "cannot infer function type"
 
     U.Case offset expr patterns -> 
-      inferType scope expectedType (U.patternExpression (head patterns))
+      inferType scope expectType expectUniq (U.patternExpression (head patterns))
 
     U.IntLiteral offset _ -> 
-      Right T.BuiltInInt
+      Right $ T.BuiltInInt expectUniq
 
     U.Lambda offset name expr ->
-      Combinators.maybeToRight (CannotInferType offset "cannot infer lambda type") expectedType
+      Combinators.maybeToRight (CannotInferType offset "cannot infer lambda type") expectType
 
     U.Name offset name ->
       do
@@ -40,20 +40,20 @@ inferType scope expectedType expr =
         toTypedType scope uniq unT
 
     U.Operator offset name a b ->
-      fmap (T.returnType . T.returnType) $ inferType scope expectedType (U.Name offset name)
+      fmap (T.returnType . T.returnType) $ inferType scope expectType expectUniq (U.Name offset name)
 
     U.RecUpdate _ target _ ->
-      inferType scope expectedType target
+      inferType scope expectType expectUniq target
 
     U.StringLiteral offset _ -> 
-      Right T.BuiltInString
+      Right $ T.BuiltInString expectUniq
 
     -- TODO Propagate expected type if expected type is a tuple.
     U.Tuple offset values -> 
       do
-        inferredValueTypes <- Monad.sequence $ fmap (inferType scope Nothing) values
         uniqValues <- Monad.sequence $ fmap (inferExprUniq scope) values
         uniq <- resolveTupleUniq offset uniqValues
+        inferredValueTypes <- Monad.sequence $ fmap (inferType scope Nothing uniq) values
         return $ T.TupleType uniq inferredValueTypes
 
 

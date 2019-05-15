@@ -1,10 +1,13 @@
-module test.codegen.operators.Addition
+module codegen.operators.Addition
 
-(+) : Int -> Int -> Int
-(+) x y = x
+(+) : Int -> Int -* Int
+(+) x y = 
+  y
 
 three : Int
-three = 1 + 2
+three = 
+  1 + 2
 
 seven : Int
-seven = 1 + 2 + 4
+seven = 
+  1 + 2 + 4
