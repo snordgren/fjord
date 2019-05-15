@@ -55,7 +55,7 @@ definitionToJS (H.FunctionDefinition name parameters returnType body) =
 
     mangledName = NameMangling.mangle name
   in 
-    "const " ++ mangledName ++ " = " ++ paramsJS ++ " => " ++ bodyJS ++ ";\n" ++
+    "var " ++ mangledName ++ " = " ++ paramsJS ++ " => " ++ bodyJS ++ ";\n" ++
     "exports." ++ mangledName ++ " = " ++ mangledName ++ ";"
 
 definitionToJS (H.ValueDefinition name typ expr) = 
@@ -63,7 +63,7 @@ definitionToJS (H.ValueDefinition name typ expr) =
     mangledName = NameMangling.mangle name
     exprJS = expressionToJS 0 expr
   in
-    "const " ++ mangledName ++ " = " ++ exprJS ++ ";\n" ++
+    "var " ++ mangledName ++ " = " ++ exprJS ++ ";\n" ++
     "exports." ++ mangledName ++ " = " ++ mangledName ++ ";"
 
 

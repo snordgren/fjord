@@ -1,16 +1,16 @@
 // module test.codegen.functions.Curry
 
-const first = (x, y, z) => x;
+var first = (x, y, z) => x;
 exports.first = first;
 
-const alwaysOne = (_0, _1) => (first(1, _0, _1));
+var alwaysOne = (_0, _1) => (first(1, _0, _1));
 exports.alwaysOne = alwaysOne;
 
-const alwaysTwo = (x, _0) => (first(2, x, _0));
+var alwaysTwo = (x, _0) => (first(2, x, _0));
 exports.alwaysTwo = alwaysTwo;
 
-const one = (alwaysOne(2, 3));
+var one = (alwaysOne(2, 3));
 exports.one = one;
 
-const two = (alwaysTwo(3, 4));
+var two = (alwaysTwo(3, 4));
 exports.two = two;

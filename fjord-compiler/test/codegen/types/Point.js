@@ -1,6 +1,6 @@
 // module test.codegen.types.Point
 
-const Point = (x, y) => {
+var Point = (x, y) => {
   var _a = {};
   _a.x = x;
   _a.y = y;
@@ -8,10 +8,10 @@ const Point = (x, y) => {
 };
 exports.Point = Point;
 
-const defaultPosition = (Point(1, 2));
+var defaultPosition = (Point(1, 2));
 exports.defaultPosition = defaultPosition;
 
-const toOrigin = p => (() => {
+var toOrigin = p => (() => {
   var _m = p;
   _m.x = 0;
   _m.y = 0;
@@ -19,7 +19,7 @@ const toOrigin = p => (() => {
 })();
 exports.toOrigin = toOrigin;
 
-const setXAndY = (x, y, p) => (() => {
+var setXAndY = (x, y, p) => (() => {
   var _m = (() => {
     var _m = p;
     _m.x = x;

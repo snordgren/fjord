@@ -1,18 +1,18 @@
 // module test.codegen.types.MaybeInt
 
-const $TagNone = 1;
+var $TagNone = 1;
 exports.$TagNone = $TagNone;
 
-const $TagSome = 2;
+var $TagSome = 2;
 exports.$TagSome = $TagSome;
 
-const None = Object.freeze([$TagNone]);
+var None = Object.freeze([$TagNone]);
 exports.None = None;
 
-const Some = _0 => Object.freeze([$TagSome, _0]);
+var Some = _0 => Object.freeze([$TagSome, _0]);
 exports.Some = Some;
 
-const maybeToInt = m => (() => {
+var maybeToInt = m => (() => {
   var target = m;
   var tag = (target)[0];
   if ((target === $TagNone)) {

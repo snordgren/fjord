@@ -1,10 +1,10 @@
 // module types.EmptyRecord1
 
-const EmptyRecord = () => {
+var EmptyRecord = () => {
   var _a = {};
   return _a;
 };
 exports.EmptyRecord = EmptyRecord;
 
-const six = 6;
+var six = 6;
 exports.six = six;
