@@ -1,0 +1,10 @@
+module test.ModifySharedRecord
+
+
+record Shared 
+  sharedInt : Int
+
+
+illegalMutation : Shared -> Shared
+illegalMutation a =
+  { a | sharedInt = 3 }

@@ -1,0 +1,5 @@
+errors/uniqueness/ModifySharedRecord.fj:10:5:
+   |
+10 |   { a | sharedInt = 3 }
+   |     ^^^^^^^^^^^^^^^^^^^^
+expected unique value
