@@ -85,7 +85,7 @@ genTypeDefStr t =
       in
         parStr ++ " -> " ++ genTypeDefStr ret
 
-    T.TupleType types -> 
+    T.TupleType uniq types -> 
       "(" ++ (List.intercalate ", " $ fmap genTypeDefStr types) ++ ")"
 
     T.TypeName a ->

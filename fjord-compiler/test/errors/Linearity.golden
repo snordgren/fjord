@@ -1,0 +1,9 @@
+// module errors.Linearity
+
+export const Message = content => {
+  var _a = {};
+  _a.content = content;
+  return _a;
+};
+
+export const frugal = m => Object.freeze([m, m]);

@@ -34,7 +34,7 @@ data Expression
   | Operator String Type Expression Expression 
   | RecUpdate Expression [FieldUpdate]
   | StringLiteral String 
-  | Tuple [Expression]
+  | Tuple Common.Uniqueness [Expression]
   deriving (Eq, Show)
 
 data FieldUpdate = FieldUpdate 
@@ -89,7 +89,7 @@ data Type
   | BuiltInString 
   | FunctionType Type Type
   | LinearFunctionType Type Type
-  | TupleType [Type]
+  | TupleType Common.Uniqueness [Type]
   | TypeName String 
   deriving Eq
 
@@ -98,7 +98,7 @@ instance Show Type where
   show BuiltInString = "BuiltIn.String"
   show (FunctionType p r) = (show p) ++ " -> " ++ (show r)
   show (LinearFunctionType p r) = (show p) ++ " -* " ++ (show r)
-  show (TupleType values) = "(" ++ (List.intercalate "," $ fmap show values) ++ ")"
+  show (TupleType _ values) = "(" ++ (List.intercalate "," $ fmap show values) ++ ")"
   show (TypeName s) = s
   
 expressionType :: Expression -> Type
@@ -112,7 +112,7 @@ expressionType a =
     Operator _ t _ _ -> returnType $ returnType t
     RecUpdate a _ -> expressionType a
     StringLiteral _ -> BuiltInString
-    Tuple values -> TupleType $ fmap expressionType values
+    Tuple uniq values -> TupleType uniq $ fmap expressionType values
 
 
 returnType :: Type -> Type 

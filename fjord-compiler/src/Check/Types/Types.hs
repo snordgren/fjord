@@ -12,6 +12,7 @@ data TypeError
   = CannotInferType Int String
   | ImplicitNotFound Int U.Type String
   | ImportNotFound U.Import
+  | MixedUniquenessInTuple Int 
   | TooManyParameters Int Int
   | TooManyUsages Int String
   | TooFewUsages Int String

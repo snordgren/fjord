@@ -6,6 +6,7 @@ import qualified Data.Either.Combinators as Combinators
 import qualified Data.List as List
 
 import Check.Scope
+import Check.Types.InferUnique
 import Check.Types.Types
 import qualified AST.Common as Common
 import qualified AST.Typed as T
@@ -41,7 +42,7 @@ toTypedExpression scope expectedType expr =
         toTypedPattern (U.Pattern offset ctor vars retExpr) = do
           (ctorType, uniq, orig) <- scopeVariableType scope offset ctor 
           let patScope = createPatternScope ctorType vars scope
-          types <- Monad.sequence $ fmap (toTypedType patScope) $ fnParamList ctorType
+          types <- Monad.sequence $ fmap (toTypedType patScope uniq) $ fnParamList ctorType
           let mergedVars = List.zip vars types
           typedRetExpr <- toTypedExpression patScope expectedType retExpr
           return $ T.Pattern ctor mergedVars typedRetExpr
@@ -62,19 +63,19 @@ toTypedExpression scope expectedType expr =
         let lambdaPar = (name, parT, Common.NonUnique, Common.SameModule)
         let lambdaScope = U.Scope (lambdaPar : U.scopeValues scope) (U.scopeTypes scope) []
         exprT <- toTypedExpression lambdaScope (Just retT) expr
-        typedT <- toTypedType scope t
+        typedT <- toTypedType scope Common.NonUnique t
         return $ T.Lambda name typedT exprT
       
     U.Name n s -> 
       do
         (t, uniq, orig) <- scopeVariableType scope n s
-        typedT <- toTypedType scope t
+        typedT <- toTypedType scope uniq t
         return $ T.Name s typedT uniq orig
 
     U.Operator offset name a b -> 
       do
         (opType, uniq, orig) <- scopeVariableType scope offset name 
-        opTypeT <- toTypedType scope opType
+        opTypeT <- toTypedType scope uniq opType
         typedA <- toTypedExpression scope expectedType a
         typedB <- toTypedExpression scope expectedType b
         return $ T.Operator name opTypeT typedA typedB
@@ -88,11 +89,13 @@ toTypedExpression scope expectedType expr =
     U.StringLiteral _ value -> 
       Right $ T.StringLiteral value
 
-    U.Tuple _ values -> 
+    U.Tuple offset values -> 
       do
         -- TODO Propagate types here. 
         typedValues <- Monad.sequence $ fmap (toTypedExpression scope Nothing) values
-        return $ T.Tuple typedValues
+        uniqValues <- Monad.sequence $ fmap (inferExprUniq scope) values
+        uniq <- resolveTupleUniq offset uniqValues
+        return $ T.Tuple uniq typedValues
 
         
 typedFieldUpdate :: U.Scope -> U.FieldUpdate -> Either TypeError T.FieldUpdate
@@ -103,25 +106,25 @@ typedFieldUpdate scope a =
     fmap (\expr -> T.FieldUpdate name expr) (toTypedExpression scope Nothing $ U.fieldUpdateExpression a)
 
 
-toTypedType :: U.Scope -> U.Type -> Either TypeError T.Type
-toTypedType scope a =
+toTypedType :: U.Scope -> Common.Uniqueness -> U.Type -> Either TypeError T.Type
+toTypedType scope uniq a =
   case a of 
     U.FunctionType _ par ret ->
       do
-        parT <- toTypedType scope par
-        retT <- toTypedType scope ret
+        parT <- toTypedType scope Common.NonUnique par
+        retT <- toTypedType scope Common.NonUnique ret
         return $ T.FunctionType parT retT
 
     U.LinearFunctionType _ par ret ->
       do
-        parT <- toTypedType scope par
-        retT <- toTypedType scope ret
+        parT <- toTypedType scope Common.Unique par
+        retT <- toTypedType scope Common.Unique ret
         return $ T.LinearFunctionType parT retT
 
     U.TupleType _ types ->
       do
-        typesT <- Monad.sequence $ fmap (toTypedType scope) types
-        return $ T.TupleType typesT
+        typesT <- Monad.sequence $ fmap (toTypedType scope uniq) types
+        return $ T.TupleType uniq typesT
     
     U.TypeName offset "Int" -> 
       return T.BuiltInInt

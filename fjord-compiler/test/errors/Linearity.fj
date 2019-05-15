@@ -1,0 +1,10 @@
+module errors.Linearity
+
+record Message
+  content : String
+
+
+frugal : Message -* (Message, Message)
+frugal m =
+  (m, m)
+

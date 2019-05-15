@@ -151,7 +151,7 @@ transformExpr (T.RecUpdate sourceExpression fieldUpdates) =
 transformExpr (T.StringLiteral s) = 
   return $ H.StringLiteral s
 
-transformExpr (T.Tuple values) = 
+transformExpr (T.Tuple uniq values) = 
   do
     transExprs <- Monad.sequence $ fmap transformExpr values
     return $ H.Immutable $ H.Array transExprs
