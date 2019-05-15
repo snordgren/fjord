@@ -1,0 +1,5 @@
+errors/Wasteful.fj:5:3:
+  |
+5 |   a
+  |   ^^
+too few usages of b

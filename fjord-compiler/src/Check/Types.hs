@@ -92,7 +92,7 @@ toTypedDef modScope a =
         declTypeT <- toTypedType defScope implUniq declType
         reqTypeT <- toTypedType defScope implUniq reqType
         inferredType <- inferType defScope (Just reqTypeT) implUniq expr
-        typedExpr <- toTypedExpression defScope (Just reqType) implUniq expr 
+        typedExpr <- (runUseCounting (U.expressionOffset expr) defScope) $ toTypedExpression defScope (Just reqType) implUniq expr 
         if inferredType == reqTypeT then 
           Right $ T.ImplicitDef name declTypeT typedExpr
         else

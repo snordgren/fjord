@@ -134,8 +134,14 @@ typeErrorToErrorBundle initialPosState err =
       ImportNotFound (U.Import offset name) -> 
         bundleMsg offset ("cannot find import " ++ name)
 
+      TooFewUsages offset name -> 
+        bundleMsg offset ("too few usages of " ++ name)
+
       TooManyParameters offset expectedCount -> 
         bundleMsg offset ("too many parameters, expected " ++ (show expectedCount))
+
+      TooManyUsages offset name -> 
+        bundleMsg offset ("too many usages of " ++ name)
 
       UndefinedInScope offset ->
         bundleMsg offset ("undefined in scope")

@@ -1,0 +1,5 @@
+module errors.Wasteful
+
+wasteful : Int -* Int -* Int
+wasteful a b =
+  a

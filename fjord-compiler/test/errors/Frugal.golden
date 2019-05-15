@@ -1,0 +1,5 @@
+errors/Frugal.fj:9:7:
+  |
+9 |   (m, m)
+  |       ^^^
+too many usages of m

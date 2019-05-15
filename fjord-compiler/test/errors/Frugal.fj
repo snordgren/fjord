@@ -1,4 +1,4 @@
-module errors.Linearity
+module errors.Frugal
 
 record Message
   content : String
