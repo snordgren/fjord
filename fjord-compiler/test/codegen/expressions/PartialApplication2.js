@@ -1,10 +1,16 @@
 // module test.codegen.expressions.PartialApplication2
 
-var first = (x, y, z) => x;
+var first = function(x, y, z) {
+  return x;
+};
 exports.first = first;
 
-var apply = f => (f(2, 3));
+var apply = function(f) {
+  return (f(2, 3));
+};
 exports.apply = apply;
 
-var two = (apply((_0, _1) => (first(0, _0, _1))));
+var two = (apply(function(_0, _1) {
+  return (first(0, _0, _1));
+}));
 exports.two = two;

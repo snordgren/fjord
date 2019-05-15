@@ -25,13 +25,8 @@ data Dependency
 
 
 data Definition 
-  = FunctionDefinition String [(String, Type)] Type FunctionBody
+  = FunctionDefinition String [(String, Type)] Type Block
   | ValueDefinition String Type Expression
-  deriving (Eq, Show)
-
-data FunctionBody
-  = BlockFunctionBody Block
-  | SimpleFunctionBody Expression
   deriving (Eq, Show)
 
 data Type 

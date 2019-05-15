@@ -1,6 +1,6 @@
 // module test.codegen.implicits.Implicit
 
-var Zero = zero => {
+var Zero = function(zero) {
   var _a = {};
   _a.zero = zero;
   return _a;
@@ -10,7 +10,7 @@ exports.Zero = Zero;
 var zeroInstance = (Zero(0));
 exports.zeroInstance = zeroInstance;
 
-var zero = anything => {
+var zero = function(anything) {
   var ev = zeroInstance;
   return 0;
 };

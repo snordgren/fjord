@@ -1,6 +1,8 @@
 // module codegen.operators.Addition
 
-var $plus = (x, y) => y;
+var $plus = function(x, y) {
+  return y;
+};
 exports.$plus = $plus;
 
 var three = (1 + 2);

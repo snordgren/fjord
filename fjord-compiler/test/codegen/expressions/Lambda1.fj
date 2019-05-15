@@ -1,0 +1,9 @@
+module codegen.expressions.Lambda1
+
+lambdaArg : (Int -> Int) -> Int
+lambdaArg f =
+  f 3
+
+useLambdaArg : Int
+useLambdaArg =
+  lambdaArg (x -> 0)

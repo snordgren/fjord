@@ -1,4 +1,4 @@
-module test.codegen.expressions.Lambda
+module test.codegen.expressions.Lambda0
 
 (+) : Int -* Int -> Int
 (+) x y = x

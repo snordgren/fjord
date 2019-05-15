@@ -66,7 +66,7 @@ transformDef a =
             if ctorParameterCount == 0 then
               H.ValueDefinition ctorName enumType ctorBody
             else
-              H.FunctionDefinition ctorName ctorParameterH enumType $ H.SimpleFunctionBody ctorBody
+              H.FunctionDefinition ctorName ctorParameterH enumType $ simpleBlock ctorBody
     
         tags = fmap ctorTag $ zip constructors [1..]
         functions = fmap ctorFun constructors
@@ -87,7 +87,7 @@ transformDef a =
     
         (transformedExpr, hiddenParams) = runState (transformExpr expr) 0
         returnType = transformType $ findReturnType typ
-        functionBody = H.SimpleFunctionBody (realBody transformedExpr)
+        functionBody = simpleBlock $ realBody transformedExpr
     
         allParams :: [(String, H.Type)]
         allParams = bodyParams transformedExpr
@@ -101,9 +101,7 @@ transformDef a =
         ]
 
     T.RecDef name fields ->
-      {-if length fields == 0 then
-        error "zero-field records are not yet implemented"
-      else-} let
+      let
         tupleRecField f = 
           (T.recFieldName f, transformType (T.recFieldType f))
     
@@ -114,7 +112,7 @@ transformDef a =
         decls = [(objName, returnType, Just $ H.Allocate returnType)]
         initStmts = fmap (\(name, t) -> H.Mutate readObj name $ H.Read t name) params
         retStmt = H.Return $ H.Read returnType objName
-        body = H.BlockFunctionBody $ H.Block decls (initStmts ++ [retStmt])
+        body = H.Block decls (initStmts ++ [retStmt])
       in
         [
           H.FunctionDefinition name params returnType body
@@ -159,10 +157,7 @@ transformDef a =
           transformType $ findReturnType typ
 
         functionBody = 
-          if length implicits == 0 then
-            H.SimpleFunctionBody (realBody transformedExpr)
-          else 
-           H.BlockFunctionBody $ H.Block implicitsT [H.Return $ realBody transformedExpr]
+          H.Block implicitsT [H.Return $ realBody transformedExpr]
     
         allParams :: [(String, H.Type)]
         allParams = transformedParams ++ (bodyParams transformedExpr)
@@ -174,3 +169,8 @@ transformDef a =
         [
           H.FunctionDefinition name allParams returnType functionBody
         ]
+
+
+simpleBlock :: H.Expression -> H.Block
+simpleBlock e =
+  H.Block [] [H.Return e]

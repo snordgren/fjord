@@ -1,9 +1,13 @@
 // module test.codegen.operators.Precedence
 
-var $plus = (x, y) => y;
+var $plus = function(x, y) {
+  return y;
+};
 exports.$plus = $plus;
 
-var $times = (x, y) => y;
+var $times = function(x, y) {
+  return y;
+};
 exports.$times = $times;
 
 var eleven = (1 + ($times(2, 10)));

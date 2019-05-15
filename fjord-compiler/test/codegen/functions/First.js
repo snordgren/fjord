@@ -1,6 +1,8 @@
 // module test.codegen.functions.First
 
-var first = (x, y) => x;
+var first = function(x, y) {
+  return x;
+};
 exports.first = first;
 
 var one = (first(1, 2));

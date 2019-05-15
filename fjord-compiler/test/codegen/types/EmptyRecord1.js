@@ -1,6 +1,6 @@
 // module types.EmptyRecord1
 
-var EmptyRecord = () => {
+var EmptyRecord = function() {
   var _a = {};
   return _a;
 };

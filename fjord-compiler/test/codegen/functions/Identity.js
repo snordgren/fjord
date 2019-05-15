@@ -1,6 +1,8 @@
 // module test.codegen.functions.Identity
 
-var id = x => x;
+var id = function(x) {
+  return x;
+};
 exports.id = id;
 
 var zero = (id(0));

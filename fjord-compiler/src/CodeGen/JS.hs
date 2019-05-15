@@ -1,5 +1,6 @@
 module CodeGen.JS where
 
+import Debug.Trace
 import qualified Data.List as List
 import qualified Data.List.Utils as List.Utils
 import qualified Data.Maybe as Maybe
@@ -46,16 +47,13 @@ definitionToJS (H.FunctionDefinition name parameters returnType body) =
     parameterCount = List.length parameters
     paramsJS = case parameterCount of 
       0 -> "()"
-      1 -> params
       _ -> "(" ++ params ++ ")"
 
-    bodyJS = case body of 
-      H.BlockFunctionBody b -> "{\n" ++ (blockToJS 1 b) ++ "\n}"
-      H.SimpleFunctionBody a -> expressionToJS 0 a
+    bodyJS = "{\n" ++ (blockToJS 1 body) ++ "\n}"
 
     mangledName = NameMangling.mangle name
   in 
-    "var " ++ mangledName ++ " = " ++ paramsJS ++ " => " ++ bodyJS ++ ";\n" ++
+    "var " ++ mangledName ++ " = function" ++ paramsJS ++ " " ++ bodyJS ++ ";\n" ++
     "exports." ++ mangledName ++ " = " ++ mangledName ++ ";"
 
 definitionToJS (H.ValueDefinition name typ expr) = 
@@ -88,7 +86,7 @@ expressionToJS indent (H.Equals a b) =
   "(" ++ (expressionToJS indent a) ++ " === " ++ (expressionToJS indent b) ++ ")"
 
 expressionToJS indent (H.IIFE b) = 
-  "(() => {\n" ++ (blockToJS (indent + 1) b) ++ "\n" ++ (indentF indent) ++ "})()"
+  "(function() {\n" ++ (blockToJS (indent + 1) b) ++ "\n" ++ (indentF indent) ++ "})()"
 
 expressionToJS indent (H.Immutable expr) = 
   "Object.freeze(" ++ (expressionToJS indent expr) ++ ")"
@@ -104,10 +102,19 @@ expressionToJS indent (H.Invoke f params) =
 
 expressionToJS indent (H.Lambda variables body) = 
   let 
-    bodyJS = expressionToJS indent body
-    paramJS = "(" ++ (List.intercalate ", " $ fmap fst variables) ++ ")"
+    exprJS = 
+      expressionToJS (indent + 1) body
+
+    bodyJS = 
+      (indentF (indent + 1)) ++ "return " ++ exprJS ++ ";\n"
+
+    paramJS = 
+      "(" ++ (List.intercalate ", " $ fmap fst variables) ++ ")"
+
+    indentS = 
+      indentF indent
   in
-    paramJS ++ " => " ++ bodyJS
+    "function" ++ paramJS ++ " {\n" ++ bodyJS ++ indentS ++ "}"
 
 expressionToJS _ (H.Read _ n) = 
   n
