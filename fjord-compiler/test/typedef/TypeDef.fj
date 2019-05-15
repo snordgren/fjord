@@ -16,8 +16,9 @@ enum ThreeMembers
   Second Int : ThreeMembers
   Third (TwoMembers -> String, Int) : ThreeMembers
 
-five : Int
-five = 5
+five : () -> Int
+five a = 
+  5
 
 stringIdentity : String -* String
 stringIdentity a = 

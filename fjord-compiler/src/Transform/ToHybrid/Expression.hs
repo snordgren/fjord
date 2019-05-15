@@ -155,3 +155,19 @@ transformExpr (T.Tuple uniq values) =
   do
     transExprs <- Monad.sequence $ fmap transformExpr values
     return $ H.Immutable $ H.Array transExprs
+
+
+transformExpr (T.UniqueLambda variable variableType body) = 
+  let 
+    nestedVariables :: T.Expression -> [(String, H.Type)]
+    nestedVariables (T.UniqueLambda a b c) = (a, transformType b) : (nestedVariables c)
+    nestedVariables _ = []
+
+    lambdaBody (T.UniqueLambda _ _ b) = lambdaBody b
+    lambdaBody a = a
+
+    retVariables = (variable, transformType variableType) : (nestedVariables body)
+  in 
+    do
+      transformedBody <- transformExpr (lambdaBody body)
+      return $ H.Lambda retVariables transformedBody

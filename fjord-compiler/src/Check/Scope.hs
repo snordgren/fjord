@@ -72,8 +72,14 @@ scopeContrib origin d =
           let 
             typ = 
               List.foldr (\a -> \b -> U.LinearFunctionType 0 a b) (U.enumConstructorRetType c) $ U.enumConstructorParTypes c
+          
+            uniq = 
+              if (List.length $ U.enumConstructorParTypes c) == 0 then
+                Common.UniqueTopLevel
+              else
+                Common.NonUnique
           in
-            (U.enumConstructorName c, typ, Common.NonUnique, origin)
+            (U.enumConstructorName c, typ, uniq, origin)
 
         values = 
           fmap genCtorBinding constructors

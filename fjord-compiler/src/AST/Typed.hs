@@ -35,7 +35,9 @@ data Expression
   | RecUpdate Expression [FieldUpdate]
   | StringLiteral String Common.Uniqueness
   | Tuple Common.Uniqueness [Expression]
+  | UniqueLambda String Type Expression
   deriving (Eq, Show)
+
 
 data FieldUpdate = FieldUpdate 
   { 
@@ -107,7 +109,7 @@ instance Show Type where
     (uniqPrefix uniq) ++ "(" ++ (List.intercalate ", " $ fmap show values) ++ ")"
 
   show (TypeName s) = s
-  
+
 
 uniqPrefix :: Common.Uniqueness -> String
 uniqPrefix a =
@@ -131,6 +133,7 @@ expressionType a =
     RecUpdate a _ -> expressionType a
     StringLiteral _ uniq -> BuiltInString uniq
     Tuple uniq values -> TupleType uniq $ fmap expressionType values
+    UniqueLambda _ t r -> LinearFunctionType t $ expressionType r
 
 
 returnType :: Type -> Type 

@@ -6,6 +6,6 @@ record Record0
   field : String
 
 
-fn : Record0 -> Record0
+fn : Record0 -* Record0
 fn x = 
   x

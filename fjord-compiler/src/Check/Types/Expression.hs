@@ -33,10 +33,18 @@ toTypedExpression
 toTypedExpression scope expectType expectUniq expr =
   case expr of 
     U.Apply _ a b ->
-      do 
-        typedA <- toTypedExpression scope Nothing expectUniq a
-        typedB <- toTypedExpression scope Nothing expectUniq b
-        return $ T.Apply typedA typedB
+      let 
+        parUniq :: T.Expression -> Common.Uniqueness
+        parUniq typedA = 
+          case T.expressionType typedA of
+            T.FunctionType _ _ -> Common.NonUnique
+            T.LinearFunctionType _ _ -> Common.Unique
+            _ -> error "expected function value in apply"
+      in 
+        do 
+          typedA <- toTypedExpression scope Nothing Common.NonUnique a
+          typedB <- toTypedExpression scope Nothing (parUniq typedA) b
+          return $ T.Apply typedA typedB
 
     U.Case offset expression patterns ->
       let 
@@ -71,16 +79,7 @@ toTypedExpression scope expectType expectUniq expr =
       return $ T.IntLiteral value expectUniq
 
     U.Lambda offset name expr ->
-      do
-        t <- eitherToUseCountM $ Combinators.maybeToRight (CannotInferType offset "missing expected type") expectType
-        parT <- eitherToUseCountM $ Combinators.maybeToRight (CannotInferType offset "missing parameter type") 
-          (parameterType t)
-        retT <- eitherToUseCountM $ Combinators.maybeToRight (CannotInferType offset "missing return type") (returnType t)
-        let lambdaPar = (name, parT, Common.NonUnique, Common.SameModule)
-        let lambdaScope = U.Scope (lambdaPar : U.scopeValues scope) (U.scopeTypes scope) []
-        exprT <- toTypedExpression lambdaScope (Just retT) expectUniq expr
-        typedT <- eitherToUseCountM $ toTypedType scope Common.NonUnique t
-        return $ T.Lambda name typedT exprT
+      typeLambda offset name scope expectUniq Common.NonUnique expectType expr T.Lambda
       
     U.Name offset s -> 
       let 
@@ -105,6 +104,10 @@ toTypedExpression scope expectType expectUniq expr =
         do
           (t, uniq, orig) <- eitherToUseCountM $ scopeVariableType scope offset s
           typedT <- eitherToUseCountM $ toTypedType scope uniq t
+          if expectUniq == Common.Unique && uniq == Common.NonUnique then
+            eitherToUseCountM $ Left $ ExpectedUnique offset
+          else 
+            return ()
           if uniq == Common.Unique then
             do
               useCounts <- get
@@ -138,6 +141,30 @@ toTypedExpression scope expectType expectUniq expr =
         uniqValues <- eitherToUseCountM $ Monad.sequence $ fmap (inferExprUniq scope) values
         uniq <- eitherToUseCountM $ resolveTupleUniq offset uniqValues
         return $ T.Tuple uniq typedValues
+
+    U.UniqueLambda offset name expr -> 
+      typeLambda offset name scope expectUniq Common.Unique expectType expr T.UniqueLambda
+
+typeLambda 
+  :: Int
+  -> String
+  -> U.Scope
+  -> Common.Uniqueness
+  -> Common.Uniqueness 
+  -> Maybe U.Type
+  -> U.Expression
+  -> (String -> T.Type -> T.Expression -> T.Expression) 
+  -> UseCountM T.Expression
+typeLambda offset name scope expectUniq parUniq expectType expr f =
+  do
+    t <- eitherToUseCountM $ Combinators.maybeToRight (CannotInferType offset "missing expected type") expectType
+    parT <- eitherToUseCountM $ Combinators.maybeToRight (CannotInferType offset "missing parameter type") (parameterType t)
+    retT <- eitherToUseCountM $ Combinators.maybeToRight (CannotInferType offset "missing return type") (returnType t)
+    let lambdaPar = (name, parT, parUniq, Common.SameModule)
+    let lambdaScope = U.Scope (lambdaPar : U.scopeValues scope) (U.scopeTypes scope) []
+    exprT <- toTypedExpression lambdaScope (Just retT) expectUniq expr
+    typedT <- eitherToUseCountM $ toTypedType scope Common.NonUnique t
+    return $ f name typedT exprT
 
 
 eitherToUseCountM :: Either TypeError b -> UseCountM b 

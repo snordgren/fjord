@@ -1,0 +1,10 @@
+module errors.SharedToUnique
+
+useUnique : Int -* Int
+useUnique x =
+  x
+
+# needs to error, x is not unique
+passShared : Int -> Int
+passShared x =
+  useUnique x

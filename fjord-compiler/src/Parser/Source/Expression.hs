@@ -35,20 +35,30 @@ expressionP =
 termP :: Parser U.Expression
 termP = 
   choice [
-    (try caseP), (try lambdaP), (try tupleExprP), recordUpdateP, intLiteralP, stringLiteralP, 
-    nameExpressionP, (try emptyTupleP), parenExprP
+    (try caseP), (try uniqueLambdaP), (try lambdaP), (try tupleExprP), recordUpdateP, 
+    intLiteralP, stringLiteralP, nameExpressionP, (try emptyTupleP), parenExprP
   ]
 
 
 lambdaP :: Parser U.Expression
-lambdaP = label "lambda" $ do
-  offset <- getOffset
-  name <- nameP
-  many spaceP
-  string "->"
-  many spaceP
-  ret <- expressionP
-  return $ U.Lambda offset name ret
+lambdaP = 
+  label "lambda" $ baseLambdaP "->" U.Lambda
+
+
+uniqueLambdaP :: Parser U.Expression
+uniqueLambdaP = 
+  label "unique lambda" $ baseLambdaP "-*" U.UniqueLambda
+
+baseLambdaP :: String -> (Int -> String -> U.Expression -> U.Expression) -> Parser U.Expression
+baseLambdaP sym f =
+  do
+    offset <- getOffset
+    name <- nameP
+    many spaceP
+    string sym
+    many spaceP
+    ret <- expressionP
+    return $ f offset name ret
 
 
 recordUpdateP :: Parser U.Expression

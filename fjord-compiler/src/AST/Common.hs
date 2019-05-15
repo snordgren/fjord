@@ -9,5 +9,6 @@ data Origin
 
 data Uniqueness 
   = Unique
+  | UniqueTopLevel -- unique, but does not need to be used in an expression
   | NonUnique
   deriving (Eq, Show)

@@ -10,6 +10,7 @@ import qualified AST.Untyped as U
 
 data TypeError 
   = CannotInferType Int String
+  | ExpectedUnique Int
   | ImplicitNotFound Int U.Type String
   | ImportNotFound U.Import
   | MixedUniquenessInTuple Int 

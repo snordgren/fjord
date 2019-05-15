@@ -5,4 +5,4 @@ import WebGL
 
 position : Point
 position = 
-  Point five originY
+  Point (five ()) (originY ())

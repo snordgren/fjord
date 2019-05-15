@@ -5,10 +5,11 @@ record Point
   y : Int
 
 defaultPosition : Point
-defaultPosition = Point 1 2
+defaultPosition = 
+  Point 1 2
 
-toOrigin : Point -> Point
+toOrigin : Point -* Point
 toOrigin p = { p | x = 0, y = 0 }
 
-setXAndY : Int -> Int -> Point -> Point
+setXAndY : Int -* Int -* Point -* Point
 setXAndY x y p = { { p | x = x } | y = y }

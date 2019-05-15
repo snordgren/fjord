@@ -108,4 +108,3 @@ genTypeDefStr t =
 
     T.TypeName a ->
       a
-        

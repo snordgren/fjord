@@ -99,6 +99,11 @@ data Expression
     expressionOffset :: Int,
     tupleValues :: [Expression]
   }
+  | UniqueLambda {
+    expressionOffset :: Int,
+    lambdaVarName :: String,
+    lambdaVarExpr :: Expression
+  }
   deriving (Eq, Show)
 
 

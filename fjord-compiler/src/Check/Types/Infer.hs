@@ -56,6 +56,9 @@ inferType scope expectType expectUniq expr =
         inferredValueTypes <- Monad.sequence $ fmap (inferType scope Nothing uniq) values
         return $ T.TupleType uniq inferredValueTypes
 
+    U.UniqueLambda offset name expr ->
+      Combinators.maybeToRight (CannotInferType offset "cannot infer unique lambda type") expectType
+
 
 inferRequiredBody :: U.Type -> [U.Type] -> [U.Parameter] -> U.Type
 inferRequiredBody declaredType implicits parameters = 

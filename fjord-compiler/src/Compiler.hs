@@ -125,6 +125,9 @@ typeErrorToErrorBundle initialPosState err =
         in
           bundleMsg offset msg
 
+      ExpectedUnique offset -> 
+        bundleMsg offset $ "expected unique value"
+
       CannotInferType offset s -> 
         bundleMsg offset ("cannot infer type\n" ++ s)
 

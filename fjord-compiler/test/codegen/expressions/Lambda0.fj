@@ -3,9 +3,9 @@ module test.codegen.expressions.Lambda0
 (+) : Int -* Int -> Int
 (+) x y = x
 
-addLambda : Int -> Int -> Int
+addLambda : Int -* Int -> Int
 addLambda =
-  x -> y -> x + y
+  x -* y -* x + y
 
 partiallyApplied : Int -> Int
 partiallyApplied = 
