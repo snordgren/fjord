@@ -121,8 +121,10 @@ toTypedExpression scope expectType expectUniq expr =
       do
         (opType, uniq, orig) <- eitherToUseCountM $ scopeVariableType scope offset name 
         opTypeT <- eitherToUseCountM $ toTypedType scope uniq opType
-        typedA <- toTypedExpression scope expectType expectUniq a
-        typedB <- toTypedExpression scope expectType expectUniq b
+        let paramAUniq = T.typeUniq $ T.parType opTypeT
+        let paramBUniq = T.typeUniq $ T.parType $ T.returnType opTypeT
+        typedA <- toTypedExpression scope expectType paramAUniq a
+        typedB <- toTypedExpression scope expectType paramBUniq b
         return $ T.Operator name opTypeT typedA typedB
 
     U.RecUpdate _ target updates ->

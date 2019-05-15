@@ -1,12 +1,12 @@
 // module test.codegen.expressions.Lambda0
 
-var $plus = function(x, y) {
+var first = function(x, y) {
   return x;
 };
-exports.$plus = $plus;
+exports.first = first;
 
 var addLambda = function(x, y) {
-  return (x + y);
+  return (first(x, y));
 };
 exports.addLambda = addLambda;
 

@@ -136,6 +136,41 @@ expressionType a =
     UniqueLambda _ t r -> LinearFunctionType t $ expressionType r
 
 
+typeUniq :: Type -> Common.Uniqueness
+typeUniq t = 
+  case t of 
+    BuiltInInt uniq ->
+      uniq
+
+    BuiltInString uniq ->
+      uniq
+
+    FunctionType _ _ -> 
+      error "function type does not store uniqueness"
+
+    LinearFunctionType _ _ ->
+      Common.Unique
+
+    TupleType uniq _ ->
+      uniq
+    
+    TypeName _ ->
+      error "unable to infer uniqueness from typename"
+
+
+parType :: Type -> Type
+parType a = 
+  case a of 
+    FunctionType b _ -> 
+      b
+  
+    LinearFunctionType b _ ->
+      b
+
+    b ->
+      b
+
+
 returnType :: Type -> Type 
 returnType (FunctionType _ a) = a
 returnType (LinearFunctionType _ a) = a

@@ -1,11 +1,12 @@
 module test.codegen.expressions.Lambda0
 
-(+) : Int -* Int -> Int
-(+) x y = x
+first : Int -* Int -> Int
+first x y =
+  x
 
 addLambda : Int -* Int -> Int
 addLambda =
-  x -* y -* x + y
+  x -* y -> first x y
 
 partiallyApplied : Int -> Int
 partiallyApplied = 
