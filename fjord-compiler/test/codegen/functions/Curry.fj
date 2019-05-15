@@ -8,7 +8,7 @@ alwaysOne : Int -* Int -> Int
 alwaysOne = 
   first 1
 
-alwaysTwo : Int -* Int -> Int
+alwaysTwo : Int -> Int -> Int
 alwaysTwo x = 
   first 2 x
 

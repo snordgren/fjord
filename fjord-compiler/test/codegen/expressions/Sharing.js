@@ -1,5 +1,14 @@
-codegen/expressions/Sharing.fj:9:18:
-  |
-9 |   useSharedInt x x
-  |                  ^^
-too many usages of x
+// module codegen.expressions.Sharing
+
+var useSharedInt = function(x, y) {
+  return y;
+};
+exports.useSharedInt = useSharedInt;
+
+var shareInt = function(x) {
+  return (useSharedInt(x, x));
+};
+exports.shareInt = shareInt;
+
+var myInt = (shareInt(5));
+exports.myInt = myInt;

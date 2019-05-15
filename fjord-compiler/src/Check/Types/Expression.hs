@@ -98,17 +98,17 @@ toTypedExpression scope expectType expectUniq expr =
           in
             if UseCounter.isUsedLinearly useCounter then
               Left $ TooManyUsages offset s
-            else
+            else if Common.isUnique expectUniq then
               return ((UseCounter.markUsedLinearly useCounter) : (removeUseCount useCounts))
+            else
+              return useCounts
       in 
         do
           (t, uniq, orig) <- eitherToUseCountM $ scopeVariableType scope offset s
           typedT <- eitherToUseCountM $ toTypedType scope uniq t
           if expectUniq == Common.Unique && uniq == Common.NonUnique then
             eitherToUseCountM $ Left $ ExpectedUnique offset
-          else 
-            return ()
-          if uniq == Common.Unique then
+          else if uniq == Common.Unique then
             do
               useCounts <- get
               newUseCounts <- eitherToUseCountM $ updateUseCount useCounts
