@@ -27,7 +27,7 @@ runCompiler dir path =
   do
     typeDefs <- Compiler.readTypeDefs dir
     src <- readFile path
-    return $ Compiler.compileM dir typeDefs (drop (length dir) path) src
+    return $ Compiler.compileM dir typeDefs path src
 
 
 handleErrBundle 

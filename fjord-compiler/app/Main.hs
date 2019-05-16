@@ -42,8 +42,9 @@ emitError msg =
 emitFiles :: String -> String -> String -> String -> String -> IO ()
 emitFiles srcDir outDir file js typeDef =
   do
-    let outJSFile = outDir ++ (FilePath.replaceExtension (drop (length srcDir) file) ".js")
-    let outTypeDefFile = outDir ++ (FilePath.replaceExtension (drop (length srcDir) file) ".d.fj")
+    let rawFileName = FilePath.takeBaseName file
+    let outJSFile = outDir ++ rawFileName ++ ".js"
+    let outTypeDefFile = outDir ++ rawFileName ++ ".d.fj"
     Directory.createDirectoryIfMissing True $ FilePath.takeDirectory outJSFile
     IO.writeFile outJSFile js
     IO.writeFile outTypeDefFile typeDef

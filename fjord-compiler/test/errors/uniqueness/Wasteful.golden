@@ -1,4 +1,4 @@
-errors/uniqueness/Wasteful.fj:5:3:
+test/errors/uniqueness/Wasteful.fj:5:3:
   |
 5 |   a
   |   ^^

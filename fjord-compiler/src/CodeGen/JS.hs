@@ -25,13 +25,10 @@ depToJS srcPath dep =
     alias = NameMangling.mangleImport $ H.dependencyAlias dep
 
     srcHead = 
-      List.concat $ fmap (\_ -> "../") $ filter (\a -> a == '/') srcPath
-
-    depSrc =
-      H.dependencySource dep
+      List.concat $ fmap (\_ -> "../") $ filter (\a -> a == '/') srcPath      
 
     src = 
-      List.Utils.replace ".d.fj" ".js" $ Utils.removeTopFolder depSrc
+      List.Utils.replace ".d.fj" ".js" $ H.dependencySource dep
 
     reqPath =
       Utils.replaceRec "//" "/" (srcHead ++ src)

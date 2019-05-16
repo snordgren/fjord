@@ -1,4 +1,4 @@
-errors/uniqueness/SharedToUnique.fj:10:13:
+test/errors/uniqueness/SharedToUnique.fj:10:13:
    |
 10 |   useUnique x
    |             ^^

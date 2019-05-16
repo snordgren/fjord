@@ -1,4 +1,4 @@
-errors/uniqueness/Frugal.fj:9:7:
+test/errors/uniqueness/Frugal.fj:9:7:
   |
 9 |   (m, m)
   |       ^^^

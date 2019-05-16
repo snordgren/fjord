@@ -1,4 +1,4 @@
-errors/MissingExpressionEnum.fj:9:1:
+test/errors/MissingExpressionEnum.fj:9:1:
   |
 9 | <empty line>
   | ^

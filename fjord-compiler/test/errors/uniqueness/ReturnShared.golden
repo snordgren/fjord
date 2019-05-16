@@ -1,4 +1,4 @@
-errors/uniqueness/ReturnShared.fj:5:3:
+test/errors/uniqueness/ReturnShared.fj:5:3:
   |
 5 |   x
   |   ^^

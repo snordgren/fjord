@@ -1,4 +1,4 @@
-errors/uniqueness/ModifySharedRecord.fj:10:5:
+test/errors/uniqueness/ModifySharedRecord.fj:10:5:
    |
 10 |   { a | sharedInt = 3 }
    |     ^^^^^^^^^^^^^^^^^^^^

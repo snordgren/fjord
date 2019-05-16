@@ -1,4 +1,4 @@
-errors/MissingExpression.fj:5:1:
+test/errors/MissingExpression.fj:5:1:
   |
 5 | <empty line>
   | ^

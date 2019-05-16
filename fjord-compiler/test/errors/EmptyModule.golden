@@ -1,4 +1,4 @@
-errors/EmptyModule.fj:1:1:
+test/errors/EmptyModule.fj:1:1:
   |
 1 | <empty line>
   | ^

@@ -1,4 +1,4 @@
-errors/too-many-parameters/TooManyParameters4.fj:12:10:
+test/errors/too-many-parameters/TooManyParameters4.fj:12:10:
    |
 12 | myFun ev x =
    |          ^^^^
