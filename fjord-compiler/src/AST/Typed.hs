@@ -31,7 +31,7 @@ data Expression
   | IntLiteral Integer Common.Uniqueness
   | Lambda String Type Expression
   | Name String Type Common.Uniqueness Common.Origin
-  | Operator String Type Expression Expression 
+  | Operator String Type Expression Expression Common.Origin
   | RecUpdate Expression [FieldUpdate]
   | StringLiteral String Common.Uniqueness
   | Tuple Common.Uniqueness [Expression]
@@ -129,7 +129,7 @@ expressionType a =
     IntLiteral _ uniq -> BuiltInInt uniq
     Lambda _ t r -> FunctionType t $ expressionType r
     Name _ t _ _ -> t
-    Operator _ t _ _ -> returnType $ returnType t
+    Operator _ t _ _ _ -> returnType $ returnType t
     RecUpdate a _ -> expressionType a
     StringLiteral _ uniq -> BuiltInString uniq
     Tuple uniq values -> TupleType uniq $ fmap expressionType values

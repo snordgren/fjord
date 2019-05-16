@@ -6,3 +6,8 @@ import WebGL
 position : Point
 position = 
   Point (five ()) (originY ())
+
+
+seven : Int
+seven = 
+  3 +-+ 4

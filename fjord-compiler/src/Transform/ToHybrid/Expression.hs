@@ -117,16 +117,22 @@ transformExpr (T.Name a t uniq origin) =
     Common.OtherModule b -> H.ReadImport (transformType t) a b
 
 
-transformExpr (T.Operator name opType a b) = do
+transformExpr (T.Operator name opType a b orig) = do
   ta <- transformExpr a
   tb <- transformExpr b
   case name of 
     "+" -> return $ H.Addition (transformType $ T.expressionType a) ta tb
     _ -> 
       let
-        opFunName = NameMangling.mangle name 
+        mangledName = 
+          NameMangling.mangle name 
+
+        readOp = 
+          case orig of
+            Common.SameModule -> H.Read (transformType opType) mangledName
+            Common.OtherModule b -> H.ReadImport (transformType opType) mangledName b
       in
-        return $ H.Invoke (H.Read (transformType opType) opFunName) [ta, tb] 
+        return $ H.Invoke readOp [ta, tb] 
 
 transformExpr (T.RecUpdate sourceExpression fieldUpdates) = 
   let

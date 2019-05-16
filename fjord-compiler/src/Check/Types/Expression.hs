@@ -125,7 +125,7 @@ toTypedExpression scope expectType expectUniq expr =
         let paramBUniq = T.typeUniq $ T.parType $ T.returnType opTypeT
         typedA <- toTypedExpression scope expectType paramAUniq a
         typedB <- toTypedExpression scope expectType paramBUniq b
-        return $ T.Operator name opTypeT typedA typedB
+        return $ T.Operator name opTypeT typedA typedB orig
 
     U.RecUpdate _ target updates ->
       do
