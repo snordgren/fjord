@@ -1,6 +1,6 @@
 {
   "name": "@fjord-lang/core",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Fjord core libraries.",
   "main": "bin/Core.js",
   "scripts": {
