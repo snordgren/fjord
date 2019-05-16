@@ -1,0 +1,11 @@
+module core.Glue
+
+addInt : Int -> Int -> Int
+
+subInt : Int -> Int -> Int
+
+divInt : Int -> Int -> Int
+
+mulInt : Int -> Int -> Int
+
+concatString : String -> String -> String

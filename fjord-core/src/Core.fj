@@ -1,0 +1,28 @@
+module Core
+
+import core.Glue
+
+
+(+) : Int -> Int -> Int
+(+) x y =
+  addInt x y
+
+
+(-) : Int -> Int -> Int
+(-) x y =
+  subInt x y
+
+
+(*) : Int -> Int -> Int
+(*) x y = 
+  mulInt x y
+
+
+(/) : Int -> Int -> Int
+(/) x y =
+  divInt x y
+
+
+(++) : String -> String -> String
+(++) x y = 
+  concatString x y
