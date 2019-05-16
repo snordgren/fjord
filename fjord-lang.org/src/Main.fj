@@ -1,0 +1,7 @@
+module Main
+
+import Core
+
+main : String
+main = 
+  "hello, " ++ "Fjord"
