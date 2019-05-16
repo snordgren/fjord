@@ -5,6 +5,7 @@ module Parser.Declaration (
   valDeclP
 ) where
 
+import Debug.Trace
 import Text.Megaparsec
 import Text.Megaparsec.Char
 

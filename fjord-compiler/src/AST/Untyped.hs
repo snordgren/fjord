@@ -40,8 +40,9 @@ data Declaration
 data Type 
   = FunctionType Int Type Type
   | LinearFunctionType Int Type Type
-  | TypeName Int String
   | TupleType Int [Type]
+  | TypeLambda Int String Type
+  | TypeName Int String
   deriving (Eq)
 
 
@@ -50,8 +51,11 @@ instance Show Type where
     case a of 
       FunctionType _ p r -> show p ++ " -> " ++ show r
       LinearFunctionType _ p r -> show p ++ " -* " ++ show r
-      TypeName _ t -> t
       TupleType _ t -> "(" ++ (List.intercalate "," $ fmap show t) ++ ")"
+      TypeLambda _ n t -> 
+        n ++ " => " ++ (show t)
+      TypeName _ t -> 
+        t
 
 
 data Expression 
@@ -212,3 +216,13 @@ defToDecl d =
 
     ValDef a _ _ ->
       DeclValDecl a
+
+
+concreteType :: Type -> Type
+concreteType t =
+  case t of 
+    TypeLambda _ _ ret -> 
+      ret
+
+    a -> 
+      a

@@ -67,15 +67,23 @@ typeP =
     linearFunction = Expr.InfixR $ try $ do 
       offset <- getOffset
       many spaceP
-      (string "-*")
+      string "-*"
       many spaceP
-      return (U.LinearFunctionType offset)
+      return $ U.LinearFunctionType offset
 
     pureFunction = Expr.InfixR $ try $ do 
       offset <- getOffset
       many spaceP
-      (string "->")
+      string "->"
       many spaceP
-      return (U.FunctionType offset)
+      return $ U.FunctionType offset
+
+    typeLambda = Expr.Prefix $ try $ do
+      offset <- getOffset
+      name <- nameP
+      many spaceP
+      string "=>"
+      many spaceP
+      return $ U.TypeLambda offset name
   in 
-    Expr.makeExprParser typeTermP [[pureFunction, linearFunction]]
+    Expr.makeExprParser typeTermP [[pureFunction, linearFunction], [typeLambda]]

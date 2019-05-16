@@ -17,8 +17,20 @@ createDefScope modScope parameters typ =
       fmap (\(a, (typ, uniq)) -> (a, typ, uniq, Common.SameModule)) $ 
         List.zip (fmap U.parameterName parameters) (fnParListWithUniq typ)
 
+    typeLambdaValues t =
+      case t of 
+        U.TypeLambda _ arg ret -> 
+          arg : (typeLambdaValues ret)
+
+        _ -> 
+          []
+
+    typeLambdaTypes :: [(String, Common.Origin)]
+    typeLambdaTypes =
+      fmap (\a -> (a, Common.SameModule)) $ typeLambdaValues typ
+
     defScope = 
-      U.Scope parameterBindings [] []
+      U.Scope parameterBindings typeLambdaTypes []
   in
     mergeScope defScope modScope
 

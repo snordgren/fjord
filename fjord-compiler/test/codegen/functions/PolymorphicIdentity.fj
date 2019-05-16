@@ -1,0 +1,21 @@
+module codegen.functions.PolymorphicIdentity
+
+
+id : a => a -* a
+id x = 
+  x
+
+
+five : Int 
+five =
+  id 5
+
+
+helloWorld : String
+helloWorld =
+  id "hello, world!"
+
+
+pos : (Int, Int)
+pos =
+  id (5, 4)

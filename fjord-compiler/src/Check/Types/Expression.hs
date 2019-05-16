@@ -36,7 +36,7 @@ toTypedExpression scope expectType expectUniq expr =
       let 
         parUniq :: T.Expression -> Common.Uniqueness
         parUniq typedA = 
-          case T.expressionType typedA of
+          case T.concreteType $ T.expressionType $ typedA of
             T.FunctionType _ _ -> Common.NonUnique
             T.LinearFunctionType _ _ -> Common.Unique
             _ -> error "expected function value in apply"
@@ -79,7 +79,7 @@ toTypedExpression scope expectType expectUniq expr =
       return $ T.IntLiteral value expectUniq
 
     U.Lambda offset name expr ->
-      typeLambda offset name scope expectUniq Common.NonUnique expectType expr T.Lambda
+      createLambda offset name scope expectUniq Common.NonUnique expectType expr T.Lambda
       
     U.Name offset s -> 
       let 
@@ -140,14 +140,14 @@ toTypedExpression scope expectType expectUniq expr =
       do
         -- TODO Propagate types here. 
         typedValues <- Monad.sequence $ fmap (toTypedExpression scope Nothing expectUniq) values
-        uniqValues <- eitherToUseCountM $ Monad.sequence $ fmap (inferExprUniq scope) values
+        uniqValues <- eitherToUseCountM $ Monad.sequence $ fmap (inferExprUniq scope expectUniq) values
         uniq <- eitherToUseCountM $ resolveTupleUniq offset uniqValues
         return $ T.Tuple uniq typedValues
 
     U.UniqueLambda offset name expr -> 
-      typeLambda offset name scope expectUniq Common.Unique expectType expr T.UniqueLambda
+      createLambda offset name scope expectUniq Common.Unique expectType expr T.UniqueLambda
 
-typeLambda 
+createLambda 
   :: Int
   -> String
   -> U.Scope
@@ -157,7 +157,7 @@ typeLambda
   -> U.Expression
   -> (String -> T.Type -> T.Expression -> T.Expression) 
   -> UseCountM T.Expression
-typeLambda offset name scope expectUniq parUniq expectType expr f =
+createLambda offset name scope expectUniq parUniq expectType expr f =
   do
     t <- eitherToUseCountM $ Combinators.maybeToRight (CannotInferType offset "missing expected type") expectType
     parT <- eitherToUseCountM $ Combinators.maybeToRight (CannotInferType offset "missing parameter type") (parameterType t)
@@ -209,6 +209,15 @@ toTypedType scope uniq a =
       do
         typesT <- Monad.sequence $ fmap (toTypedType scope uniq) types
         return $ T.TupleType uniq typesT
+
+    U.TypeLambda offset var ret ->
+      let
+        createLambdaScope = 
+          mergeScope (U.Scope [] [(var, Common.SameModule)] []) scope
+      in
+        do
+          retT <- toTypedType createLambdaScope uniq ret
+          return $ T.TypeLambda var retT
     
     U.TypeName offset "Int" -> 
       return $ T.BuiltInInt uniq
@@ -222,7 +231,7 @@ toTypedType scope uniq a =
           U.scopeTypes scope 
 
         result = 
-          List.find (\(t, _) -> t == n) $ U.scopeTypes scope
+          List.find (\(t, _) -> t == n) typeNames
 
         resultE = 
           Combinators.maybeToRight (UndefinedType offset n) result

@@ -17,13 +17,59 @@ inferType :: U.Scope -> Maybe T.Type -> Common.Uniqueness -> U.Expression -> Eit
 inferType scope expectType expectUniq expr = 
   case expr of 
     U.Apply offset a b ->
+      let 
+        polymorphicType :: T.Type -> Maybe String
+        polymorphicType t =
+          case t of 
+            T.TypeLambda arg _ -> 
+              Just arg
+
+            _ -> 
+              Nothing
+
+        substituteType :: String -> T.Type -> T.Type -> T.Type
+        substituteType name subst t =
+          case t of 
+            T.FunctionType par ret ->
+              T.FunctionType (substituteType name subst par) $ 
+                substituteType name subst ret
+
+            T.LinearFunctionType par ret ->
+              T.LinearFunctionType (substituteType name subst par) $ 
+                substituteType name subst ret
+
+            T.TypeName n -> 
+              if n == name then
+                subst
+              else
+                T.TypeName n
+
+            T.TupleType uniq values ->
+              T.TupleType uniq $ fmap (substituteType name subst) values
+
+            a -> 
+              a
+
+        concreteReturnType inferA inferB ret = 
+          case polymorphicType inferA of
+            Just poly -> 
+              substituteType poly inferB ret
+
+            Nothing -> 
+              ret
+      in
       do
         inferA <- inferType scope Nothing expectUniq a
         inferB <- inferType scope Nothing expectUniq b
-        case inferA of 
-          T.FunctionType param ret -> Right ret
-          T.LinearFunctionType par ret -> Right ret
-          _ -> Left $ CannotInferType offset "cannot infer function type"
+        case T.concreteType inferA of 
+          T.FunctionType param ret -> 
+            Right $ concreteReturnType inferA inferB ret
+
+          T.LinearFunctionType par ret -> 
+            Right $ concreteReturnType inferA inferB ret
+
+          _ -> 
+            Left $ CannotInferType offset "cannot infer function type"
 
     U.Case offset expr patterns -> 
       inferType scope expectType expectUniq (U.patternExpression (head patterns))
@@ -51,7 +97,7 @@ inferType scope expectType expectUniq expr =
     -- TODO Propagate expected type if expected type is a tuple.
     U.Tuple offset values -> 
       do
-        uniqValues <- Monad.sequence $ fmap (inferExprUniq scope) values
+        uniqValues <- Monad.sequence $ fmap (inferExprUniq scope expectUniq) values
         uniq <- resolveTupleUniq offset uniqValues
         inferredValueTypes <- Monad.sequence $ fmap (inferType scope Nothing uniq) values
         return $ T.TupleType uniq inferredValueTypes
@@ -63,8 +109,14 @@ inferType scope expectType expectUniq expr =
 inferRequiredBody :: U.Type -> [U.Type] -> [U.Parameter] -> U.Type
 inferRequiredBody declaredType implicits parameters = 
   let 
-    remainingParameters = drop (length parameters) (fnParamList declaredType)
-    returnType = last (fnTypeList declaredType)
+    concreteType =
+      U.concreteType declaredType
+
+    remainingParameters = 
+      drop (length parameters) (fnParamList concreteType)
+
+    returnType = 
+      last (fnTypeList concreteType)
   in if length remainingParameters > 0 then
     List.foldr (U.FunctionType 0) returnType remainingParameters
   else

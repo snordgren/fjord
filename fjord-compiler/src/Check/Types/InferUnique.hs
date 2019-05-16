@@ -9,9 +9,13 @@ import qualified AST.Common as Common
 import qualified AST.Untyped as U
 
 
-inferExprUniq :: U.Scope -> U.Expression -> Either TypeError Common.Uniqueness
-inferExprUniq scope expr = 
+inferExprUniq :: U.Scope -> Common.Uniqueness -> U.Expression -> Either TypeError Common.Uniqueness
+inferExprUniq scope expectUniq expr = 
   case expr of 
+
+    U.IntLiteral _ _ ->
+      return expectUniq
+
     U.Name offset name -> 
       do
         (typ, uniq, orig) <- scopeVariableType scope offset name

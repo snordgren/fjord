@@ -47,6 +47,9 @@ fnParamList t =
     U.LinearFunctionType _ par ret ->
       par : fnParamList ret
 
+    U.TypeLambda _ _ ret ->
+      fnParamList ret
+
     _ -> 
       []
 
@@ -61,6 +64,9 @@ fnParListWithUniq t =
 
     U.LinearFunctionType _ par ret ->
       (par, Common.Unique) : fnParListWithUniq ret
+
+    U.TypeLambda _ _ ret ->
+      fnParListWithUniq ret
 
     _ -> 
       []

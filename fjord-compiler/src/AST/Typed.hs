@@ -92,7 +92,8 @@ data Type
   | FunctionType Type Type
   | LinearFunctionType Type Type
   | TupleType Common.Uniqueness [Type]
-  | TypeName String 
+  | TypeLambda String Type
+  | TypeName String
   deriving Eq
 
 instance Show Type where
@@ -102,11 +103,17 @@ instance Show Type where
   show (BuiltInString uniq) = 
     (uniqPrefix uniq) ++ "(BuiltIn.String)"
 
-  show (FunctionType p r) = (show p) ++ " -> " ++ (show r)
-  show (LinearFunctionType p r) = (show p) ++ " -* " ++ (show r)
+  show (FunctionType p r) = 
+    (show p) ++ " -> " ++ (show r)
+
+  show (LinearFunctionType p r) = 
+    (show p) ++ " -* " ++ (show r)
 
   show (TupleType uniq values) = 
     (uniqPrefix uniq) ++ "(" ++ (List.intercalate ", " $ fmap show values) ++ ")"
+
+  show (TypeLambda arg ret) =
+    arg ++ " => " ++ show ret
 
   show (TypeName s) = s
 
@@ -175,3 +182,13 @@ returnType :: Type -> Type
 returnType (FunctionType _ a) = a
 returnType (LinearFunctionType _ a) = a
 returnType a = a
+
+
+concreteType :: Type -> Type 
+concreteType t =
+  case t of 
+    TypeLambda var ret -> 
+      ret
+
+    a -> 
+      a
