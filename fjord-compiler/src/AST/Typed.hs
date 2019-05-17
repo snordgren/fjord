@@ -1,10 +1,13 @@
+{-# LANGUAGE StrictData #-}
 -- A typed AST where all types have been checked and asserted valid. No position 
 -- information is retained and all names are resolved. This AST is intended to 
 -- be used for optimizations and other program transforms, after the program
 -- has been verified correct. 
 module AST.Typed where
 
+import Debug.Trace
 import qualified Data.List as List
+import qualified Data.Maybe as Maybe
 
 import qualified AST.Common as Common
 
@@ -50,7 +53,7 @@ data Pattern = Pattern
   {
     patternConstructor :: String,
     patternVariables :: [(String, Type)],
-    patternReturnExpression :: Expression
+    patRetExpr :: Expression
   }
   deriving (Eq, Show)
 
@@ -86,25 +89,27 @@ data Parameter
   }
   deriving (Eq, Show)
 
+
 data Type 
-  = BuiltInInt Common.Uniqueness
-  | BuiltInString Common.Uniqueness
-  | FunctionType Type Type
+  = FunctionType Common.Uniqueness Type Type
   | LinearFunctionType Type Type
   | TupleType Common.Uniqueness [Type]
   | TypeLambda String Type
-  | TypeName String
+  | TypeName Common.Uniqueness String Common.NameType
   deriving Eq
 
 instance Show Type where
-  show (BuiltInInt uniq) = 
-    (uniqPrefix uniq) ++ "(BuiltIn.Int)"
+  show (FunctionType uniq p r) = 
+    let
+      base = 
+        (show p) ++ " -> " ++ (show r)
+    in
+      case uniq of 
+        Common.Unique -> 
+          uniqPrefix uniq ++ "(" ++ base ++ ")"
 
-  show (BuiltInString uniq) = 
-    (uniqPrefix uniq) ++ "(BuiltIn.String)"
-
-  show (FunctionType p r) = 
-    (show p) ++ " -> " ++ (show r)
+        Common.NonUnique ->
+          base
 
   show (LinearFunctionType p r) = 
     (show p) ++ " -* " ++ (show r)
@@ -115,7 +120,7 @@ instance Show Type where
   show (TypeLambda arg ret) =
     arg ++ " => " ++ show ret
 
-  show (TypeName s) = s
+  show (TypeName uniq s nameType) = uniqPrefix uniq ++ s
 
 
 uniqPrefix :: Common.Uniqueness -> String
@@ -131,14 +136,24 @@ uniqPrefix a =
 expressionType :: Expression -> Type
 expressionType a = 
   case a of 
-    Apply b _ -> returnType $ expressionType b
-    Case a p -> expressionType $ patternReturnExpression $ head p
-    IntLiteral _ uniq -> BuiltInInt uniq
-    Lambda _ t r -> FunctionType t $ expressionType r
+    Apply f par -> 
+      case parType $ concreteType $ expressionType f of 
+        TypeName uniq name Common.TypeVar -> 
+          returnType $ replaceTypeName name (expressionType par) (expressionType f)
+
+        _ ->
+          if (typeUniq $ parType $ concreteType $ expressionType f) == Common.Unique then
+            withUniq Common.Unique $ returnType $ expressionType f
+          else
+            returnType $ expressionType f
+
+    Case a p -> expressionType $ patRetExpr $ head p
+    IntLiteral _ uniq -> TypeName uniq "Int" Common.TypeRef
+    Lambda _ t r -> FunctionType Common.NonUnique t $ expressionType r
     Name _ t _ _ -> t
     Operator _ t _ _ _ -> returnType $ returnType t
     RecUpdate a _ -> expressionType a
-    StringLiteral _ uniq -> BuiltInString uniq
+    StringLiteral _ uniq -> TypeName uniq "String" Common.TypeRef
     Tuple uniq values -> TupleType uniq $ fmap expressionType values
     UniqueLambda _ t r -> LinearFunctionType t $ expressionType r
 
@@ -146,42 +161,54 @@ expressionType a =
 typeUniq :: Type -> Common.Uniqueness
 typeUniq t = 
   case t of 
-    BuiltInInt uniq ->
+    FunctionType uniq _ _ -> 
       uniq
-
-    BuiltInString uniq ->
-      uniq
-
-    FunctionType _ _ -> 
-      error "function type does not store uniqueness"
 
     LinearFunctionType _ _ ->
       Common.Unique
 
+    TypeLambda arg ret ->
+      typeUniq ret
+
     TupleType uniq _ ->
       uniq
     
-    TypeName _ ->
-      error "unable to infer uniqueness from typename"
+    TypeName uniq _ _ ->
+      uniq
 
 
 parType :: Type -> Type
 parType a = 
   case a of 
-    FunctionType b _ -> 
+    FunctionType _ b _ -> 
       b
   
     LinearFunctionType b _ ->
       b
 
-    b ->
-      b
+    _ ->
+      error $ (show a) ++ " has no parameters"
+
+
+parTypeUniq :: Type -> Common.Uniqueness
+parTypeUniq t =
+  case t of 
+    FunctionType _ _ _ -> Common.NonUnique
+    LinearFunctionType _ _ -> Common.Unique
+    _ -> error $ show t ++ " is not a function"
 
 
 returnType :: Type -> Type 
-returnType (FunctionType _ a) = a
-returnType (LinearFunctionType _ a) = a
-returnType a = a
+returnType t =
+  case t of 
+    FunctionType _ _ a -> 
+      a
+
+    LinearFunctionType _ a ->
+      a
+
+    a ->
+      error $ (show a) ++ " has no return type"
 
 
 concreteType :: Type -> Type 
@@ -192,3 +219,64 @@ concreteType t =
 
     a -> 
       a
+
+
+{- 
+Rewrites the type of a polymorphic following application.
+-}
+rewritePolyType :: Type -> Type -> Type
+rewritePolyType target paramType =
+  case concreteType target of 
+    FunctionType fnUniq par ret -> 
+      case par of 
+        TypeName typeNameUniq name Common.TypeVar -> 
+          replaceTypeName name paramType target
+
+        _ ->
+          target
+        
+    LinearFunctionType par ret ->
+      case par of
+        TypeName typeNameUniq name Common.TypeVar -> 
+          replaceTypeName name paramType target
+
+        _ ->
+          target
+
+    _ ->
+      target
+
+
+replaceTypeName :: String -> Type -> Type -> Type
+replaceTypeName name t a =
+  case a of
+    FunctionType uniq a b ->
+      FunctionType uniq (replaceTypeName name t a) $ replaceTypeName name t b
+
+    LinearFunctionType a b ->
+      LinearFunctionType (replaceTypeName name t a) $ replaceTypeName name t b
+
+    TupleType uniq types ->
+      TupleType uniq $ fmap (replaceTypeName name t) types
+
+    TypeLambda arg ret ->
+      if arg == name then
+        replaceTypeName name t ret
+      else
+        TypeLambda arg $ replaceTypeName name t ret
+
+    TypeName uniq refName nameType ->
+      if refName == name then
+        t
+      else
+        TypeName uniq refName nameType
+
+
+withUniq :: Common.Uniqueness -> Type -> Type
+withUniq uniq t =
+  case t of 
+    FunctionType _ par ret -> FunctionType uniq par ret
+    TupleType _ types -> TupleType uniq $ fmap (withUniq uniq) types
+    TypeLambda arg ret -> TypeLambda arg $ withUniq uniq ret
+    TypeName _ name nameType -> TypeName uniq name nameType
+    a -> a

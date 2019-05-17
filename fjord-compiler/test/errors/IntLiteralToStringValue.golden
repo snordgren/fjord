@@ -2,4 +2,4 @@ test/errors/IntLiteralToStringValue.fj:4:15:
   |
 4 | stringValue = 30
   |               ^^^
-expression has type 1:(BuiltIn.Int), expected 1:(BuiltIn.String)
+expression has type 1:Int, expected 1:String

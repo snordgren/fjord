@@ -67,17 +67,11 @@ genFieldStr (T.RecField recFieldName recFieldType) =
 genTypeDefStr :: T.Type -> String
 genTypeDefStr t = 
   case t of
-    T.BuiltInInt _ -> 
-      "Int"
-
-    T.BuiltInString _ -> 
-      "String"
-
-    T.FunctionType par ret -> 
+    T.FunctionType uniq par ret -> 
       let 
         parStr = 
           case par of 
-            T.FunctionType a b -> 
+            T.FunctionType uniq a b -> 
               "(" ++ genTypeDefStr par ++ ")"
 
             T.LinearFunctionType a b -> 
@@ -92,7 +86,7 @@ genTypeDefStr t =
       let 
         parStr = 
           case par of 
-            T.FunctionType a b -> 
+            T.FunctionType uniq a b -> 
               "(" ++ genTypeDefStr par ++ ")"
 
             T.LinearFunctionType a b -> 
@@ -106,5 +100,5 @@ genTypeDefStr t =
     T.TupleType uniq types -> 
       "(" ++ (List.intercalate ", " $ fmap genTypeDefStr types) ++ ")"
 
-    T.TypeName a ->
+    T.TypeName uniq a nameType ->
       a

@@ -24,7 +24,7 @@ transformExpr (T.Apply a b) =
         _ -> Nothing
 
     fnParamList :: T.Type -> [T.Type]
-    fnParamList (T.FunctionType a b) = [a] ++ fnParamList b 
+    fnParamList (T.FunctionType uniq a b) = [a] ++ fnParamList b 
     fnParamList (T.LinearFunctionType a b) = [a] ++ fnParamList b
     fnParamList _ = []
 
@@ -114,8 +114,8 @@ transformExpr (T.Lambda variable variableType body) =
 transformExpr (T.Name a t uniq origin) = 
   return $ case origin of 
     Common.SameModule -> H.Read (transformType t) a
+    Common.InFunction -> H.Read (transformType t) a
     Common.OtherModule b -> H.ReadImport (transformType t) a b
-
 
 transformExpr (T.Operator name opType a b orig) = do
   ta <- transformExpr a
@@ -130,6 +130,7 @@ transformExpr (T.Operator name opType a b orig) = do
         readOp = 
           case orig of
             Common.SameModule -> H.Read (transformType opType) mangledName
+            Common.InFunction -> H.Read (transformType opType) mangledName
             Common.OtherModule b -> H.ReadImport (transformType opType) mangledName b
       in
         return $ H.Invoke readOp [ta, tb] 

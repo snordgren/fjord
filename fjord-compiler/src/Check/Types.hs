@@ -13,6 +13,7 @@ import qualified Data.List as List
 import qualified Data.Maybe as Maybe
 
 import Check.Scope 
+import Check.Types.Common
 import Check.Types.Expression
 import Check.Types.Infer
 import Check.Types.Types
@@ -32,7 +33,7 @@ enumRetUniq =
 
 
 implUniq =
-  Common.NonUnique
+  Common.Unique
 
 
 recFieldUniq =
@@ -91,12 +92,13 @@ toTypedDef modScope a =
       in do
         declTypeT <- toTypedType defScope implUniq declType
         reqTypeT <- toTypedType defScope implUniq reqType
-        inferredType <- inferType defScope (Just reqTypeT) implUniq expr
-        typedExpr <- (runUseCounting (U.expressionOffset expr) defScope) $ toTypedExpression defScope (Just reqType) implUniq expr 
-        if inferredType == reqTypeT then 
+        let exprT = toTypedExpression defScope (Just reqType) (Just implUniq) expr 
+        typedExpr <- (runUseCounting (U.expressionOffset expr) defScope) exprT
+        let exprTypeT = T.expressionType typedExpr
+        if reqTypeT == exprTypeT  then 
           Right $ T.ImplicitDef name declTypeT typedExpr
         else
-          Left $ WrongType (U.expressionOffset expr) reqTypeT inferredType
+          Left $ WrongType (U.expressionOffset expr) reqTypeT exprTypeT
 
 
     U.RecDef (U.RecDecl offset name fields) ->

@@ -3,7 +3,7 @@ module Check.Scope where
 import qualified Data.List as List
 import qualified Data.Either.Combinators as Combinators
 
-import Check.Types.Types
+import Check.Types.Common
 import qualified AST.Common as Common
 import qualified AST.Untyped as U
 
@@ -14,7 +14,7 @@ createDefScope :: U.Scope -> [U.Parameter] -> U.Type -> U.Scope
 createDefScope modScope parameters typ = 
   let
     parameterBindings = 
-      fmap (\(a, (typ, uniq)) -> (a, typ, uniq, Common.SameModule)) $ 
+      fmap (\(a, (typ, uniq)) -> (a, typ, uniq, Common.InFunction)) $ 
         List.zip (fmap U.parameterName parameters) (fnParListWithUniq typ)
 
     typeLambdaValues t =
@@ -25,9 +25,9 @@ createDefScope modScope parameters typ =
         _ -> 
           []
 
-    typeLambdaTypes :: [(String, Common.Origin)]
+    typeLambdaTypes :: [(String, Common.Origin, Common.NameType)]
     typeLambdaTypes =
-      fmap (\a -> (a, Common.SameModule)) $ typeLambdaValues typ
+      fmap (\a -> (a, Common.SameModule, Common.TypeVar)) $ typeLambdaValues typ
 
     defScope = 
       U.Scope parameterBindings typeLambdaTypes []
@@ -44,9 +44,12 @@ deriveImportScope typeDefs imp =
     case matchingTypeDef of 
       Just t -> 
         let 
+          modName =
+            U.importModule imp
+
           scope = 
             List.foldl' mergeScope emptyScope $ 
-              fmap (scopeContrib $ Common.OtherModule $ U.importModule imp) $ 
+              fmap (scopeContrib $ Common.OtherModule modName) $ 
               U.typeDefDecls t
         in
           scope
@@ -87,7 +90,7 @@ scopeContrib origin d =
           
             uniq = 
               if (List.length $ U.enumConstructorParTypes c) == 0 then
-                Common.UniqueTopLevel
+                Common.Unique
               else
                 Common.NonUnique
           in
@@ -97,7 +100,7 @@ scopeContrib origin d =
           fmap genCtorBinding constructors
 
         types =
-          [(name, origin)]
+          [(name, origin, Common.TypeRef)]
       in
         U.Scope values types []
 
@@ -116,16 +119,16 @@ scopeContrib origin d =
           List.foldr (U.LinearFunctionType offset) constructorRetType fieldTypes
 
         values = 
-          [(name, constructorType, Common.NonUnique, origin)]
+          [(name, constructorType, Common.Unique, origin)]
 
         types = 
-          [(name, origin)]
+          [(name, origin, Common.TypeRef)]
       in 
         U.Scope values types []
     
     U.DeclValDecl (U.ValDecl _ name implicits t) -> 
       let 
-        values = [(filter (\a -> a /= '(' && a /= ')') name, t, Common.NonUnique, origin)]
+        values = [(filter (\a -> a /= '(' && a /= ')') name, t, Common.Unique, origin)]
       in
         U.Scope values [] []
 
@@ -146,5 +149,5 @@ scopeVariableType
   -> Either TypeError (U.Type, Common.Uniqueness, Common.Origin)
 scopeVariableType scope offset name = 
   Combinators.maybeToRight (UndefinedInScope offset)
-    (fmap (\(_, t, uniq, orig) -> (t, uniq, orig)) (List.find (\(n, _, _, _) -> n == name) (U.scopeValues scope)))
+    (fmap (\(_, t, uniq, origin) -> (t, uniq, origin)) (List.find (\(n, _, _, _) -> n == name) (U.scopeValues scope)))
 

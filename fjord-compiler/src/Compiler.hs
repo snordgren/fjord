@@ -12,8 +12,8 @@ import qualified Data.List.NonEmpty as NonEmpty
 import qualified Data.Set as Set
 import qualified System.Directory as Directory
 
-
-import Check.Types (typeCheck, TypeError (..))
+import Check.Types.Common (TypeError (..))
+import Check.Types (typeCheck)
 import qualified AST.Typed as T
 import qualified AST.Untyped as U
 import qualified CodeGen.JS as JS

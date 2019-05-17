@@ -42,9 +42,11 @@ transformDef a =
         error "constructor length should be greater than 0"
       else let 
         enumType :: H.Type
-        enumType = transformType $ T.TypeName name
+        enumType = 
+          H.TypeName name
     
-        enumTagType = H.BuiltInInt
+        enumTagType = 
+          H.BuiltInInt
         
         ctorTagName :: T.EnumConstructor -> String
         ctorTagName (T.EnumConstructor n _ _) = "$Tag" ++ n
@@ -82,7 +84,7 @@ transformDef a =
         realBody (H.Lambda _ a) = realBody a
         realBody a = a
     
-        findReturnType (T.FunctionType _ a) = findReturnType a
+        findReturnType (T.FunctionType uniq _ a) = findReturnType a
         findReturnType a = a
     
         (transformedExpr, hiddenParams) = runState (transformExpr expr) 0
@@ -106,7 +108,7 @@ transformDef a =
           (T.recFieldName f, transformType (T.recFieldType f))
     
         params = fmap tupleRecField fields
-        returnType = transformType (T.TypeName name)
+        returnType = H.TypeName name
         objName = "_a"
         readObj = H.Read returnType objName 
         decls = [(objName, returnType, Just $ H.Allocate returnType)]
@@ -130,7 +132,7 @@ transformDef a =
 
         findReturnType a = 
           case a of 
-            T.FunctionType _ b -> 
+            T.FunctionType uniq _ b -> 
               findReturnType b
 
             _ -> 

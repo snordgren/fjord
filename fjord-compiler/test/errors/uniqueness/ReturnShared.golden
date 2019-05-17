@@ -2,4 +2,4 @@ test/errors/uniqueness/ReturnShared.fj:5:3:
   |
 5 |   x
   |   ^^
-expected unique value
+expression has type ?:Int, expected 1:Int

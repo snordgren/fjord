@@ -196,7 +196,7 @@ data Parameter
 data Scope 
   = Scope { 
     scopeValues :: [(String, Type, Common.Uniqueness, Common.Origin)],
-    scopeTypes :: [(String, Common.Origin)],
+    scopeTypes :: [(String, Common.Origin, Common.NameType)],
     scopeImplicits :: [(String, Type, Common.Origin)]
   }
   deriving (Eq, Show)

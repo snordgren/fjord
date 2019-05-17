@@ -8,12 +8,20 @@ import qualified Data.Either.Combinators as Combinators
 import qualified Data.List as List
 
 import Check.Scope
+import Check.Types.Common
 import Check.Types.Expression
 import Check.Types.Infer
 import Check.Types.Types
 import qualified AST.Common as Common
 import qualified AST.Typed as T
 import qualified AST.Untyped as U
+
+
+
+bodyUniq :: Common.Uniqueness
+bodyUniq = 
+  Common.Unique
+
 
 typeCheckValDef :: U.Scope -> U.Definition -> Either TypeError T.Definition
 typeCheckValDef modScope (U.ValDef (U.ValDecl offset name implicits declType) params expr) =
@@ -38,21 +46,17 @@ typeCheckValDef modScope (U.ValDef (U.ValDecl offset name implicits declType) pa
     uniq :: Common.Uniqueness
     uniq = 
       Common.NonUnique
-
-    bodyUniq :: Common.Uniqueness
-    bodyUniq = 
-      Common.Unique
   in do
     reqTypeT <- toTypedType defScope bodyUniq reqType
     declTypeT <- toTypedType defScope uniq declType
     paramsT <- Monad.sequence $ fmap toTypedParam $ zip (drop (length implicits) params) $ fnParListWithUniq declType
     implicitsT <- Monad.sequence $ fmap (resolveImplicit offset defScope) $ zip implicitParNames implicits
-    inferredType <- inferType defScope (Just reqTypeT) bodyUniq expr
-    typedExpr <- (runUseCounting (U.expressionOffset expr) defScope) $ toTypedExpression defScope (Just reqType) bodyUniq expr 
-    if inferredType == reqTypeT then 
+    typedExpr <- (runUseCounting (U.expressionOffset expr) defScope) $ toTypedExpression defScope (Just reqType) (Just bodyUniq) expr 
+    let exprT = T.expressionType $ typedExpr
+    if exprT == reqTypeT then 
       Right $ T.ValDef name paramsT implicitsT declTypeT typedExpr
     else
-      Left $ WrongType (U.expressionOffset expr) reqTypeT inferredType
+      Left $ WrongType (U.expressionOffset expr) reqTypeT exprT
 
 
 resolveImplicit :: Int -> U.Scope -> (String, U.Type) -> Either TypeError (String, T.Type, T.Expression)
