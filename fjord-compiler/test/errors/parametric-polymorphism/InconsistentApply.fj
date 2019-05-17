@@ -1,0 +1,9 @@
+module errors.parametricPolymorhpism.InconsistentApply
+
+second : a => a -> a -* a
+second x y =
+  y
+
+five : Int
+five = 
+  second "hello" 5
