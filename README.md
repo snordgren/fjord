@@ -3,10 +3,9 @@
 Fjord is a strict programming language that compiles to JavaScript.
 
 ## Features
-Values marked `x` are implemented, `*` are in progress, and empty brackets 
-represent a desired feature that is not yet supported by the compiler. 
 
- * [x] Unique and shared values, allowing for mutation in pure code.
+ 
+ * [x] Unique and shared values, allowing for mutation in pure code. 
  * [x] JavaScript interop via `.d.fj`-definition files, a human-readable 
        format using the same type notation as Fjord to specify the types
        of values.
@@ -17,9 +16,9 @@ represent a desired feature that is not yet supported by the compiler.
  * [x] Custom operators with precedence based on the first token, like Scala.
  * [x] Integer and string literals.
  * [x] Importing other modules.
- * [*] Principled implicit values for ad-hoc polymorphism. 
- * [*] Generic functions, also known as parametric polymorphism.
- * [*] Records, also known as structs, containing named data fields. 
+ * [ ] Principled implicit values for ad-hoc polymorphism. 
+ * [ ] Generic functions, also known as parametric polymorphism.
+ * [ ] Records, also known as structs, containing named data fields. 
  * [ ] Array type and array literals.
  * [ ] 64-bit floating point type and literals.
  * [ ] "Typed holes"; `?`-prefixed identifiers where the compiler tells you what 
