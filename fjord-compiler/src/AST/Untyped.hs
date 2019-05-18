@@ -38,7 +38,8 @@ data Declaration
   deriving (Eq, Show)
 
 data Type 
-  = FunctionType Int Type Type
+  = BindImplicit Int Type Type
+  | FunctionType Int Type Type
   | LinearFunctionType Int Type Type
   | TupleType Int [Type]
   | TypeApply Int Type Type
@@ -234,6 +235,9 @@ defToDecl d =
 concreteType :: Type -> Type
 concreteType t =
   case t of 
+    BindImplicit _ _ ret -> 
+      ret
+
     TypeLambda _ _ ret -> 
       ret
 

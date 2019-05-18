@@ -17,6 +17,9 @@ Get all the parameters of this type.
 fnParamList :: U.Type -> [U.Type]
 fnParamList t = 
   case t of 
+    U.BindImplicit _ par ret -> 
+      par : fnParamList ret
+
     U.FunctionType _ par ret -> 
       par : fnParamList ret
 
@@ -45,6 +48,12 @@ fnTypeList t =
 toTypedType :: Int -> U.Scope -> Common.Uniqueness -> U.Type -> Either TypeError T.Type
 toTypedType offset scope uniq a =
   case a of 
+    U.BindImplicit _ par ret -> 
+      do
+        parT <- toTypedType offset scope uniq par
+        retT <- toTypedType offset scope uniq ret
+        return $ T.BindImplicit parT retT
+
     U.FunctionType _ par ret ->
       let
         expectRetUniq =

@@ -12,7 +12,22 @@ import qualified AST.Untyped as U
 
 typeTermP :: Parser U.Type
 typeTermP = 
-  choice [try emptyTupleP, try tupleTypeP, parenTypeP, typeNameP]
+  choice [try bindImplicitP, try emptyTupleP, try tupleTypeP, parenTypeP, typeNameP]
+
+
+bindImplicitP :: Parser U.Type
+bindImplicitP =
+  label "implicit type binding" $ 
+    do
+      offset <- getOffset
+      string "implicit"
+      some spaceP
+      t <- implicitTypeP
+      some spaceP
+      string "->"
+      some spaceP
+      retT <- typeP
+      return $ U.BindImplicit offset t retT
 
 
 emptyTupleP :: Parser U.Type
@@ -56,30 +71,32 @@ parenTypeP = do
 
 
 typeNameP :: Parser U.Type
-typeNameP = do
-  offset <- getOffset
-  name <- nameP
-  return $ U.TypeName offset name
+typeNameP = 
+  label "type name" $
+    do
+    offset <- getOffset
+    name <- nameP
+    return $ U.TypeName offset name
 
 typeP :: Parser U.Type
 typeP = 
   let 
 
-    linearFunction = Expr.InfixR $ try $ do 
+    linearFunction = Expr.InfixR $ try $ label "-* function" $ do 
       offset <- getOffset
       many spaceP
       string "-*"
       many spaceP
       return $ U.LinearFunctionType offset
 
-    pureFunction = Expr.InfixR $ try $ do 
+    pureFunction = Expr.InfixR $ try $ label "-> function" $ do 
       offset <- getOffset
       many spaceP
       string "->"
       many spaceP
       return $ U.FunctionType offset
 
-    typeLambda = Expr.Prefix $ try $ do
+    typeLambda = Expr.Prefix $ try $ label "type lambda" $ do
       offset <- getOffset
       name <- nameP
       many spaceP
@@ -106,3 +123,10 @@ typeApplyP =
           fmap (const ()) $ choice [string "->", string "-*", string "=>"]
         ]
       return $ U.TypeApply offset
+
+-- Matches a type term or type application. 
+implicitTypeP =
+  Expr.makeExprParser typeTermP [
+      [Expr.InfixL $ try $ typeApplyP]
+  ]
+     

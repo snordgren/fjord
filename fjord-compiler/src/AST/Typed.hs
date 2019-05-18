@@ -92,7 +92,8 @@ data Parameter
 
 
 data Type 
-  = FunctionType Common.Uniqueness Type Type
+  = BindImplicit Type Type
+  | FunctionType Common.Uniqueness Type Type
   | LinearFunctionType Type Type
   | TupleType Common.Uniqueness [Type]
   | TypeApply Type Type
@@ -101,6 +102,10 @@ data Type
   deriving Eq
 
 instance Show Type where
+
+  show (BindImplicit par ret) = 
+    "implicit " ++ show par ++ " -> " ++ show ret
+
   show (FunctionType uniq p r) = 
     let
       base = 
@@ -144,7 +149,7 @@ expressionType a =
     Apply f par -> 
       case parType $ concreteType $ expressionType f of 
         TypeName uniq name Common.TypeVar -> 
-          returnType $ replaceTypeName name (expressionType par) (expressionType f)
+          returnType $ replaceTypeName name (expressionType par) (expressionType f)
 
         _ ->
           if (parTypeUniq $ concreteType $ expressionType f) == Common.Unique then
@@ -188,11 +193,17 @@ typeUniq t =
 parType :: Type -> Type
 parType a = 
   case a of 
+    BindImplicit par _ ->
+      par
+
     FunctionType _ b _ -> 
       b
   
-    LinearFunctionType b _ ->
-      b
+    LinearFunctionType par _ ->
+      par
+
+    TypeLambda _ ret -> 
+      parType ret
 
     _ ->
       error $ (show a) ++ " has no parameters"
@@ -212,6 +223,9 @@ returnType t =
     LinearFunctionType _ a ->
       a
 
+    TypeLambda _ ret -> 
+      returnType ret
+
     a ->
       error $ (show a) ++ " has no return type"
 
@@ -219,12 +233,14 @@ returnType t =
 concreteType :: Type -> Type 
 concreteType t =
   case t of 
+    BindImplicit _ ret -> 
+      ret
+
     TypeLambda var ret -> 
       ret
 
     a -> 
       a
-
 
 {- 
 Rewrites the type of a polymorphic function following application. 
@@ -237,7 +253,7 @@ rewritePolyType target paramType =
       -- specialize it to the type of the parameter in the application. 
       case par of 
         TypeName typeNameUniq name Common.TypeVar -> 
-          replaceTypeName name paramType target
+          rewritePolyType (replaceTypeName name paramType target) paramType
 
         _ ->
           target
@@ -245,41 +261,13 @@ rewritePolyType target paramType =
     LinearFunctionType par ret ->
       case par of
         TypeName typeNameUniq name Common.TypeVar -> 
-          replaceTypeName name paramType target
+          rewritePolyType (replaceTypeName name paramType target) paramType
 
         _ ->
           target
 
     _ ->
       target
-
-
-replaceTypeName :: String -> Type -> Type -> Type
-replaceTypeName name t a =
-  case a of
-    FunctionType uniq a b ->
-      FunctionType uniq (replaceTypeName name t a) $ replaceTypeName name t b
-
-    LinearFunctionType a b ->
-      LinearFunctionType (replaceTypeName name t a) $ replaceTypeName name t b
-
-    TupleType uniq types ->
-      TupleType uniq $ fmap (replaceTypeName name t) types
-
-    TypeApply par ret ->
-      TypeApply (replaceTypeName name t par) $ replaceTypeName name t ret
-
-    TypeLambda arg ret ->
-      if arg == name then
-        replaceTypeName name t ret
-      else
-        TypeLambda arg $ replaceTypeName name t ret
-
-    TypeName uniq refName nameType ->
-      if refName == name then
-        t
-      else
-        TypeName uniq refName nameType
 
 
 withUniq :: Common.Uniqueness -> Type -> Type
@@ -290,3 +278,100 @@ withUniq uniq t =
     TypeLambda arg ret -> TypeLambda arg $ withUniq uniq ret
     TypeName _ name nameType -> TypeName uniq name nameType
     a -> a
+
+
+replaceTypeName :: String -> Type -> Type -> Type
+replaceTypeName name with target =
+  let 
+    next = 
+      replaceTypeName name with
+  in
+    case target of 
+      FunctionType uniq par ret -> FunctionType uniq (next par) $ next ret
+      LinearFunctionType par ret -> LinearFunctionType (next par) $ next ret
+      TupleType uniq types -> TupleType uniq $ fmap next types
+      TypeApply f par -> TypeApply (next f) $ next par
+      TypeLambda arg ret -> TypeLambda arg $ next ret
+      TypeName uniq typeName nameType -> 
+        if name == typeName then
+          with
+        else
+          TypeName uniq typeName nameType
+
+
+
+findPatSubst :: [String] -> Type -> Type -> [(String, Type)]
+findPatSubst typeVars t exprType = 
+  let 
+    self = 
+      findPatSubst typeVars
+  in
+    case exprType of
+      FunctionType exprUniq exprPar exprRet -> 
+        case t of 
+          FunctionType tUniq tPar tRet ->
+            self exprPar tPar ++ self exprRet tRet
+
+          _ -> []
+
+      LinearFunctionType exprPar exprRet -> 
+        case t of 
+          LinearFunctionType tPar tRet -> 
+            self exprPar tPar ++ self exprRet tRet
+
+          _ -> []
+
+      TypeApply exprF exprPar ->
+        case t of 
+          TypeApply tF tPar ->
+            self exprF tF ++ self exprPar tPar 
+
+          _ -> []
+
+      TypeName exprUniq exprName exprNameType ->
+        if exprNameType == Common.TypeVar then
+          [(exprName, t)]
+        else
+          []
+
+      _ -> []
+
+unifyTypes :: Type -> Type -> Type
+unifyTypes pat impl =
+  let 
+    patSubst0 =
+      findPatSubst (typeVarsIn pat) (concreteType pat) impl
+
+    patSubst =
+      trace (show patSubst0) patSubst0
+  in
+    List.foldl' (\acc (name, subst) -> replaceTypeName name subst acc) pat patSubst
+
+-- Get all the type variables referenced by a type. 
+typeVarsIn :: Type -> [String]
+typeVarsIn t =
+  case t of 
+    FunctionType uniq par ret -> typeVarsIn par ++ typeVarsIn ret
+    LinearFunctionType par ret -> typeVarsIn par ++ typeVarsIn ret
+    TupleType uniq types -> List.concat $ fmap typeVarsIn types
+    TypeApply f par -> typeVarsIn f ++ typeVarsIn par
+    TypeLambda arg ret -> arg : typeVarsIn ret
+    TypeName uniq name orig -> [name]
+
+
+fnParamList :: Type -> [Type]
+fnParamList t = 
+  case t of 
+    BindImplicit par ret -> 
+      par : fnParamList ret
+
+    FunctionType uniq a b ->
+      a : fnParamList b
+
+    LinearFunctionType a b ->
+      a : fnParamList b
+
+    TypeLambda _ ret -> 
+      fnParamList ret
+
+    _ -> []

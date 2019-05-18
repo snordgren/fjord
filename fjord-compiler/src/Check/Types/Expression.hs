@@ -1,4 +1,4 @@
-{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE RankNTypes, Strict #-}
 module Check.Types.Expression where
 
 import Control.Monad.Except
@@ -36,13 +36,14 @@ toTypedExpression scope expectType expectUniq expr =
     U.Apply offset a b ->
       do
         typedA <- toTypedExpression scope Nothing (Just Common.Unique) a
-        let parUniq = T.parTypeUniq $ T.concreteType $ T.expressionType typedA 
+        let parUniq = T.parTypeUniq $ T.expressionType typedA 
         typedB <- toTypedExpression scope Nothing (Just parUniq) b
         let parT = T.expressionType typedB
         let exprType = T.rewritePolyType (T.expressionType typedA) parT
-        let reqParT = T.parType exprType
+        let exprType1 = T.unifyTypes (T.parType $ T.expressionType typedA) (T.concreteType parT)
+        let reqParT = T.parType $ trace (show typedA ++ "; " ++ show typedB) exprType
         if reqParT == parT then
-          case exprType of 
+          case T.concreteType $ exprType of 
             T.FunctionType uniq param ret -> 
               return $ T.Apply typedA typedB
   
@@ -270,7 +271,6 @@ toTypedPattern scope expr expectType expectUniq (U.Pattern offset ctor vars retE
     let patSubstCtorType = Maybe.fromMaybe ctorType $ U.returnType $ U.concreteType ctorType
     let patSubstTypeVars = U.typeNamesIn ctorType
     let patSubst = findPatSubst patSubstTypeVars patSubstCtorType realExprType
-    trace ("patSubst: " ++ show patSubst) $ return ()
     let substCtorType = List.foldl' (\acc (name, subst) -> replaceTypeName name subst acc) ctorType patSubst
     let patScope = createPatternScope substCtorType vars scope
     types <- useCountM $ Monad.sequence $ fmap (toTypedType offset patScope uniq) $ fnParamList substCtorType
@@ -296,7 +296,7 @@ createPatternScope ctorType vars scope =
 
 findPatSubst :: [String] -> U.Type -> U.Type -> [(String, U.Type)]
 findPatSubst typeVars t exprType = 
-    case trace ("exprType: " ++ show exprType) (exprType) of
+    case exprType of
       U.TypeApply _ exprF exprPar ->
         case U.concreteType t of 
           U.TypeApply _ tF tPar ->
@@ -305,9 +305,9 @@ findPatSubst typeVars t exprType =
                 if List.elem name typeVars then
                   [(name, exprPar)]
                 else
-                  trace ("sad: " ++ name ++ "; " ++ (show typeVars) ++ "; ") []
-          a -> trace ("sadder: " ++ show a) []
-      _ -> trace "saddest" []
+                  []
+          a -> []
+      _ -> []
 
 
 typeOf :: U.Scope -> U.Expression -> Either TypeError U.Type

@@ -91,19 +91,8 @@ valDeclP = label "value declaration" $ do
   many spaceP
   char ':'
   many spaceP
-  implicits <- many $ try implicitParamP
   many spaceP
   declaredType <- typeP
   many spaceP
   some eol
-  return $ U.ValDecl offset declName implicits declaredType
-
-implicitParamP :: Parser U.Type
-implicitParamP =
-  do
-    string "implicit"
-    some spaceP
-    t <- typeTermP
-    many spaceP
-    string "->"
-    return t
+  return $ U.ValDecl offset declName [] declaredType

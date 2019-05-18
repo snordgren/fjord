@@ -142,7 +142,7 @@ scopeContrib origin d =
         values = 
           [(name, ctorWithTypeVars, Common.Unique, origin)]
       in 
-        trace (show values) $ U.Scope values types []
+        U.Scope values types []
     
     U.DeclValDecl (U.ValDecl _ name implicits t) -> 
       let 

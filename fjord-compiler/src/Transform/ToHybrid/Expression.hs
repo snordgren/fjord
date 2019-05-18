@@ -23,11 +23,6 @@ transformExpr (T.Apply a b) =
         T.Apply a b -> Just $ Maybe.fromMaybe a (rootFunction a)
         _ -> Nothing
 
-    fnParamList :: T.Type -> [T.Type]
-    fnParamList (T.FunctionType uniq a b) = [a] ++ fnParamList b 
-    fnParamList (T.LinearFunctionType a b) = [a] ++ fnParamList b
-    fnParamList _ = []
-
     parametersOfApply :: T.Expression -> [T.Expression]
     parametersOfApply e = 
       case e of 
@@ -38,7 +33,7 @@ transformExpr (T.Apply a b) =
     mkMissingParam m (t, n) = H.Read t ("_" ++ (show (n + m)))
     
     rootF = Maybe.fromMaybe a $ rootFunction a
-    allParams = fnParamList (T.expressionType rootF)
+    allParams = T.fnParamList (T.expressionType rootF)
     reqArgCount = List.length allParams
     passedParameters = parametersOfApply (T.Apply a b)
     passedParamCount = List.length passedParameters
