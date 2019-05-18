@@ -41,6 +41,7 @@ data Type
   = FunctionType Int Type Type
   | LinearFunctionType Int Type Type
   | TupleType Int [Type]
+  | TypeApply Int Type Type
   | TypeLambda Int String Type
   | TypeName Int String
   deriving (Eq)
@@ -142,7 +143,8 @@ data EnumDecl
   = EnumDecl {
     enumDeclOffset :: Int,
     enumDefName :: String,
-    enumDefCtors :: [EnumConstructor]
+    enumDefCtors :: [EnumConstructor],
+    enumDefTypeVars :: [String]
   }
   deriving (Eq, Show)
 
@@ -226,3 +228,14 @@ concreteType t =
 
     a -> 
       a
+
+
+-- Get all the type names referenced by this type. 
+typeNamesIn :: Type -> [String]
+typeNamesIn t =
+  case t of 
+    FunctionType _ par ret -> typeNamesIn par ++ typeNamesIn ret
+    TupleType _ types -> List.concat $ fmap typeNamesIn types
+    TypeApply _ f par -> typeNamesIn f ++ typeNamesIn par
+    TypeLambda _ arg ret -> arg : typeNamesIn ret
+    TypeName _ name -> [name]

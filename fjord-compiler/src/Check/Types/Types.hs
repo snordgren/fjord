@@ -91,6 +91,12 @@ toTypedType scope uniq a =
         do
           retT <- toTypedType createLambdaScope uniq ret
           return $ T.TypeLambda var retT
+
+    U.TypeApply offset a b -> 
+      do
+        typedA <- toTypedType scope uniq a 
+        typedB <- toTypedType scope uniq b
+        return $ T.TypeApply typedA typedB
     
     U.TypeName offset "Int" -> 
       return $ T.TypeName uniq "Int" Common.TypeRef
@@ -98,15 +104,33 @@ toTypedType scope uniq a =
     U.TypeName offset "String" -> 
       return $ T.TypeName uniq "String" Common.TypeRef
 
-    U.TypeName offset n ->
+    U.TypeName offset name ->
       let 
         typeNames = 
           U.scopeTypes scope 
 
         result = 
-          List.find (\(t, _, nameType) -> t == n) typeNames
+          List.find (\(t, _, nameType) -> t == name) typeNames
 
-        resultE = 
-          Combinators.maybeToRight (UndefinedType offset n) result
+        resultE =
+          Combinators.maybeToRight (UnknownType offset name) result
       in
         fmap (\(t, _, nameType) -> T.TypeName uniq t nameType) resultE
+
+        
+unifyTypes :: T.Type -> T.Type -> T.Type
+unifyTypes pat inst = 
+  case T.concreteType pat of 
+    T.TypeApply patF patPar ->
+      case inst of
+        T.TypeApply instF instPar -> 
+          case patPar of 
+            T.TypeName uniq name Common.TypeVar -> 
+              T.replaceTypeName name instPar pat
+            
+            _ -> 
+              pat
+
+    _ -> 
+      pat
+              

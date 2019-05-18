@@ -3,6 +3,7 @@ module Check.Types.Expression where
 
 import Control.Monad.Except
 import Control.Monad.State.Lazy
+import Control.Monad.Writer.Lazy
 import Data.Functor.Identity
 import Debug.Trace
 import qualified Control.Monad as Monad
@@ -154,8 +155,8 @@ toTypedExpression scope expectType expectUniq expr =
       do
         (opType, uniq, intro) <- useCountM $ scopeVariableType scope offset name 
         opTypeT <- useCountM $ toTypedType scope uniq opType
-        let paramAUniq = T.typeUniq $ T.parType opTypeT
-        let paramBUniq = T.typeUniq $ T.parType $ T.returnType opTypeT
+        let paramAUniq = T.parTypeUniq $ opTypeT
+        let paramBUniq = T.parTypeUniq $ T.returnType opTypeT
         typedA <- toTypedExpression scope expectType (Just paramAUniq) a
         typedB <- toTypedExpression scope expectType (Just paramBUniq) b
         return $ T.Operator name opTypeT typedA typedB intro

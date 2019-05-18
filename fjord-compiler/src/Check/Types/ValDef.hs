@@ -52,7 +52,7 @@ typeCheckValDef modScope (U.ValDef (U.ValDecl offset name implicits declType) pa
     paramsT <- Monad.sequence $ fmap toTypedParam $ zip (drop (length implicits) params) $ fnParListWithUniq declType
     implicitsT <- Monad.sequence $ fmap (resolveImplicit offset defScope) $ zip implicitParNames implicits
     typedExpr <- (runUseCounting (U.expressionOffset expr) defScope) $ toTypedExpression defScope (Just reqType) (Just bodyUniq) expr 
-    let exprT = T.expressionType $ typedExpr
+    let exprT = unifyTypes (T.expressionType $ typedExpr) reqTypeT
     if exprT == reqTypeT then 
       Right $ T.ValDef name paramsT implicitsT declTypeT typedExpr
     else

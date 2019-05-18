@@ -19,10 +19,11 @@ enumDeclP = label "enum declaration" $ do
   string "enum"
   some spaceP
   declName <- nameP
+  typeVars <- many (try $ (some spaceP) >> nameP)
   eol
   constructors <- some enumConstructorP
   (fmap (\_ -> ()) $ some eol) <|> eof
-  return $ U.EnumDecl offset declName constructors
+  return $ U.EnumDecl offset declName constructors typeVars
 
 
 enumConstructorP :: Parser U.EnumConstructor

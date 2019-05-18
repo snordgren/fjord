@@ -1,0 +1,27 @@
+module codegen.types.Maybe
+
+enum Maybe a
+  None : Maybe a
+  Some a : Maybe a
+
+
+maybeNone : Maybe Int
+maybeNone =
+  None
+
+
+maybeOne : Maybe Int
+maybeOne = 
+  Some 1
+
+
+someOrZero : Maybe Int -* Int
+someOrZero x =
+  case x of 
+    None -> 0
+    Some y -> y
+
+
+one : Int
+one =
+  someOrZero maybeOne

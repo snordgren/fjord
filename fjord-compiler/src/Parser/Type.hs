@@ -64,6 +64,7 @@ typeNameP = do
 typeP :: Parser U.Type
 typeP = 
   let 
+
     linearFunction = Expr.InfixR $ try $ do 
       offset <- getOffset
       many spaceP
@@ -86,4 +87,22 @@ typeP =
       many spaceP
       return $ U.TypeLambda offset name
   in 
-    Expr.makeExprParser typeTermP [[pureFunction, linearFunction], [typeLambda]]
+    Expr.makeExprParser typeTermP [
+      [Expr.InfixL $ try $ typeApplyP], 
+      [pureFunction, linearFunction], 
+      [typeLambda]
+    ]
+
+
+typeApplyP = 
+  label "type application" $ 
+    do
+      offset <- getOffset
+      some spaceP
+      notFollowedBy $ choice 
+        [
+          fmap (const ()) $ oneOf $ ":",
+          fmap (const ()) $ eol,
+          fmap (const ()) $ choice [string "->", string "-*", string "=>"]
+        ]
+      return $ U.TypeApply offset

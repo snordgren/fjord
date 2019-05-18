@@ -149,7 +149,7 @@ typeErrorToErrorBundle initialPosState err =
       UndefinedInScope offset ->
         bundleMsg offset ("undefined in scope")
 
-      UndefinedType offset s -> 
+      UnknownType offset s -> 
         bundleMsg offset $ "unknown type " ++ s
 
 

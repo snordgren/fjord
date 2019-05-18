@@ -208,7 +208,7 @@ caseP = label "case expression" $ do
   keyword "of"
   many spaceP
   eol
-  patterns <- some (try patternP)
+  patterns <- some $ try patternP
   return $ U.Case offset expr patterns
 
 
@@ -216,10 +216,10 @@ patternP = label "pattern" $ do
   spaceInExpressionP
   offset <- getOffset
   constructor <- qualifiedNameP
-  variables <- many (try ((some spaceP) >> nameP))
+  vars <- many $ try $ (many spaceP) >> nameP
   many spaceP
   string "->"
   many spaceP
   expr <- expressionP
   eol
-  return $ U.Pattern offset constructor variables expr
+  return $ U.Pattern offset constructor vars expr

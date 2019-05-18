@@ -5,6 +5,7 @@
 -- has been verified correct. 
 module AST.Typed where
 
+import Control.Monad.Writer.Lazy
 import Debug.Trace
 import qualified Data.List as List
 import qualified Data.Maybe as Maybe
@@ -94,6 +95,7 @@ data Type
   = FunctionType Common.Uniqueness Type Type
   | LinearFunctionType Type Type
   | TupleType Common.Uniqueness [Type]
+  | TypeApply Type Type
   | TypeLambda String Type
   | TypeName Common.Uniqueness String Common.NameType
   deriving Eq
@@ -116,6 +118,9 @@ instance Show Type where
 
   show (TupleType uniq values) = 
     (uniqPrefix uniq) ++ "(" ++ (List.intercalate ", " $ fmap show values) ++ ")"
+
+  show (TypeApply f par) =
+    "(" ++ show f ++ " " ++ show par ++ ")"
 
   show (TypeLambda arg ret) =
     arg ++ " => " ++ show ret
@@ -142,7 +147,7 @@ expressionType a =
           returnType $ replaceTypeName name (expressionType par) (expressionType f)
 
         _ ->
-          if (typeUniq $ parType $ concreteType $ expressionType f) == Common.Unique then
+          if (parTypeUniq $ concreteType $ expressionType f) == Common.Unique then
             withUniq Common.Unique $ returnType $ expressionType f
           else
             returnType $ expressionType f
@@ -166,6 +171,9 @@ typeUniq t =
 
     LinearFunctionType _ _ ->
       Common.Unique
+
+    TypeApply f par ->
+      typeUniq f
 
     TypeLambda arg ret ->
       typeUniq ret
@@ -191,11 +199,8 @@ parType a =
 
 
 parTypeUniq :: Type -> Common.Uniqueness
-parTypeUniq t =
-  case t of 
-    FunctionType _ _ _ -> Common.NonUnique
-    LinearFunctionType _ _ -> Common.Unique
-    _ -> error $ show t ++ " is not a function"
+parTypeUniq =
+  (typeUniq . parType)
 
 
 returnType :: Type -> Type 
@@ -222,19 +227,21 @@ concreteType t =
 
 
 {- 
-Rewrites the type of a polymorphic following application.
+Rewrites the type of a polymorphic function following application. 
 -}
 rewritePolyType :: Type -> Type -> Type
 rewritePolyType target paramType =
   case concreteType target of 
     FunctionType fnUniq par ret -> 
+      -- If the parameter type of the function is polymorphic, try to 
+      -- specialize it to the type of the parameter in the application. 
       case par of 
         TypeName typeNameUniq name Common.TypeVar -> 
           replaceTypeName name paramType target
 
         _ ->
           target
-        
+      
     LinearFunctionType par ret ->
       case par of
         TypeName typeNameUniq name Common.TypeVar -> 
@@ -258,6 +265,9 @@ replaceTypeName name t a =
 
     TupleType uniq types ->
       TupleType uniq $ fmap (replaceTypeName name t) types
+
+    TypeApply par ret ->
+      TypeApply (replaceTypeName name t par) $ replaceTypeName name t ret
 
     TypeLambda arg ret ->
       if arg == name then

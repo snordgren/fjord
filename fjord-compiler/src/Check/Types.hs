@@ -74,12 +74,17 @@ is something wrong.
 toTypedDef :: U.Scope -> U.Definition -> Either TypeError T.Definition
 toTypedDef modScope a =
   case a of 
-    U.EnumDef (U.EnumDecl offset name constructors) ->
+    U.EnumDef (U.EnumDecl offset name constructors typeVars) ->
       let 
+        enumScope = 
+          mergeScope
+            (U.Scope [] (fmap (\str -> (str, Common.SameModule, Common.TypeVar)) typeVars) [])
+            modScope
+
         toTypedEnumConstructor (U.EnumConstructor _ s parTypes retType) = 
           do
-            parTypesT <- Monad.sequence $ fmap (toTypedType modScope enumParUniq) parTypes
-            retTypeT <- toTypedType modScope enumRetUniq retType
+            parTypesT <- Monad.sequence $ fmap (toTypedType enumScope enumParUniq) parTypes
+            retTypeT <- toTypedType enumScope enumRetUniq retType
             return $ T.EnumConstructor s parTypesT retTypeT
       in do
         ctors <- Monad.sequence $ fmap toTypedEnumConstructor constructors

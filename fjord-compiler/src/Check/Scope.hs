@@ -5,6 +5,7 @@ import qualified Data.Either.Combinators as Combinators
 
 import Check.Types.Common
 import qualified AST.Common as Common
+import qualified AST.Typed as T
 import qualified AST.Untyped as U
 
 {-|
@@ -80,13 +81,23 @@ Generates the individual contribution of the definition to the module scope.
 scopeContrib :: Common.Origin -> U.Declaration -> U.Scope
 scopeContrib origin d =
   case d of 
-    U.DeclEnumDecl (U.EnumDecl offset name constructors) -> 
+    U.DeclEnumDecl (U.EnumDecl offset name constructors typeVars) -> 
       let 
         genCtorBinding :: U.EnumConstructor -> (String, U.Type, Common.Uniqueness, Common.Origin)
         genCtorBinding c = 
           let 
+            retT = 
+              U.enumConstructorRetType c
+
+            typeVarList =
+              List.intersect typeVars $ U.typeNamesIn retT
+
             typ = 
-              List.foldr (\a -> \b -> U.LinearFunctionType 0 a b) (U.enumConstructorRetType c) $ U.enumConstructorParTypes c
+              List.foldr (\par -> \ret -> U.LinearFunctionType offset par ret) 
+                retT $ U.enumConstructorParTypes c
+
+            typeLambdas = 
+              List.foldr (\par -> \ret -> U.TypeLambda offset par ret) typ typeVarList
           
             uniq = 
               if (List.length $ U.enumConstructorParTypes c) == 0 then
@@ -94,7 +105,7 @@ scopeContrib origin d =
               else
                 Common.NonUnique
           in
-            (U.enumConstructorName c, typ, uniq, origin)
+            (U.enumConstructorName c, typeLambdas, uniq, origin)
 
         values = 
           fmap genCtorBinding constructors

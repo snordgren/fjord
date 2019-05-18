@@ -2,4 +2,4 @@ test/errors/parametric-polymorphism/InconsistentApply.fj:9:17:
   |
 9 |   second "hello" 5
   |                 ^^^
-expression has type 1:Int, expected ?:String
+expression has type ?:Int, expected ?:String
