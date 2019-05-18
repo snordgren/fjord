@@ -1,5 +1,5 @@
-test/errors/TypeNotFound.fj:3:18:
+test/errors/TypeNotFound.fj:3:1:
   |
 3 | myUnknownValue : UnknownTypeName
-  |                  ^^^^^^^^^^^^^^^^
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 unknown type UnknownTypeName

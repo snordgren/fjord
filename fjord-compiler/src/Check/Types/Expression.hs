@@ -1,4 +1,4 @@
-{-# LANGUAGE Strict, RankNTypes #-}
+{-# LANGUAGE RankNTypes #-}
 module Check.Types.Expression where
 
 import Control.Monad.Except
@@ -54,34 +54,12 @@ toTypedExpression scope expectType expectUniq expr =
         else 
           useCountM $ Left $ WrongType offset reqParT parT
 
-    U.Case offset expression patterns ->
-      let 
-        createPatternScope constructorType variables scope = 
-          let
-            variableTypes = 
-              fnParamList constructorType
-
-            bindings = 
-              fmap (\(a, b) -> (a, b, Common.Unique, Common.InFunction)) $ 
-                List.zip variables variableTypes
-
-            newScope = 
-              U.Scope bindings [] []
-          in
-            mergeScope newScope scope
-    
-        toTypedPattern :: U.Pattern -> UseCountM T.Pattern
-        toTypedPattern (U.Pattern offset ctor vars retExpr) = do
-          (ctorType, uniq, orig) <- useCountM $ scopeVariableType scope offset ctor 
-          let patScope = createPatternScope ctorType vars scope
-          types <- useCountM $ Monad.sequence $ fmap (toTypedType patScope uniq) $ fnParamList ctorType
-          let mergedVars = List.zip vars types
-          typedRetExpr <- toTypedExpression patScope expectType expectUniq retExpr
-          return $ T.Pattern ctor mergedVars typedRetExpr
-      in do
-        typedPatterns <- Monad.sequence $ fmap toTypedPattern patterns
-        typedSourceExpression <- toTypedExpression scope Nothing expectUniq expression
-        return $ T.Case typedSourceExpression typedPatterns
+    U.Case offset expr patterns ->
+      do
+        typedSrcExpr <- toTypedExpression scope Nothing expectUniq expr
+        let mkTypedPattern = toTypedPattern scope expr expectType expectUniq
+        typedPatterns <- Monad.sequence $ fmap mkTypedPattern patterns
+        return $ T.Case typedSrcExpr typedPatterns
 
     U.IntLiteral _ value -> 
       case expectUniq of 
@@ -139,7 +117,7 @@ toTypedExpression scope expectType expectUniq expr =
         do
           (t, uniq, orig) <- useCountM $ scopeVariableType scope offset s
           let useUniq = deriveUseUniq uniq
-          typedT <- useCountM $ toTypedType scope useUniq t
+          typedT <- useCountM $ toTypedType offset scope useUniq t
           -- If the value is unique, update its use counter, and generate an
           -- error if it has been used uniquely before.  
           if uniq == Common.Unique then
@@ -154,7 +132,7 @@ toTypedExpression scope expectType expectUniq expr =
     U.Operator offset name a b -> 
       do
         (opType, uniq, intro) <- useCountM $ scopeVariableType scope offset name 
-        opTypeT <- useCountM $ toTypedType scope uniq opType
+        opTypeT <- useCountM $ toTypedType offset scope uniq opType
         let paramAUniq = T.parTypeUniq $ opTypeT
         let paramBUniq = T.parTypeUniq $ T.returnType opTypeT
         typedA <- toTypedExpression scope expectType (Just paramAUniq) a
@@ -216,12 +194,12 @@ createLambda offset name scope expectUniq parUniq expectType expr f =
   in 
     do
       t <- unableToInfer "missing expected type" expectType
-      parT <- unableToInfer "missing parameter type" (parameterType t)
-      retT <- unableToInfer "missing return type" (returnType t)
+      parT <- unableToInfer "missing parameter type" (U.parameterType t)
+      retT <- unableToInfer "missing return type" (U.returnType t)
       let lambdaPar = (name, parT, parUniq, Common.InFunction)
       let lambdaScope = U.Scope (lambdaPar : U.scopeValues scope) (U.scopeTypes scope) []
       exprT <- toTypedExpression lambdaScope (Just retT) expectUniq expr
-      typedT <- useCountM $ toTypedType scope Common.NonUnique t
+      typedT <- useCountM $ toTypedType offset scope Common.NonUnique t
       return $ f name typedT exprT
 
 
@@ -276,3 +254,87 @@ runUseCounting offset scope e =
           eith
     else
       eith
+
+ 
+toTypedPattern 
+  :: U.Scope 
+  -> U.Expression
+  -> Maybe U.Type 
+  -> Maybe Common.Uniqueness 
+  -> U.Pattern 
+  -> UseCountM T.Pattern
+toTypedPattern scope expr expectType expectUniq (U.Pattern offset ctor vars retExpr) = 
+  do
+    (ctorType, uniq, orig) <- useCountM $ scopeVariableType scope offset ctor 
+    realExprType <- useCountM $ typeOf scope expr
+    let patSubstCtorType = Maybe.fromMaybe ctorType $ U.returnType $ U.concreteType ctorType
+    let patSubstTypeVars = U.typeNamesIn ctorType
+    let patSubst = findPatSubst patSubstTypeVars patSubstCtorType realExprType
+    trace ("patSubst: " ++ show patSubst) $ return ()
+    let substCtorType = List.foldl' (\acc (name, subst) -> replaceTypeName name subst acc) ctorType patSubst
+    let patScope = createPatternScope substCtorType vars scope
+    types <- useCountM $ Monad.sequence $ fmap (toTypedType offset patScope uniq) $ fnParamList substCtorType
+    let mergedVars = List.zip vars types
+    typedRetExpr <- toTypedExpression patScope expectType expectUniq retExpr
+    return $ T.Pattern ctor mergedVars typedRetExpr
+
+createPatternScope :: U.Type -> [String] -> U.Scope -> U.Scope
+createPatternScope ctorType vars scope = 
+  let
+    varTypes = 
+      fnParamList ctorType
+
+    bindings = 
+      fmap (\(a, b) -> (a, b, Common.Unique, Common.InFunction)) $ 
+        List.zip vars varTypes
+
+    newScope = 
+      U.Scope bindings [] []
+    in
+      mergeScope newScope scope
+
+
+findPatSubst :: [String] -> U.Type -> U.Type -> [(String, U.Type)]
+findPatSubst typeVars t exprType = 
+    case trace ("exprType: " ++ show exprType) (exprType) of
+      U.TypeApply _ exprF exprPar ->
+        case U.concreteType t of 
+          U.TypeApply _ tF tPar ->
+            case tPar of 
+              U.TypeName _ name -> 
+                if List.elem name typeVars then
+                  [(name, exprPar)]
+                else
+                  trace ("sad: " ++ name ++ "; " ++ (show typeVars) ++ "; ") []
+          a -> trace ("sadder: " ++ show a) []
+      _ -> trace "saddest" []
+
+
+typeOf :: U.Scope -> U.Expression -> Either TypeError U.Type
+typeOf scope expr = 
+  case expr of 
+    U.Name offset name ->
+      do
+        (t, uniq, orig) <- scopeVariableType scope offset name
+        return t
+    _ -> 
+      error $ "not yet implemented for " ++ show expr
+
+
+replaceTypeName :: String -> U.Type -> U.Type -> U.Type
+replaceTypeName name with target =
+  let 
+    next = 
+      replaceTypeName name with
+  in
+    case target of 
+      U.FunctionType pos par ret -> U.FunctionType pos (next par) $ next ret
+      U.LinearFunctionType pos par ret -> U.LinearFunctionType pos (next par) $ next ret
+      U.TupleType pos types -> U.TupleType pos $ fmap next types
+      U.TypeApply pos f par -> U.TypeApply pos (next f) $ next par
+      U.TypeLambda pos arg ret -> U.TypeLambda pos arg $ next ret
+      U.TypeName pos typeName -> 
+        if name == typeName then
+          with
+        else
+          U.TypeName pos typeName

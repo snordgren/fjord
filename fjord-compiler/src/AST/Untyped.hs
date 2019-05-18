@@ -50,11 +50,21 @@ data Type
 instance Show Type where
   show a = 
     case a of 
-      FunctionType _ p r -> show p ++ " -> " ++ show r
-      LinearFunctionType _ p r -> show p ++ " -* " ++ show r
-      TupleType _ t -> "(" ++ (List.intercalate "," $ fmap show t) ++ ")"
+      FunctionType _ p r -> 
+        show p ++ " -> " ++ show r
+
+      LinearFunctionType _ p r -> 
+        show p ++ " -* " ++ show r
+
+      TupleType _ t -> 
+        "(" ++ (List.intercalate "," $ fmap show t) ++ ")"
+
+      TypeApply _ f par ->
+        "(" ++ show f ++ " " ++ show par ++ ")"
+    
       TypeLambda _ n t -> 
         n ++ " => " ++ (show t)
+
       TypeName _ t -> 
         t
 
@@ -235,7 +245,20 @@ typeNamesIn :: Type -> [String]
 typeNamesIn t =
   case t of 
     FunctionType _ par ret -> typeNamesIn par ++ typeNamesIn ret
+    LinearFunctionType _ par ret -> typeNamesIn par ++ typeNamesIn ret
     TupleType _ types -> List.concat $ fmap typeNamesIn types
     TypeApply _ f par -> typeNamesIn f ++ typeNamesIn par
     TypeLambda _ arg ret -> arg : typeNamesIn ret
     TypeName _ name -> [name]
+
+
+parameterType :: Type -> Maybe Type
+parameterType (FunctionType _ p _) = Just p
+parameterType (LinearFunctionType _ p _) = Just p
+parameterType _ = Nothing
+
+
+returnType :: Type -> Maybe Type
+returnType (FunctionType _ _ ret) = Just ret
+returnType (LinearFunctionType _ _ ret) = Just ret
+returnType _ = Nothing

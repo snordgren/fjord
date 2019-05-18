@@ -81,10 +81,10 @@ toTypedDef modScope a =
             (U.Scope [] (fmap (\str -> (str, Common.SameModule, Common.TypeVar)) typeVars) [])
             modScope
 
-        toTypedEnumConstructor (U.EnumConstructor _ s parTypes retType) = 
+        toTypedEnumConstructor (U.EnumConstructor ctorPos s parTypes retType) = 
           do
-            parTypesT <- Monad.sequence $ fmap (toTypedType enumScope enumParUniq) parTypes
-            retTypeT <- toTypedType enumScope enumRetUniq retType
+            parTypesT <- Monad.sequence $ fmap (toTypedType ctorPos enumScope enumParUniq) parTypes
+            retTypeT <- toTypedType ctorPos enumScope enumRetUniq retType
             return $ T.EnumConstructor s parTypesT retTypeT
       in do
         ctors <- Monad.sequence $ fmap toTypedEnumConstructor constructors
@@ -95,8 +95,8 @@ toTypedDef modScope a =
         defScope = createDefScope modScope [] declType
         reqType = inferRequiredBody declType implicits []          
       in do
-        declTypeT <- toTypedType defScope implUniq declType
-        reqTypeT <- toTypedType defScope implUniq reqType
+        declTypeT <- toTypedType offset defScope implUniq declType
+        reqTypeT <- toTypedType offset defScope implUniq reqType
         let exprT = toTypedExpression defScope (Just reqType) (Just implUniq) expr 
         typedExpr <- (runUseCounting (U.expressionOffset expr) defScope) exprT
         let exprTypeT = T.expressionType typedExpr
@@ -108,9 +108,9 @@ toTypedDef modScope a =
 
     U.RecDef (U.RecDecl offset name fields) ->
       let
-        toTypedRecField (U.RecField _ s t) =
+        toTypedRecField (U.RecField fieldPos s t) =
           do
-            typedT <- toTypedType modScope recFieldUniq t
+            typedT <- toTypedType fieldPos modScope recFieldUniq t
             return $ T.RecField s typedT
       in 
         do

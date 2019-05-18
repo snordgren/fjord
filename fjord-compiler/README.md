@@ -1,5 +1,9 @@
 # fjord-compiler
 
+## Libraries
+The compiler uses Megaparsec, which is unfortunate given the dearth of 
+resources for it, but its very similar to Parsec. 
+
 ## Workflow
 The Fjord compiler primarily uses *golden testing*, where test input and 
 expected output are stored as files.

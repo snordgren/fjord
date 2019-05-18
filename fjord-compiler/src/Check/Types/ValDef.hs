@@ -36,7 +36,7 @@ typeCheckValDef modScope (U.ValDef (U.ValDecl offset name implicits declType) pa
     
     toTypedParam (p, (t, uniq)) =
       do
-        typedT <- toTypedType defScope uniq t
+        typedT <- toTypedType offset defScope uniq t
         return $ T.Parameter (U.parameterName p) typedT
 
     implicitParNames :: [String]
@@ -47,8 +47,8 @@ typeCheckValDef modScope (U.ValDef (U.ValDecl offset name implicits declType) pa
     uniq = 
       Common.NonUnique
   in do
-    reqTypeT <- toTypedType defScope bodyUniq reqType
-    declTypeT <- toTypedType defScope uniq declType
+    reqTypeT <- toTypedType offset defScope bodyUniq reqType
+    declTypeT <- toTypedType offset defScope uniq declType
     paramsT <- Monad.sequence $ fmap toTypedParam $ zip (drop (length implicits) params) $ fnParListWithUniq declType
     implicitsT <- Monad.sequence $ fmap (resolveImplicit offset defScope) $ zip implicitParNames implicits
     typedExpr <- (runUseCounting (U.expressionOffset expr) defScope) $ toTypedExpression defScope (Just reqType) (Just bodyUniq) expr 
@@ -66,7 +66,7 @@ resolveImplicit offset defScope (a, t) =
   in 
     do
       (name, _, orig) <- Combinators.maybeToRight (ImplicitNotFound offset t a) $ findImplicitDef defScope t
-      typedT <- toTypedType defScope uniq t
+      typedT <- toTypedType offset defScope uniq t
       return (a, typedT, T.Name name typedT uniq orig)
 
 
