@@ -1,5 +1,7 @@
+{-# LANGUAGE Strict #-}
 module Check.Scope where
 
+import Debug.Trace
 import qualified Data.List as List
 import qualified Data.Either.Combinators as Combinators
 
@@ -93,11 +95,11 @@ scopeContrib origin d =
               List.intersect typeVars $ U.typeNamesIn retT
 
             typ = 
-              List.foldr (\par -> \ret -> U.LinearFunctionType offset par ret) 
+              List.foldr (\par ret -> U.LinearFunctionType offset par ret) 
                 retT $ U.enumConstructorParTypes c
 
             typeLambdas = 
-              List.foldr (\par -> \ret -> U.TypeLambda offset par ret) typ typeVarList
+              List.foldr (\par ret -> U.TypeLambda offset par ret) typ typeVarList
           
             uniq = 
               if (List.length $ U.enumConstructorParTypes c) == 0 then
@@ -118,28 +120,34 @@ scopeContrib origin d =
     U.DeclImplicitDecl (U.ValDecl offset name implicits t) -> 
       U.Scope [(name, t, Common.NonUnique, origin)] [] [(name, t, origin)]
 
-    U.DeclRecDecl (U.RecDecl offset name fields) -> 
+    U.DeclRecDecl (U.RecDecl offset name fields typeVars) -> 
       let 
-        constructorRetType = 
-          U.TypeName offset name
         
         fieldTypes = 
-          fmap U.recFieldType fields
+          map U.recFieldType fields
     
-        constructorType = 
-          List.foldr (U.LinearFunctionType offset) constructorRetType fieldTypes
+        ctorType = 
+          List.foldr (U.LinearFunctionType offset) ctorRetType fieldTypes
 
-        values = 
-          [(name, constructorType, Common.Unique, origin)]
+        ctorWithTypeVars = 
+          List.foldr (\par ret -> U.TypeLambda offset par ret) ctorType typeVars
+
+        ctorRetType = 
+          List.foldr (\par f -> U.TypeApply offset f $ U.TypeName offset par) 
+            (U.TypeName offset name) typeVars
 
         types = 
           [(name, origin, Common.TypeRef)]
+
+        values = 
+          [(name, ctorWithTypeVars, Common.Unique, origin)]
       in 
-        U.Scope values types []
+        trace (show values) $ U.Scope values types []
     
     U.DeclValDecl (U.ValDecl _ name implicits t) -> 
       let 
-        values = [(filter (\a -> a /= '(' && a /= ')') name, t, Common.Unique, origin)]
+        values = 
+          [(filter (\a -> a /= '(' && a /= ')') name, t, Common.Unique, origin)]
       in
         U.Scope values [] []
 
@@ -160,5 +168,7 @@ scopeVariableType
   -> Either TypeError (U.Type, Common.Uniqueness, Common.Origin)
 scopeVariableType scope offset name = 
   Combinators.maybeToRight (UndefinedInScope offset)
-    (fmap (\(_, t, uniq, origin) -> (t, uniq, origin)) (List.find (\(n, _, _, _) -> n == name) (U.scopeValues scope)))
+    (fmap 
+      (\(_, t, uniq, origin) -> (t, uniq, origin)) 
+      (List.find (\(n, _, _, _) -> n == name) (U.scopeValues scope)))
 

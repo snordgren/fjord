@@ -20,6 +20,7 @@ enumDeclP = label "enum declaration" $ do
   some spaceP
   declName <- nameP
   typeVars <- many (try $ (some spaceP) >> nameP)
+  many spaceP
   eol
   constructors <- some enumConstructorP
   (fmap (\_ -> ()) $ some eol) <|> eof
@@ -62,11 +63,12 @@ recDeclP = label "record declaration" $ do
   string "record"
   some spaceP
   declName <- nameP
+  typeVars <- many (try $ (some spaceP) >> nameP)
   many spaceP
   eol
   fields <- many $ try $ recFieldP
   (eol >> return ()) <|> (eof >> return ())
-  return $ U.RecDecl offset declName fields
+  return $ U.RecDecl offset declName fields typeVars
 
 
 recFieldP :: Parser U.RecField

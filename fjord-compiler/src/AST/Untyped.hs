@@ -163,7 +163,8 @@ data RecDecl
   = RecDecl {
     recDeclOffset :: Int,
     recDeclName :: String,
-    recDeclFields :: [RecField]
+    recDeclFields :: [RecField],
+    recDeclTypeVars :: [String]
   }
   deriving (Eq, Show)
 

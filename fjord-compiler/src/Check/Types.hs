@@ -67,6 +67,14 @@ checkImport typeDefs imp =
     Just a -> Right $ T.Import (U.importModule imp) $ U.typeDefSource a
     Nothing -> Left $ ImportNotFound imp
 
+
+{-
+Generate a scope with the type variables introduced by a definition.
+-}
+genTypeVarScope :: [String] -> U.Scope
+genTypeVarScope typeVars = 
+  U.Scope [] (fmap (\str -> (str, Common.SameModule, Common.TypeVar)) typeVars) []
+
 {-
 Generate a typed definition from an untyped one, or generate an error if there 
 is something wrong. 
@@ -77,9 +85,7 @@ toTypedDef modScope a =
     U.EnumDef (U.EnumDecl offset name constructors typeVars) ->
       let 
         enumScope = 
-          mergeScope
-            (U.Scope [] (fmap (\str -> (str, Common.SameModule, Common.TypeVar)) typeVars) [])
-            modScope
+          mergeScope (genTypeVarScope typeVars) modScope
 
         toTypedEnumConstructor (U.EnumConstructor ctorPos s parTypes retType) = 
           do
@@ -106,12 +112,17 @@ toTypedDef modScope a =
           Left $ WrongType (U.expressionOffset expr) reqTypeT exprTypeT
 
 
-    U.RecDef (U.RecDecl offset name fields) ->
+    U.RecDef (U.RecDecl offset name fields typeVars) ->
       let
-        toTypedRecField (U.RecField fieldPos s t) =
+        recScope = 
+          mergeScope 
+            (genTypeVarScope typeVars)
+            modScope
+
+        toTypedRecField (U.RecField fieldPos fieldName fieldType) =
           do
-            typedT <- toTypedType fieldPos modScope recFieldUniq t
-            return $ T.RecField s typedT
+            typedT <- toTypedType fieldPos recScope recFieldUniq fieldType
+            return $ T.RecField fieldName typedT
       in 
         do
           fieldsT <- Monad.sequence $ fmap toTypedRecField fields
