@@ -45,6 +45,7 @@ enumConstructorP = label "enum constructor" $ do
 implicitDeclP :: Parser U.ValDecl 
 implicitDeclP = do
   string "implicit"
+  many spaceP
   some eol
   offset <- getOffset
   declName <- nameP
@@ -54,7 +55,7 @@ implicitDeclP = do
   declaredType <- typeP
   many spaceP
   some eol
-  return $ U.ValDecl offset declName [] declaredType
+  return $ U.ValDecl offset declName declaredType
 
 
 recDeclP :: Parser U.RecDecl
@@ -95,4 +96,4 @@ valDeclP = label "value declaration" $ do
   declaredType <- typeP
   many spaceP
   some eol
-  return $ U.ValDecl offset declName [] declaredType
+  return $ U.ValDecl offset declName declaredType

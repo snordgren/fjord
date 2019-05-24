@@ -62,7 +62,7 @@ data Definition
   = EnumDef String [EnumConstructor]
   | ImplicitDef String Type Expression
   | RecDef String [RecField]
-  | ValDef String [Parameter] [(String, Type, Expression)] Type Expression
+  | ValDef String [Parameter] Type Expression
   deriving (Eq, Show)
 
 
@@ -242,34 +242,6 @@ concreteType t =
     a -> 
       a
 
-{- 
-Rewrites the type of a polymorphic function following application. 
--}
-rewritePolyType :: Type -> Type -> Type
-rewritePolyType target paramType =
-  case concreteType target of 
-    FunctionType fnUniq par ret -> 
-      -- If the parameter type of the function is polymorphic, try to 
-      -- specialize it to the type of the parameter in the application. 
-      case par of 
-        TypeName typeNameUniq name Common.TypeVar -> 
-          rewritePolyType (replaceTypeName name paramType target) paramType
-
-        _ ->
-          target
-      
-    LinearFunctionType par ret ->
-      case par of
-        TypeName typeNameUniq name Common.TypeVar -> 
-          rewritePolyType (replaceTypeName name paramType target) paramType
-
-        _ ->
-          target
-
-    _ ->
-      target
-
-
 withUniq :: Common.Uniqueness -> Type -> Type
 withUniq uniq t =
   case t of 
@@ -291,17 +263,22 @@ replaceTypeName name with target =
       LinearFunctionType par ret -> LinearFunctionType (next par) $ next ret
       TupleType uniq types -> TupleType uniq $ fmap next types
       TypeApply f par -> TypeApply (next f) $ next par
-      TypeLambda arg ret -> TypeLambda arg $ next ret
+      TypeLambda arg ret -> 
+        if arg == name then
+          next ret
+        else
+          TypeLambda arg $ next ret
+          
       TypeName uniq typeName nameType -> 
         if name == typeName then
-          with
+          withUniq uniq with
         else
           TypeName uniq typeName nameType
 
 
 
 findPatSubst :: [String] -> Type -> Type -> [(String, Type)]
-findPatSubst typeVars t exprType = 
+findPatSubst typeVars exprType t = 
   let 
     self = 
       findPatSubst typeVars
@@ -339,11 +316,8 @@ findPatSubst typeVars t exprType =
 unifyTypes :: Type -> Type -> Type
 unifyTypes pat impl =
   let 
-    patSubst0 =
-      findPatSubst (typeVarsIn pat) (concreteType pat) impl
-
     patSubst =
-      trace (show patSubst0) patSubst0
+      findPatSubst (typeVarsIn pat) (parType $ concreteType pat) impl
   in
     List.foldl' (\acc (name, subst) -> replaceTypeName name subst acc) pat patSubst
 

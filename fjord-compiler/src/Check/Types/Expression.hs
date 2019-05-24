@@ -39,9 +39,8 @@ toTypedExpression scope expectType expectUniq expr =
         let parUniq = T.parTypeUniq $ T.expressionType typedA 
         typedB <- toTypedExpression scope Nothing (Just parUniq) b
         let parT = T.expressionType typedB
-        let exprType = T.rewritePolyType (T.expressionType typedA) parT
-        let exprType1 = T.unifyTypes (T.parType $ T.expressionType typedA) (T.concreteType parT)
-        let reqParT = T.parType $ trace (show typedA ++ "; " ++ show typedB) exprType
+        let exprType = T.unifyTypes (T.expressionType typedA) (T.concreteType parT)
+        let reqParT = T.parType exprType
         if reqParT == parT then
           case T.concreteType $ exprType of 
             T.FunctionType uniq param ret -> 

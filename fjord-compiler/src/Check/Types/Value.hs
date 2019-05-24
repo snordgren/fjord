@@ -1,5 +1,5 @@
-module Check.Types.ValDef (
-  typeCheckValDef
+module Check.Types.Value (
+  typeCheckValDecl
 ) where
 
 import Debug.Trace
@@ -23,8 +23,14 @@ bodyUniq =
   Common.Unique
 
 
-typeCheckValDef :: U.Scope -> U.Definition -> Either TypeError T.Definition
-typeCheckValDef modScope (U.ValDef (U.ValDecl offset name implicits declType) params expr) =
+typeCheckValDecl 
+  :: [U.Parameter] 
+  -> U.Expression
+  -> (String -> [T.Parameter] -> T.Type -> T.Expression -> T.Definition)
+  -> U.Scope 
+  -> U.ValDecl 
+  -> Either TypeError T.Definition
+typeCheckValDecl params expr f modScope (U.ValDecl offset name declType) =
   let 
     defScope :: U.Scope
     defScope = 
@@ -32,16 +38,12 @@ typeCheckValDef modScope (U.ValDef (U.ValDecl offset name implicits declType) pa
 
     reqType :: U.Type
     reqType = 
-      inferRequiredBody declType implicits params
+      inferRequiredBody declType params
     
     toTypedParam (p, (t, uniq)) =
       do
         typedT <- toTypedType offset defScope uniq t
-        return $ T.Parameter (U.parameterName p) typedT
-
-    implicitParNames :: [String]
-    implicitParNames = 
-      fmap U.parameterName $ take (length implicits) params
+        return $ T.Parameter (U.parameterName p) typedT
   
     uniq :: Common.Uniqueness
     uniq = 
@@ -49,12 +51,12 @@ typeCheckValDef modScope (U.ValDef (U.ValDecl offset name implicits declType) pa
   in do
     reqTypeT <- toTypedType offset defScope bodyUniq reqType
     declTypeT <- toTypedType offset defScope uniq declType
-    paramsT <- Monad.sequence $ fmap toTypedParam $ zip (drop (length implicits) params) $ fnParListWithUniq declType
-    implicitsT <- Monad.sequence $ fmap (resolveImplicit offset defScope) $ zip implicitParNames implicits
+    let parListWithUniq = fnParListWithUniq declType
+    paramsT <- Monad.sequence $ fmap toTypedParam $ zip params parListWithUniq
     typedExpr <- (runUseCounting (U.expressionOffset expr) defScope) $ toTypedExpression defScope (Just reqType) (Just bodyUniq) expr 
     let exprT = unifyTypes (T.expressionType $ typedExpr) reqTypeT
     if exprT == reqTypeT then 
-      Right $ T.ValDef name paramsT implicitsT declTypeT typedExpr
+      Right $ f name paramsT declTypeT typedExpr
     else
       Left $ WrongType (U.expressionOffset expr) reqTypeT exprT
 

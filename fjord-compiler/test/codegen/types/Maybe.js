@@ -17,9 +17,7 @@ exports.Some = Some;
 var maybeNone = None;
 exports.maybeNone = maybeNone;
 
-var maybeOne = function() {
-  return (Some(1));
-};
+var maybeOne = (Some(1));
 exports.maybeOne = maybeOne;
 
 var someOrZero = function(x) {

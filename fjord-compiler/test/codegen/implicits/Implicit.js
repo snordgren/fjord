@@ -10,8 +10,7 @@ exports.Zero = Zero;
 var zeroInstance = (Zero(0));
 exports.zeroInstance = zeroInstance;
 
-var zero = function(anything) {
-  var ev = zeroInstance;
+var zero = function(ev, anything) {
   return 0;
 };
 exports.zero = zero;

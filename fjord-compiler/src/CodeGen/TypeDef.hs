@@ -40,7 +40,7 @@ defToTypeDefStr decl =
       in
         "record " ++ name ++ "\n" ++ fieldStr
 
-    T.ValDef name implicits parameters typ expr ->
+    T.ValDef name params typ expr ->
       name ++ " : " ++ (genTypeDefStr typ)
 
 

@@ -7,8 +7,8 @@ addInt : Int -> Int -> Int
 addInt x y =
   0
 
+
 implicit
 intInstance : Add Int
 intInstance =
   Add addInt
-  

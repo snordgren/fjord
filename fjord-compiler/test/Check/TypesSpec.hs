@@ -29,6 +29,6 @@ testInferRequiredBody =
 
     result = (TypeCheck.inferRequiredBody 
       (U.FunctionType 0 (U.TypeName 0 "Int") 
-        (U.FunctionType 0 (U.TypeName 0 "String") (U.TypeName 0 "Int"))) [] [U.Parameter 0 "a"])
+        (U.FunctionType 0 (U.TypeName 0 "String") (U.TypeName 0 "Int"))) [U.Parameter 0 "a"])
   in 
     assertEqual "inferRequiredBody" expected result

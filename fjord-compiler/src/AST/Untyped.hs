@@ -174,7 +174,6 @@ data ValDecl
   = ValDecl {
     valDeclOffset :: Int,
     valDeclName :: String,
-    valDeclImplicits :: [Type],
     valDeclType :: Type
   }
   deriving (Eq, Show)

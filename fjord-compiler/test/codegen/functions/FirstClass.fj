@@ -1,0 +1,16 @@
+module codegen.functions.FirstClass
+
+toZeroContainerInstance : ToZeroContainer
+toZeroContainerInstance =
+  ToZeroContainer toZero2
+
+toZero : Int -> Int -> Int
+toZero x y = 
+  0
+
+toZero2 : Int -> Int -> Int
+toZero2 =
+  toZero
+
+record ToZeroContainer
+  toZeroField : Int -> Int -> Int

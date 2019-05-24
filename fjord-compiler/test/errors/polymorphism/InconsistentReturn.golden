@@ -1,0 +1,5 @@
+test/errors/polymorphism/InconsistentReturn.fj:5:3:
+  |
+5 |   5
+  |   ^^
+expression has type 1:Int, expected 1:a

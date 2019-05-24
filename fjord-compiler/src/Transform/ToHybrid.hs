@@ -120,7 +120,7 @@ transformDef a =
           H.FunctionDefinition name params returnType body
         ]
 
-    T.ValDef name params implicits typ expr ->
+    T.ValDef name params typ expr ->
       let
         bodyParams :: H.Expression -> [(String, H.Type)]
         bodyParams (H.Lambda p b) = p ++ (bodyParams b)
@@ -129,40 +129,22 @@ transformDef a =
         realBody :: H.Expression -> H.Expression
         realBody (H.Lambda _ a) = realBody a
         realBody a = a
-
-        findReturnType a = 
-          case a of 
-            T.FunctionType uniq _ b -> 
-              findReturnType b
-
-            _ -> 
-              a
-
-        transformImplicit (name, typ, expr) =
-          do
-            exprT <- transformExpr expr
-            return (name, transformType typ, Just exprT)
-
-        exprM = 
-          do
-            exprT <- transformExpr expr
-            implicitsT <- Monad.sequence $ fmap transformImplicit implicits
-            return (exprT, implicitsT)
     
-        ((transformedExpr, implicitsT), hiddenParams) = 
-          runState exprM 0
+        (transformedExpr, hiddenParams) = 
+          runState (transformExpr expr) 0
 
         transformedParams = 
           fmap (\(T.Parameter s t) -> (s, transformType t)) params
 
         returnType = 
-          transformType $ findReturnType typ
+          transformType $ T.returnType typ
 
         functionBody = 
-          H.Block implicitsT [H.Return $ realBody transformedExpr]
+          H.Block [] [H.Return $ realBody transformedExpr]
     
         allParams :: [(String, H.Type)]
-        allParams = transformedParams ++ (bodyParams transformedExpr)
+        allParams = 
+          transformedParams ++ (bodyParams transformedExpr)
       in if (List.length allParams) == 0 then
         [
           H.ValueDefinition name (transformType typ) transformedExpr

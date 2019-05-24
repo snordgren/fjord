@@ -2,7 +2,7 @@ module Check.Types (
   module Check.Types.Expression,
   module Check.Types.Infer,
   module Check.Types.Types,
-  module Check.Types.ValDef,
+  module Check.Types.Value,
   typeCheck
 ) where
 
@@ -17,7 +17,7 @@ import Check.Types.Common
 import Check.Types.Expression
 import Check.Types.Infer
 import Check.Types.Types
-import Check.Types.ValDef (typeCheckValDef)
+import Check.Types.Value (typeCheckValDecl)
 import Utils
 import qualified AST.Common as Common
 import qualified AST.Typed as T
@@ -96,20 +96,8 @@ toTypedDef modScope a =
         ctors <- Monad.sequence $ fmap toTypedEnumConstructor constructors
         return $ T.EnumDef name ctors
 
-    U.ImplicitDef (U.ValDecl offset name implicits declType) expr -> 
-      let 
-        defScope = createDefScope modScope [] declType
-        reqType = inferRequiredBody declType implicits []          
-      in do
-        declTypeT <- toTypedType offset defScope implUniq declType
-        reqTypeT <- toTypedType offset defScope implUniq reqType
-        let exprT = toTypedExpression defScope (Just reqType) (Just implUniq) expr 
-        typedExpr <- (runUseCounting (U.expressionOffset expr) defScope) exprT
-        let exprTypeT = T.expressionType typedExpr
-        if reqTypeT == exprTypeT  then 
-          Right $ T.ImplicitDef name declTypeT typedExpr
-        else
-          Left $ WrongType (U.expressionOffset expr) reqTypeT exprTypeT
+    U.ImplicitDef valDecl expr -> 
+      typeCheckValDecl [] expr (\name _ t expr -> T.ImplicitDef name t expr) modScope valDecl
 
 
     U.RecDef (U.RecDecl offset name fields typeVars) ->
@@ -131,7 +119,7 @@ toTypedDef modScope a =
     U.ValDef valDecl params expr -> 
       do
         validated <- validateParamCount $ U.ValDef valDecl params expr
-        typeCheckValDef modScope validated
+        typeCheckValDecl params expr T.ValDef modScope valDecl
 
 
 validateParamCount :: U.Definition -> Either TypeError U.Definition
@@ -141,7 +129,7 @@ validateParamCount (U.ValDef valDecl params expr) =
       fnParamList $ U.valDeclType valDecl
 
     maxParamCount =
-      (length $ U.valDeclImplicits valDecl) + (length paramTypes)
+      length paramTypes
   in 
     if length params > maxParamCount then
       let 

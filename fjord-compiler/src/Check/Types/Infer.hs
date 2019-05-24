@@ -11,8 +11,8 @@ import qualified AST.Common as Common
 import qualified AST.Typed as T
 import qualified AST.Untyped as U
 
-inferRequiredBody :: U.Type -> [U.Type] -> [U.Parameter] -> U.Type
-inferRequiredBody declaredType implicits parameters = 
+inferRequiredBody :: U.Type -> [U.Parameter] -> U.Type
+inferRequiredBody declaredType parameters = 
   let 
     concreteType =
       U.concreteType declaredType
