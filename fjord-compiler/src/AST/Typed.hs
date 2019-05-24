@@ -34,6 +34,7 @@ data Expression
   | Case Expression [Pattern]
   | IntLiteral Integer Common.Uniqueness
   | Lambda String Type Expression
+  | Let String Expression Expression
   | Name String Type Common.Uniqueness Common.Origin
   | Operator String Type Expression Expression Common.Origin
   | RecUpdate Expression [FieldUpdate]
@@ -160,6 +161,7 @@ expressionType a =
     Case a p -> expressionType $ patRetExpr $ head p
     IntLiteral _ uniq -> TypeName uniq "Int" Common.TypeRef
     Lambda _ t r -> FunctionType Common.NonUnique t $ expressionType r
+    Let _ _ ret -> expressionType ret
     Name _ t _ _ -> t
     Operator _ t _ _ _ -> returnType $ returnType t
     RecUpdate a _ -> expressionType a

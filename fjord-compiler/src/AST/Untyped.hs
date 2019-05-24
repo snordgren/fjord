@@ -91,6 +91,12 @@ data Expression
     lambdaVarName :: String,
     lambdaVarExpr :: Expression
   }
+  | Let {
+    expressionOffset :: Int,
+    letName :: String,
+    letValue :: Expression,
+    letRet :: Expression
+  }
   | Name {
     expressionOffset :: Int,
     nameExpressionVal :: String

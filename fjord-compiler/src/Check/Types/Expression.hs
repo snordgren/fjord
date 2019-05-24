@@ -71,7 +71,16 @@ toTypedExpression scope expectType expectUniq expr =
 
     U.Lambda offset name expr ->
       createLambda offset name scope expectUniq Common.NonUnique expectType expr T.Lambda
-      
+
+    U.Let offset name val ret -> 
+      do
+        typedVal <- toTypedExpression scope Nothing (Just Common.Unique) val
+        valType <- useCountM $ typeOf scope val
+        let letScope = U.Scope [(name, valType, T.typeUniq $ T.expressionType typedVal, Common.InFunction)] [] []
+        let useScope = mergeScope letScope scope
+        typedRet <- toTypedExpression useScope expectType expectUniq ret
+        return $ T.Let name typedVal typedRet
+ 
     U.Name offset s -> 
       let 
         findUseCount =
@@ -312,6 +321,9 @@ findPatSubst typeVars t exprType =
 typeOf :: U.Scope -> U.Expression -> Either TypeError U.Type
 typeOf scope expr = 
   case expr of 
+    U.IntLiteral offset _ ->
+      return $ U.TypeName 0 "Int"
+      
     U.Name offset name ->
       do
         (t, uniq, orig) <- scopeVariableType scope offset name

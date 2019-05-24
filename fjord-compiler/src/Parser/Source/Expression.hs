@@ -1,3 +1,4 @@
+{-# LANGUAGE ScopedTypeVariables, Strict #-}
 module Parser.Source.Expression (
   caseP, 
   expressionP, 
@@ -35,8 +36,8 @@ expressionP =
 termP :: Parser U.Expression
 termP = 
   choice [
-    (try caseP), (try uniqueLambdaP), (try lambdaP), (try tupleExprP), recordUpdateP, 
-    intLiteralP, stringLiteralP, nameExpressionP, (try emptyTupleP), parenExprP
+    (try caseP), (try uniqueLambdaP), (try lambdaP), (try tupleExprP), letP, recordUpdateP, 
+    intLiteralP, stringLiteralP, (try nameExpressionP), (try emptyTupleP), parenExprP
   ]
 
 
@@ -174,11 +175,14 @@ parenExprP = do
 applyP = do
   offset <- getOffset
   some spaceP
-  notFollowedBy $ choice 
+  notFollowedBy $ choice 
     [
-      fmap (const ()) $ oneOf $ "})," ++ opSym,
-      fmap (const ()) $ string "of"
+      fmap (const ()) $ choice $ fmap string keywords,
+      fmap (const ()) $ choice $ fmap string reservedSym,
+      fmap (const ()) $ choice $ fmap char opSym,
+      fmap (const ()) $ choice $ fmap char keySym
     ]
+
   return $ U.Apply offset
 
 
@@ -223,3 +227,19 @@ patternP = label "pattern" $ do
   expr <- expressionP
   eol
   return $ U.Pattern offset constructor vars expr
+
+
+letP = label "let binding" $ do
+  offset <- getOffset
+  string "let"
+  some spaceP
+  name <- nameP
+  many spaceP
+  string "="
+  many spaceP
+  val <- expressionP
+  many spaceP
+  string "in"
+  many spaceP
+  ret <- expressionP
+  return $ U.Let offset name val ret

@@ -106,6 +106,13 @@ transformExpr (T.Lambda variable variableType body) =
       transformedBody <- transformExpr (lambdaBody body)
       return $ H.Lambda retVariables transformedBody
 
+transformExpr (T.Let var varExpr retExpr) =
+  do
+    varExprT <- transformExpr varExpr
+    retExprT <- transformExpr retExpr
+    let blockDecls = [(var, transformType $ T.expressionType varExpr, Just varExprT)]
+    return $ H.IIFE $ H.Block blockDecls [H.Return retExprT]
+
 transformExpr (T.Name a t uniq origin) = 
   return $ case origin of 
     Common.SameModule -> H.Read (transformType t) a

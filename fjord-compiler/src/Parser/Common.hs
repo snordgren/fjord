@@ -1,6 +1,8 @@
 {-# LANGUAGE FlexibleInstances #-}
 module Parser.Common (
+  keySym,
   keyword,
+  keywords,
   nameP,
   operatorNameP,
   opSym,
@@ -20,7 +22,7 @@ type Parser = Parsec String String
 
 
 keywords = 
-  ["as", "case", "do", "enum", "forall", "implicit", "let", "module", "of", "record", "use"]
+  ["as", "case", "do", "enum", "forall", "implicit", "in", "let", "module", "of", "record", "use"]
 
 
 opSym = 
@@ -29,6 +31,9 @@ opSym =
 
 reservedSym = 
   ["->", "<-", ":", "=", "=>", "|", "&", "-*", "*-"]
+
+keySym = 
+  "})"
 
 
 keyword :: String -> Parser String
