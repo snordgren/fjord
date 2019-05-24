@@ -240,6 +240,6 @@ letP = label "let binding" $ do
   val <- expressionP
   many spaceP
   string "in"
-  many spaceP
+  spaceInExpressionP
   ret <- expressionP
   return $ U.Let offset name val ret

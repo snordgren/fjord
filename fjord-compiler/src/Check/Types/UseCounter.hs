@@ -1,10 +1,12 @@
+{-# LANGUAGE StrictData #-}
 module Check.Types.UseCounter where
 
 data UseCounter
   = UseCounter {
-    name :: !String,
-    isUsedLinearly :: !Bool
+    name :: String,
+    isUsedLinearly :: Bool
   }
+  deriving (Eq, Show)
 
 
 for :: String -> UseCounter

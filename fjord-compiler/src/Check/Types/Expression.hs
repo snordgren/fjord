@@ -78,7 +78,7 @@ toTypedExpression scope expectType expectUniq expr =
         valType <- useCountM $ typeOf scope val
         let letScope = U.Scope [(name, valType, T.typeUniq $ T.expressionType typedVal, Common.InFunction)] [] []
         let useScope = mergeScope letScope scope
-        typedRet <- toTypedExpression useScope expectType expectUniq ret
+        typedRet <- useCountM $ runUseCounting offset useScope $ toTypedExpression useScope expectType expectUniq ret
         return $ T.Let name typedVal typedRet
  
     U.Name offset s -> 

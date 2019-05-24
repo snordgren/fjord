@@ -1,0 +1,5 @@
+test/errors/uniqueness/UnusedLetBind.fj:5:3:
+  |
+5 |   let x = 1 in 0
+  |   ^^^^^^^^^^^^^^^
+too few usages of x

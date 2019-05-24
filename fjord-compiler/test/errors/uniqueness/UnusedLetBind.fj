@@ -1,0 +1,5 @@
+module errors.UnusedLetBind
+
+unusedX : Int
+unusedX = 
+  let x = 1 in 0
