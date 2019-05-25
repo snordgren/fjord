@@ -1,6 +1,6 @@
-test/errors/MissingExpression.fj:5:1:
+test/errors/MissingExpression.fj:5:2:
   |
-5 | <empty line>
-  | ^
+5 |  
+  |  ^
 unexpected end of input
 expecting expression

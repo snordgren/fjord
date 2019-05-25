@@ -78,13 +78,13 @@ spaceP = do
 
 
 spaceInExpressionP :: Parser ()
-spaceInExpressionP = do
-  many spaceP
-  option () $ do
-    eol
+spaceInExpressionP = 
+  label "whitespace" $ do
     many spaceP
-    return ()
-  return ()
+    option () $ do
+      eol
+      label "whitespace" $ some spaceP
+      return ()
 
 
 instance ShowErrorComponent String where

@@ -1,0 +1,6 @@
+test/errors/MissingWhitespace.fj:5:1:
+  |
+5 | <empty line>
+  | ^
+unexpected end of input
+expecting whitespace

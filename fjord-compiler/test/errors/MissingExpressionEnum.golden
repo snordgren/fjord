@@ -1,6 +1,6 @@
-test/errors/MissingExpressionEnum.fj:9:1:
+test/errors/MissingExpressionEnum.fj:9:2:
   |
-9 | <empty line>
-  | ^
+9 |  
+  |  ^
 unexpected end of input
 expecting expression

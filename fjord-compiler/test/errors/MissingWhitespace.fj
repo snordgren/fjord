@@ -1,0 +1,4 @@
+module test.errors.MissingWhitespace
+
+empty : Int
+empty = 

@@ -2,3 +2,4 @@ module test.errors.MissingExpression
 
 empty : Int
 empty = 
+ 

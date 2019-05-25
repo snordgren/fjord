@@ -203,10 +203,10 @@ Matches operators starting with character c.
 operatorP :: Char -> Parser (U.Expression -> U.Expression -> U.Expression)
 operatorP c = do
   offset <- getOffset
-  many spaceP
+  spaceInExpressionP
   head <- char c
   tail <- many $ oneOf opSym
-  many spaceP
+  spaceInExpressionP
   let name = head : tail
   if elem name reservedSym then
     fail $ name ++ " is a reserved symbol"
