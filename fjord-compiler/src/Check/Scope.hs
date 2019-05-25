@@ -33,7 +33,7 @@ createDefScope modScope parameters typ =
       fmap (\a -> (a, Common.SameModule, Common.TypeVar)) $ typeLambdaValues typ
 
     defScope = 
-      U.Scope parameterBindings typeLambdaTypes []
+      U.Scope parameterBindings typeLambdaTypes [] []
   in
     mergeScope defScope modScope
 
@@ -62,7 +62,7 @@ deriveImportScope typeDefs imp =
 
 emptyScope :: U.Scope
 emptyScope =
-  U.Scope [] [] []
+  U.Scope [] [] [] []
 
 
 {-|
@@ -74,8 +74,9 @@ mergeScope a b =
     mergedValues = U.scopeValues a ++ U.scopeValues b
     mergedTypes = U.scopeTypes a ++ U.scopeTypes b
     mergedImplicits = U.scopeImplicits a ++ U.scopeImplicits b
+    mergedFields = U.scopeFields a ++ U.scopeFields b
   in
-    U.Scope mergedValues mergedTypes mergedImplicits
+    U.Scope mergedValues mergedTypes mergedImplicits mergedFields
 
 {-|
 Generates the individual contribution of the definition to the module scope.
@@ -115,16 +116,16 @@ scopeContrib origin d =
         types =
           [(name, origin, Common.TypeRef)]
       in
-        U.Scope values types []
+        U.Scope values types [] []
 
     U.DeclImplicitDecl (U.ValDecl offset name t) -> 
-      U.Scope [(name, t, Common.NonUnique, origin)] [] [(name, t, origin)]
+      U.Scope [(name, t, Common.NonUnique, origin)] [] [(name, t, origin)] []
 
     U.DeclRecDecl (U.RecDecl offset name fields typeVars) -> 
       let 
         
         fieldTypes = 
-          map U.recFieldType fields
+          fmap U.recFieldType fields
     
         ctorType = 
           List.foldr (U.LinearFunctionType offset) ctorRetType fieldTypes
@@ -136,20 +137,24 @@ scopeContrib origin d =
           List.foldr (\par f -> U.TypeApply offset f $ U.TypeName offset par) 
             (U.TypeName offset name) typeVars
 
+        scopeFields :: [(String, U.Type, U.Type, Common.Origin)]
+        scopeFields = 
+          fmap (\r -> (U.recFieldName r, ctorRetType, U.recFieldType r, origin)) fields
+
         types = 
           [(name, origin, Common.TypeRef)]
 
         values = 
           [(name, ctorWithTypeVars, Common.Unique, origin)]
       in 
-        U.Scope values types []
+        U.Scope values types [] scopeFields
     
     U.DeclValDecl (U.ValDecl _ name t) -> 
       let 
         values = 
           [(filter (\a -> a /= '(' && a /= ')') name, t, Common.Unique, origin)]
       in
-        U.Scope values [] []
+        mkScopeFromValues values
 
 
 findTypeDefForImport :: [U.TypeDef] -> U.Import -> Maybe U.TypeDef
@@ -172,3 +177,7 @@ scopeVariableType scope offset name =
       (\(_, t, uniq, origin) -> (t, uniq, origin)) 
       (List.find (\(n, _, _, _) -> n == name) (U.scopeValues scope)))
 
+
+mkScopeFromValues :: [(String, U.Type, Common.Uniqueness, Common.Origin)] -> U.Scope 
+mkScopeFromValues values =
+  U.Scope values [] [] []

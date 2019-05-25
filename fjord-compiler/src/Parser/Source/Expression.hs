@@ -22,6 +22,7 @@ expressionP =
   in 
     label "expression" $ makeExprParser termP 
       [
+        [Postfix $ try recAccessP],
         [InfixL $ try applyP], 
         mkOps ['*', '/', '%'],
         mkOps ['+', '-'],
@@ -32,6 +33,16 @@ expressionP =
         mkOps ['^'],
         mkOps ['|']
       ]
+
+
+recAccessP :: Parser (U.Expression -> U.Expression)
+recAccessP =
+  do
+    offset <- getOffset
+    char '.'
+    name <- nameP
+    return $ U.RecAccess offset name
+
 
 termP :: Parser U.Expression
 termP = 

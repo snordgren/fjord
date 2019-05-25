@@ -33,3 +33,8 @@ var setXAndY = function(x, y, p) {
   })();
 };
 exports.setXAndY = setXAndY;
+
+var withX = function(p, f) {
+  return (f(p.x));
+};
+exports.withX = withX;

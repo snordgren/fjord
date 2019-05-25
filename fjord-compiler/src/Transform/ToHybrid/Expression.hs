@@ -137,6 +137,11 @@ transformExpr (T.Operator name opType a b orig) = do
       in
         return $ H.Invoke readOp [ta, tb] 
 
+transformExpr (T.RecAccess fieldName fieldType sourceExpression) =
+  do
+    srcExprT <- transformExpr sourceExpression
+    return $ H.FieldAccess fieldName srcExprT
+
 transformExpr (T.RecUpdate sourceExpression fieldUpdates) = 
   let
     updateFieldName = "_m"

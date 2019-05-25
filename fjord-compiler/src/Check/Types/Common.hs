@@ -14,6 +14,7 @@ data TypeError
   | TooManyUsages Int String
   | TooFewUsages Int String
   | UndefinedInScope Int
+  | UnknownFieldType Int String T.Type
   | UnknownType Int String
   | WrongType Int T.Type T.Type -- expected type comes first, actual type second
   deriving (Eq, Show)

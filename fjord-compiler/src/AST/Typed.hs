@@ -37,6 +37,7 @@ data Expression
   | Let String Expression Expression
   | Name String Type Common.Uniqueness Common.Origin
   | Operator String Type Expression Expression Common.Origin
+  | RecAccess String Type Expression
   | RecUpdate Expression [FieldUpdate]
   | StringLiteral String Common.Uniqueness
   | Tuple Common.Uniqueness [Expression]
@@ -164,6 +165,7 @@ expressionType a =
     Let _ _ ret -> expressionType ret
     Name _ t _ _ -> t
     Operator _ t _ _ _ -> returnType $ returnType t
+    RecAccess _ t _ -> t
     RecUpdate a _ -> expressionType a
     StringLiteral _ uniq -> TypeName uniq "String" Common.TypeRef
     Tuple uniq values -> TupleType uniq $ fmap expressionType values

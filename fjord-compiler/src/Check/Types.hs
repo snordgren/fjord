@@ -73,7 +73,7 @@ Generate a scope with the type variables introduced by a definition.
 -}
 genTypeVarScope :: [String] -> U.Scope
 genTypeVarScope typeVars = 
-  U.Scope [] (fmap (\str -> (str, Common.SameModule, Common.TypeVar)) typeVars) []
+  U.Scope [] (fmap (\str -> (str, Common.SameModule, Common.TypeVar)) typeVars) [] []
 
 {-
 Generate a typed definition from an untyped one, or generate an error if there 

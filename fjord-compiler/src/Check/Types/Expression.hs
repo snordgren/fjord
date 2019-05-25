@@ -1,4 +1,4 @@
-{-# LANGUAGE RankNTypes, Strict #-}
+{-# LANGUAGE RankNTypes, ScopedTypeVariables, Strict #-}
 module Check.Types.Expression where
 
 import Control.Monad.Except
@@ -76,7 +76,7 @@ toTypedExpression scope expectType expectUniq expr =
       do
         typedVal <- toTypedExpression scope Nothing (Just Common.Unique) val
         valType <- useCountM $ typeOf scope val
-        let letScope = U.Scope [(name, valType, T.typeUniq $ T.expressionType typedVal, Common.InFunction)] [] []
+        let letScope = mkScopeFromValues [(name, valType, T.typeUniq $ T.expressionType typedVal, Common.InFunction)]
         let useScope = mergeScope letScope scope
         (typeVarCounter, useCounters) <- get
         put (typeVarCounter, (UseCounter.for name) : useCounters)
@@ -146,6 +146,12 @@ toTypedExpression scope expectType expectUniq expr =
         typedB <- toTypedExpression scope expectType (Just paramBUniq) b
         return $ T.Operator name opTypeT typedA typedB intro
 
+    U.RecAccess offset fieldName target -> 
+      do
+        typedTarget <- toTypedExpression scope Nothing expectUniq target
+        fieldType <- useCountM $ findRecordAccessType offset scope fieldName $ T.expressionType typedTarget
+        return $ T.RecAccess fieldName fieldType typedTarget
+
     U.RecUpdate _ target updates ->
       do
         typedTarget <- toTypedExpression scope expectType expectUniq target
@@ -204,7 +210,7 @@ createLambda offset name scope expectUniq parUniq expectType expr f =
       parT <- unableToInfer "missing parameter type" (U.parameterType t)
       retT <- unableToInfer "missing return type" (U.returnType t)
       let lambdaPar = (name, parT, parUniq, Common.InFunction)
-      let lambdaScope = U.Scope (lambdaPar : U.scopeValues scope) (U.scopeTypes scope) []
+      let lambdaScope = U.Scope (lambdaPar : U.scopeValues scope) (U.scopeTypes scope) [] []
       exprT <- toTypedExpression lambdaScope (Just retT) expectUniq expr
       typedT <- useCountM $ toTypedType offset scope Common.NonUnique t
       return $ f name typedT exprT
@@ -295,7 +301,7 @@ createPatternScope ctorType vars scope =
         List.zip vars varTypes
 
     newScope = 
-      U.Scope bindings [] []
+      mkScopeFromValues bindings
     in
       mergeScope newScope scope
 
@@ -367,3 +373,30 @@ renameTypeVars t =
       substitutions <- Monad.sequence $ fmap renameTypeVar typeVars
       let res = List.foldl' (\acc (prev, var) -> T.renameTypeVar prev var acc) t substitutions
       return res
+
+
+scopeFieldType :: U.Scope -> String -> U.Type -> U.Type
+scopeFieldType scope fieldName exprType =
+  error "not yet implemented"
+
+
+findRecordAccessType :: Int -> U.Scope -> String -> T.Type -> Either TypeError T.Type
+findRecordAccessType offset scope fieldName recordType =
+  let 
+    tryCandidate :: (String, U.Type, U.Type, Common.Origin) -> Either TypeError [T.Type]
+    tryCandidate (name, candRecordType, candFieldType, origin) = 
+      do
+        candRecordTypeT <- toTypedType offset scope Common.NonUnique candRecordType
+        candFieldTypeT <- toTypedType offset scope Common.NonUnique candFieldType
+        if name == fieldName && recordType == candRecordTypeT then
+          return [candFieldTypeT]
+        else
+          return []
+  in
+    do
+      alternativesM <- Monad.sequence $ fmap tryCandidate $ U.scopeFields scope
+      let alts = List.concat alternativesM
+      if length alts <= 0 then
+        Left $ UnknownFieldType offset fieldName recordType
+      else
+        return $ head alts

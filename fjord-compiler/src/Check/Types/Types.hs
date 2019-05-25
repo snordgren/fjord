@@ -83,7 +83,7 @@ toTypedType offset scope uniq a =
     U.TypeLambda _ var ret ->
       let
         createLambdaScope = 
-          mergeScope (U.Scope [] [(var, Common.SameModule, Common.TypeVar)] []) scope
+          mergeScope (U.Scope [] [(var, Common.SameModule, Common.TypeVar)] [] []) scope
       in
         do
           retT <- toTypedType offset createLambdaScope uniq ret

@@ -82,6 +82,9 @@ expressionToJS indent (H.ArrayAccess arrayExpression indexExpression) =
 expressionToJS indent (H.Equals a b) = 
   "(" ++ (expressionToJS indent a) ++ " === " ++ (expressionToJS indent b) ++ ")"
 
+expressionToJS indent (H.FieldAccess fieldName target) = 
+  expressionToJS indent target ++ "." ++ fieldName
+
 expressionToJS indent (H.IIFE b) = 
   "(function() {\n" ++ (blockToJS (indent + 1) b) ++ "\n" ++ (indentF indent) ++ "})()"
 

@@ -108,6 +108,11 @@ data Expression
     operatorLHS :: Expression,
     operatorRHS :: Expression 
   }
+  | RecAccess {
+    expressionOffset :: Int,
+    recAccessField :: String,
+    recAccessTarget :: Expression
+  }
   | RecUpdate {
     expressionOffset :: Int,
     recordUpdateSrcExpr :: Expression,
@@ -216,7 +221,9 @@ data Scope
   = Scope { 
     scopeValues :: [(String, Type, Common.Uniqueness, Common.Origin)],
     scopeTypes :: [(String, Common.Origin, Common.NameType)],
-    scopeImplicits :: [(String, Type, Common.Origin)]
+    scopeImplicits :: [(String, Type, Common.Origin)],
+    -- | A list of fields with values name, target record type, field type, and origin.
+    scopeFields :: [(String, Type, Type, Common.Origin)]
   }
   deriving (Eq, Show)
 

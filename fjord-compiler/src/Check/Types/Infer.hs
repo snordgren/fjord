@@ -36,4 +36,3 @@ resolveTupleUniq offset uniqValues =
     return $ List.head uniqValues
   else 
     Left $ MixedUniquenessInTuple offset
-

@@ -47,6 +47,7 @@ data Expression
   -}
   | ArrayAccess Expression Expression
   | Equals Expression Expression
+  | FieldAccess String Expression 
   {-|
     An immediately invoked function expression, used when we need to use 
     features only statements can have, but need to return an expression, 
