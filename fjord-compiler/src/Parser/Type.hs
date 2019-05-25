@@ -12,7 +12,7 @@ import qualified AST.Untyped as U
 
 typeTermP :: Parser U.Type
 typeTermP = 
-  choice [try bindImplicitP, try emptyTupleP, try tupleTypeP, parenTypeP, typeNameP]
+  choice [try bindImplicitP, try emptyTupleP, try tupleTypeP, parenTypeP, try typeLambdaP, typeNameP]
 
 
 bindImplicitP :: Parser U.Type
@@ -70,13 +70,26 @@ parenTypeP = do
   return innerType
 
 
+typeLambdaP :: Parser U.Type
+typeLambdaP =
+  label "type lambda" $ 
+    do
+      offset <- getOffset
+      name <- nameP
+      many spaceP
+      string "=>"
+      many spaceP
+      ret <- typeP
+      return $ U.TypeLambda offset name ret
+
+
 typeNameP :: Parser U.Type
 typeNameP = 
   label "type name" $
     do
-    offset <- getOffset
-    name <- nameP
-    return $ U.TypeName offset name
+      offset <- getOffset
+      name <- nameP
+      return $ U.TypeName offset name
 
 typeP :: Parser U.Type
 typeP = 
@@ -95,19 +108,10 @@ typeP =
       string "->"
       many spaceP
       return $ U.FunctionType offset
-
-    typeLambda = Expr.Prefix $ try $ label "type lambda" $ do
-      offset <- getOffset
-      name <- nameP
-      many spaceP
-      string "=>"
-      many spaceP
-      return $ U.TypeLambda offset name
   in 
     Expr.makeExprParser typeTermP [
       [Expr.InfixL $ try $ typeApplyP], 
-      [pureFunction, linearFunction], 
-      [typeLambda]
+      [pureFunction, linearFunction]
     ]
 
 
@@ -118,9 +122,9 @@ typeApplyP =
       some spaceP
       notFollowedBy $ choice 
         [
-          fmap (const ()) $ oneOf $ ":",
-          fmap (const ()) $ eol,
-          fmap (const ()) $ choice [string "->", string "-*", string "=>"]
+          fmap (const ()) $ choice [string "->", string "-*", string "=>"],
+          fmap (const ()) $ oneOf ":",
+          fmap (const ()) $ eol
         ]
       return $ U.TypeApply offset
 

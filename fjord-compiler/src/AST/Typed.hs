@@ -194,21 +194,13 @@ typeUniq t =
 
 parType :: Type -> Type
 parType a = 
-  case a of 
-    BindImplicit par _ ->
-      par
-
-    FunctionType _ b _ -> 
-      b
-  
-    LinearFunctionType par _ ->
-      par
-
-    TypeLambda _ ret -> 
-      parType ret
-
-    _ ->
-      error $ (show a) ++ " has no parameters"
+  let 
+    params = fnParamList a
+  in
+    if length params <= 0 then
+      error $ show a ++ " has no parameters."
+    else
+      head params
 
 
 parTypeUniq :: Type -> Common.Uniqueness
@@ -236,10 +228,10 @@ concreteType :: Type -> Type
 concreteType t =
   case t of 
     BindImplicit _ ret -> 
-      ret
+      concreteType ret
 
     TypeLambda var ret -> 
-      ret
+      concreteType ret
 
     a -> 
       a
@@ -332,7 +324,10 @@ typeVarsIn t =
     TupleType uniq types -> List.concat $ fmap typeVarsIn types
     TypeApply f par -> typeVarsIn f ++ typeVarsIn par
     TypeLambda arg ret -> arg : typeVarsIn ret
-    TypeName uniq name orig -> [name]
+    TypeName uniq name nameType -> 
+      case nameType of 
+        Common.TypeRef -> []
+        Common.TypeVar -> [name]
 
 
 fnParamList :: Type -> [Type]
@@ -351,3 +346,27 @@ fnParamList t =
       fnParamList ret
 
     _ -> []
+
+
+renameTypeVar :: String -> String -> Type -> Type
+renameTypeVar from to t =
+    let 
+      next = 
+        renameTypeVar from to
+    in
+      case t of 
+        FunctionType uniq par ret -> FunctionType uniq (next par) $ next ret
+        LinearFunctionType par ret -> LinearFunctionType (next par) $ next ret
+        TupleType uniq types -> TupleType uniq $ fmap next types
+        TypeApply f par -> TypeApply (next f) $ next par
+        TypeLambda arg ret -> 
+          if arg == from then
+            TypeLambda to $ next ret
+          else
+            TypeLambda arg $ next ret
+            
+        TypeName uniq typeName nameType -> 
+          if from == typeName then
+            TypeName uniq to nameType
+          else
+            TypeName uniq typeName nameType

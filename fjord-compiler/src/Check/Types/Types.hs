@@ -116,18 +116,9 @@ toTypedType offset scope uniq a =
 
         
 unifyTypes :: T.Type -> T.Type -> T.Type
-unifyTypes pat inst = 
-  case T.concreteType pat of 
-    T.TypeApply patF patPar ->
-      case inst of
-        T.TypeApply instF instPar -> 
-          case patPar of 
-            T.TypeName uniq name Common.TypeVar -> 
-              T.replaceTypeName name instPar pat
-            
-            _ -> 
-              pat
-
-    _ -> 
-      pat
-              
+unifyTypes pat inst =
+  let 
+    patSubst = 
+      T.findPatSubst (T.typeVarsIn pat) (T.concreteType pat) inst 
+  in
+    List.foldl' (\acc (name, subst) -> T.replaceTypeName name subst acc) pat patSubst

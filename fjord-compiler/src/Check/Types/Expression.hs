@@ -23,7 +23,7 @@ import qualified AST.Untyped as U
 import qualified Check.Types.UseCounter as UseCounter
 
 type UseCountM = 
-  ExceptT TypeError (State [UseCounter])
+  ExceptT TypeError (State (Int, [UseCounter]))
 
 toTypedExpression 
   :: U.Scope
@@ -78,13 +78,15 @@ toTypedExpression scope expectType expectUniq expr =
         valType <- useCountM $ typeOf scope val
         let letScope = U.Scope [(name, valType, T.typeUniq $ T.expressionType typedVal, Common.InFunction)] [] []
         let useScope = mergeScope letScope scope
-        typedRet <- useCountM $ runUseCounting offset useScope $ toTypedExpression useScope expectType expectUniq ret
+        (typeVarCounter, useCounters) <- get
+        put (typeVarCounter, (UseCounter.for name) : useCounters)
+        typedRet <- toTypedExpression useScope expectType expectUniq ret
         return $ T.Let name typedVal typedRet
  
     U.Name offset s -> 
       let 
-        findUseCount =
-          List.find (\a -> s == (UseCounter.name a))
+        findUseCount useCounters =
+          List.find (\a -> s == (UseCounter.name a)) useCounters
 
         removeUseCount :: [UseCounter] -> [UseCounter]
         removeUseCount =
@@ -92,25 +94,20 @@ toTypedExpression scope expectType expectUniq expr =
 
         updateUseCount :: [UseCounter] -> Either TypeError [UseCounter]
         updateUseCount useCounts =
-          let
-            useCounter =
-              Maybe.fromMaybe (UseCounter.for s) $ findUseCount useCounts
-          in
-            if UseCounter.isUsedLinearly useCounter then
-              Left $ TooManyUsages offset s
-            else 
-              case expectUniq of 
-                Just uniq ->
-                  case uniq of 
-                    Common.Unique -> 
-                      return ((UseCounter.markUsedLinearly useCounter) : (removeUseCount useCounts))
-                    
-                    _ ->
-                      return useCounts
-                
-                _ ->
-                  return useCounts
-
+          case findUseCount useCounts of 
+            Just useCounter -> 
+              if UseCounter.isUsedLinearly useCounter then
+                Left $ TooManyUsages offset s
+              else 
+                case expectUniq of 
+                  Just uniq ->
+                    case uniq of 
+                      Common.Unique -> 
+                        return ((UseCounter.markUsedLinearly useCounter) : (removeUseCount useCounts))
+                      
+                      _ -> return useCounts
+                  _ -> return useCounts
+            Nothing -> return useCounts
 
         -- The uniqueness that we are going to use.
         -- If a shared value is expected, we attempt to share it.
@@ -131,12 +128,13 @@ toTypedExpression scope expectType expectUniq expr =
           -- error if it has been used uniquely before.  
           if uniq == Common.Unique then
             do
-              useCounts <- get
+              (typeVarCounter, useCounts) <- get
               newUseCounts <- useCountM $ updateUseCount useCounts
-              put newUseCounts
+              put (typeVarCounter, newUseCounts)
           else 
             return ()
-          return $ T.Name s typedT useUniq orig
+          renamedT <- renameTypeVars typedT
+          return $ T.Name s renamedT useUniq orig
 
     U.Operator offset name a b -> 
       do
@@ -248,8 +246,8 @@ runUseCounting offset scope e =
     initialMap =
       fmap (\(name, _, _, _) -> UseCounter.for name) uniqueValues
 
-    (eith, finalMap) = 
-      runState (runExceptT e) initialMap
+    (eith, (_, finalMap)) = 
+      runState (runExceptT e) (0, initialMap)
 
     tooFewUsages = 
       List.find (\a -> not $ UseCounter.isUsedLinearly a) finalMap
@@ -257,7 +255,7 @@ runUseCounting offset scope e =
     if Either.isRight eith then
       case tooFewUsages of
         Just a -> 
-          Left $ TooFewUsages offset (UseCounter.name a)
+          Left $ TooFewUsages offset $ UseCounter.name a
 
         Nothing -> 
           eith
@@ -349,3 +347,23 @@ replaceTypeName name with target =
           with
         else
           U.TypeName pos typeName
+
+
+renameTypeVar :: String -> UseCountM (String, String)
+renameTypeVar str =
+  do
+    (typeVarCounter, useCounters) <- get
+    put (typeVarCounter + 1, useCounters)
+    return $ (str, str ++ (show typeVarCounter))
+
+
+renameTypeVars :: T.Type -> UseCountM T.Type 
+renameTypeVars t =
+  let 
+    typeVars =
+      T.typeVarsIn t
+  in
+    do
+      substitutions <- Monad.sequence $ fmap renameTypeVar typeVars
+      let res = List.foldl' (\acc (prev, var) -> T.renameTypeVar prev var acc) t substitutions
+      return res

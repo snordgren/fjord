@@ -241,10 +241,10 @@ concreteType :: Type -> Type
 concreteType t =
   case t of 
     BindImplicit _ _ ret -> 
-      ret
+      concreteType ret
 
     TypeLambda _ _ ret -> 
-      ret
+      concreteType ret
 
     a -> 
       a
