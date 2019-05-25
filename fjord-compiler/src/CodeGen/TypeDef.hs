@@ -82,6 +82,9 @@ genTypeDefStr t =
       in
         parStr ++ " -> " ++ genTypeDefStr ret
 
+    T.BindImplicit par ret -> 
+      "implicit " ++ genTypeDefStr par ++ " -> " ++ genTypeDefStr ret
+
     T.LinearFunctionType par ret -> 
       let 
         parStr = 
@@ -99,6 +102,12 @@ genTypeDefStr t =
 
     T.TupleType uniq types -> 
       "(" ++ (List.intercalate ", " $ fmap genTypeDefStr types) ++ ")"
+
+    T.TypeApply f par ->
+      "(" ++ genTypeDefStr f ++ " " ++ genTypeDefStr par ++ ")"
+
+    T.TypeLambda var ret ->
+      "(" ++ var ++ " => " ++ genTypeDefStr ret ++ ")"
 
     T.TypeName uniq a nameType ->
       a

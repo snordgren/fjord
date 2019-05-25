@@ -1,0 +1,12 @@
+module codegen.operators.Equals
+
+enum Bool
+  False : Bool
+  True : Bool
+
+record Equals
+  equals : a -> a -> Bool
+
+equals : (a => implicit (Equals a) -> a -> a -> Bool)
+
+(+) : Int -> Int -> Int
