@@ -212,7 +212,7 @@ parTypeUniq =
 
 returnType :: Type -> Type 
 returnType t =
-  case t of 
+  case concreteType t of 
     FunctionType _ _ a -> 
       a
 

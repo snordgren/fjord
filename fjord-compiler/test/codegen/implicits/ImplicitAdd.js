@@ -12,5 +12,24 @@ var addInt = function(x, y) {
 };
 exports.addInt = addInt;
 
+var addString = function(x, y) {
+  return "";
+};
+exports.addString = addString;
+
 var intInstance = (Add(addInt));
 exports.intInstance = intInstance;
+
+var stringInstance = (Add(addString));
+exports.stringInstance = stringInstance;
+
+var $plus$plus = function(ev, x, y) {
+  return (ev.add(x, y));
+};
+exports.$plus$plus = $plus$plus;
+
+var three = ($plus$plus(1, 2));
+exports.three = three;
+
+var helloWorld = ($plus$plus("hello, ", "world"));
+exports.helloWorld = helloWorld;

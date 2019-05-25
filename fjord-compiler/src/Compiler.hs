@@ -149,6 +149,9 @@ typeErrorToErrorBundle initialPosState err =
       UndefinedInScope offset ->
         bundleMsg offset ("undefined in scope")
 
+      UnknownFieldType offset fieldName t ->
+        bundleMsg offset $ "unknown field type " ++ fieldName ++ " for type " ++ (show t)
+
       UnknownType offset s -> 
         bundleMsg offset $ "unknown type " ++ s
 

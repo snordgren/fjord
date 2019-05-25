@@ -388,7 +388,7 @@ findRecordAccessType offset scope fieldName recordType =
       do
         candRecordTypeT <- toTypedType offset scope Common.NonUnique candRecordType
         candFieldTypeT <- toTypedType offset scope Common.NonUnique candFieldType
-        if name == fieldName && recordType == candRecordTypeT then
+        if name == fieldName && (recordType == unifyTypes candRecordTypeT recordType) then
           return [candFieldTypeT]
         else
           return []
