@@ -1,3 +1,4 @@
+{-# LANGUAGE StrictData #-}
 module AST.Untyped where
 
 import qualified Data.List as List
