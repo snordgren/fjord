@@ -10,5 +10,5 @@ var $times = function(x, y) {
 };
 exports.$times = $times;
 
-var eleven = (1 + ($times(2, 10)));
+var eleven = ($plus(1, ($times(2, 5))));
 exports.eleven = eleven;

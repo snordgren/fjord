@@ -10,4 +10,4 @@ module test.codegen.operators.Precedence
 
 eleven : Int
 eleven =
-  1 + 2 * 10
+  1 + 2 * 5

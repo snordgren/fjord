@@ -4,6 +4,7 @@ import qualified Control.Monad as Monad
 import qualified Data.Either.Combinators as Combinators
 import qualified Data.List as List
 
+import AST.Scope
 import Check.Types.Common
 import Check.Scope
 import qualified AST.Common as Common
@@ -45,7 +46,7 @@ fnTypeList t =
     a -> 
       [a]
 
-toTypedType :: Int -> U.Scope -> Common.Uniqueness -> U.Type -> Either TypeError T.Type
+toTypedType :: Int -> Scope U.Type -> Common.Uniqueness -> U.Type -> Either TypeError T.Type
 toTypedType offset scope uniq a =
   case a of 
     U.BindImplicit _ par ret -> 
@@ -83,7 +84,7 @@ toTypedType offset scope uniq a =
     U.TypeLambda _ var ret ->
       let
         createLambdaScope = 
-          mergeScope (U.Scope [] [(var, Common.SameModule, Common.TypeVar)] [] []) scope
+          mergeScope (Scope [] [(var, Common.SameModule, Common.TypeVar)] [] []) scope
       in
         do
           retT <- toTypedType offset createLambdaScope uniq ret
@@ -104,7 +105,7 @@ toTypedType offset scope uniq a =
     U.TypeName _ name ->
       let 
         typeNames = 
-          U.scopeTypes scope 
+          scopeTypes scope 
 
         result = 
           List.find (\(t, _, nameType) -> t == name) typeNames

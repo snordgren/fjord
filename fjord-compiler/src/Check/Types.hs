@@ -12,6 +12,7 @@ import qualified Data.Either.Combinators as Combinators
 import qualified Data.List as List
 import qualified Data.Maybe as Maybe
 
+import AST.Scope
 import Check.Scope 
 import Check.Types.Common
 import Check.Types.Expression
@@ -71,15 +72,15 @@ checkImport typeDefs imp =
 {-
 Generate a scope with the type variables introduced by a definition.
 -}
-genTypeVarScope :: [String] -> U.Scope
+genTypeVarScope :: [String] -> Scope U.Type
 genTypeVarScope typeVars = 
-  U.Scope [] (fmap (\str -> (str, Common.SameModule, Common.TypeVar)) typeVars) [] []
+  Scope [] (fmap (\str -> (str, Common.SameModule, Common.TypeVar)) typeVars) [] []
 
 {-
 Generate a typed definition from an untyped one, or generate an error if there 
 is something wrong. 
 -}
-toTypedDef :: U.Scope -> U.Definition -> Either TypeError T.Definition
+toTypedDef :: Scope U.Type -> U.Definition -> Either TypeError T.Definition
 toTypedDef modScope a =
   case a of 
     U.EnumDef (U.EnumDecl offset name constructors typeVars) ->

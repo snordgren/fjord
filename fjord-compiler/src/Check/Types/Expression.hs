@@ -12,6 +12,7 @@ import qualified Data.Either.Combinators as Combinators
 import qualified Data.List as List
 import qualified Data.Maybe as Maybe
 
+import AST.Scope
 import Check.Scope
 import Check.Types.Common
 import Check.Types.Infer
@@ -26,7 +27,7 @@ type UseCountM =
   ExceptT TypeError (State (Int, [UseCounter]))
 
 toTypedExpression 
-  :: U.Scope
+  :: Scope U.Type
   -> Maybe U.Type 
   -> Maybe Common.Uniqueness 
   -> U.Expression 
@@ -193,7 +194,7 @@ toTypedExpression scope expectType expectUniq expr =
 createLambda 
   :: Int
   -> String
-  -> U.Scope
+  -> Scope U.Type
   -> Maybe Common.Uniqueness
   -> Common.Uniqueness 
   -> Maybe U.Type
@@ -210,7 +211,7 @@ createLambda offset name scope expectUniq parUniq expectType expr f =
       parT <- unableToInfer "missing parameter type" (U.parameterType t)
       retT <- unableToInfer "missing return type" (U.returnType t)
       let lambdaPar = (name, parT, parUniq, Common.InFunction)
-      let lambdaScope = U.Scope (lambdaPar : U.scopeValues scope) (U.scopeTypes scope) [] []
+      let lambdaScope = Scope (lambdaPar : scopeValues scope) (scopeTypes scope) [] []
       exprT <- toTypedExpression lambdaScope (Just retT) expectUniq expr
       typedT <- useCountM $ toTypedType offset scope Common.NonUnique t
       return $ f name typedT exprT
@@ -222,7 +223,7 @@ useCountM e =
 
         
 typedFieldUpdate 
-  :: U.Scope 
+  :: Scope U.Type 
   -> U.FieldUpdate 
   -> UseCountM T.FieldUpdate
 typedFieldUpdate scope a = 
@@ -240,14 +241,14 @@ typedFieldUpdate scope a =
 runUseCounting 
   :: forall a . 
      Int
-  -> U.Scope
+  -> Scope U.Type
   -> UseCountM T.Expression
   -> Either TypeError T.Expression
 runUseCounting offset scope e =
   let 
     uniqueValues =
       List.filter (\(_, _, uniq, orig) -> uniq == Common.Unique && orig == Common.InFunction) 
-        $ U.scopeValues scope
+        $ scopeValues scope
 
     initialMap =
       fmap (\(name, _, _, _) -> UseCounter.for name) uniqueValues
@@ -270,7 +271,7 @@ runUseCounting offset scope e =
 
  
 toTypedPattern 
-  :: U.Scope 
+  :: Scope U.Type 
   -> U.Expression
   -> Maybe U.Type 
   -> Maybe Common.Uniqueness 
@@ -290,7 +291,7 @@ toTypedPattern scope expr expectType expectUniq (U.Pattern offset ctor vars retE
     typedRetExpr <- toTypedExpression patScope expectType expectUniq retExpr
     return $ T.Pattern ctor mergedVars typedRetExpr
 
-createPatternScope :: U.Type -> [String] -> U.Scope -> U.Scope
+createPatternScope :: U.Type -> [String] -> Scope U.Type -> Scope U.Type
 createPatternScope ctorType vars scope = 
   let
     varTypes = 
@@ -322,7 +323,7 @@ findPatSubst typeVars t exprType =
       _ -> []
 
 
-typeOf :: U.Scope -> U.Expression -> Either TypeError U.Type
+typeOf :: Scope U.Type -> U.Expression -> Either TypeError U.Type
 typeOf scope expr = 
   case expr of 
     U.IntLiteral offset _ ->
@@ -375,12 +376,12 @@ renameTypeVars t =
       return res
 
 
-scopeFieldType :: U.Scope -> String -> U.Type -> U.Type
+scopeFieldType :: Scope U.Type -> String -> U.Type -> U.Type
 scopeFieldType scope fieldName exprType =
   error "not yet implemented"
 
 
-findRecordAccessType :: Int -> U.Scope -> String -> T.Type -> Either TypeError T.Type
+findRecordAccessType :: Int -> Scope U.Type -> String -> T.Type -> Either TypeError T.Type
 findRecordAccessType offset scope fieldName recordType =
   let 
     tryCandidate :: (String, U.Type, U.Type, Common.Origin) -> Either TypeError [T.Type]
@@ -394,7 +395,7 @@ findRecordAccessType offset scope fieldName recordType =
           return []
   in
     do
-      alternativesM <- Monad.sequence $ fmap tryCandidate $ U.scopeFields scope
+      alternativesM <- Monad.sequence $ fmap tryCandidate $ scopeFields scope
       let alts = List.concat alternativesM
       if length alts <= 0 then
         Left $ UnknownFieldType offset fieldName recordType

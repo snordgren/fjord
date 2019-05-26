@@ -6,7 +6,7 @@ var $plus = function(x, y) {
 exports.$plus = $plus;
 
 var usePlus = function(x, y) {
-  return (x + y);
+  return ($plus(x, y));
 };
 exports.usePlus = usePlus;
 

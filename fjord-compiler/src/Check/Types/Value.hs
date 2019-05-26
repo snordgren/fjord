@@ -7,6 +7,7 @@ import qualified Control.Monad as Monad
 import qualified Data.Either.Combinators as Combinators
 import qualified Data.List as List
 
+import AST.Scope
 import Check.Scope
 import Check.Types.Common
 import Check.Types.Expression
@@ -27,12 +28,12 @@ typeCheckValDecl
   :: [U.Parameter] 
   -> U.Expression
   -> (String -> [T.Parameter] -> T.Type -> T.Expression -> T.Definition)
-  -> U.Scope 
+  -> Scope U.Type 
   -> U.ValDecl 
   -> Either TypeError T.Definition
 typeCheckValDecl params expr f modScope (U.ValDecl offset name declType) =
   let 
-    defScope :: U.Scope
+    defScope :: Scope U.Type
     defScope = 
       createDefScope modScope params declType
 
@@ -61,7 +62,7 @@ typeCheckValDecl params expr f modScope (U.ValDecl offset name declType) =
       Left $ WrongType (U.expressionOffset expr) reqTypeT exprT
 
 
-resolveImplicit :: Int -> U.Scope -> (String, U.Type) -> Either TypeError (String, T.Type, T.Expression)
+resolveImplicit :: Int -> Scope U.Type -> (String, U.Type) -> Either TypeError (String, T.Type, T.Expression)
 resolveImplicit offset defScope (a, t) = 
   let 
     uniq = Common.NonUnique
@@ -72,9 +73,9 @@ resolveImplicit offset defScope (a, t) =
       return (a, typedT, T.Name name typedT uniq orig)
 
 
-findImplicitDef :: U.Scope -> U.Type -> Maybe (String, U.Type, Common.Origin)
+findImplicitDef :: Scope U.Type -> U.Type -> Maybe (String, U.Type, Common.Origin)
 findImplicitDef defScope t = 
-  List.find (\(_, it, _) -> compareTypEq t it) $ U.scopeImplicits defScope 
+  List.find (\(_, it, _) -> compareTypEq t it) $ scopeImplicits defScope 
 
 
 compareTypEq :: U.Type -> U.Type -> Bool

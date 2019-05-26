@@ -5,6 +5,7 @@ import Debug.Trace
 import qualified Data.List as List
 import qualified Data.Either.Combinators as Combinators
 
+import AST.Scope
 import Check.Types.Common
 import qualified AST.Common as Common
 import qualified AST.Typed as T
@@ -13,7 +14,7 @@ import qualified AST.Untyped as U
 {-|
 Derive the scope of a definition with parameters. 
 -}
-createDefScope :: U.Scope -> [U.Parameter] -> U.Type -> U.Scope
+createDefScope :: Scope U.Type -> [U.Parameter] -> U.Type -> Scope U.Type
 createDefScope modScope parameters typ = 
   let
     parameterBindings = 
@@ -33,12 +34,12 @@ createDefScope modScope parameters typ =
       fmap (\a -> (a, Common.SameModule, Common.TypeVar)) $ typeLambdaValues typ
 
     defScope = 
-      U.Scope parameterBindings typeLambdaTypes [] []
+      Scope parameterBindings typeLambdaTypes [] []
   in
     mergeScope defScope modScope
 
 
-deriveImportScope :: [U.TypeDef] -> U.Import -> U.Scope
+deriveImportScope :: [U.TypeDef] -> U.Import -> Scope U.Type
 deriveImportScope typeDefs imp =
   let
     matchingTypeDef = 
@@ -60,28 +61,28 @@ deriveImportScope typeDefs imp =
       Nothing -> emptyScope
 
 
-emptyScope :: U.Scope
+emptyScope :: Scope U.Type
 emptyScope =
-  U.Scope [] [] [] []
+  Scope [] [] [] []
 
 
 {-|
 Merge two scopes, the tightest bound (innermost) scope should come first. 
 -}
-mergeScope :: U.Scope -> U.Scope -> U.Scope
+mergeScope :: Scope U.Type -> Scope U.Type -> Scope U.Type
 mergeScope a b = 
   let 
-    mergedValues = U.scopeValues a ++ U.scopeValues b
-    mergedTypes = U.scopeTypes a ++ U.scopeTypes b
-    mergedImplicits = U.scopeImplicits a ++ U.scopeImplicits b
-    mergedFields = U.scopeFields a ++ U.scopeFields b
+    mergedValues = scopeValues a ++ scopeValues b
+    mergedTypes = scopeTypes a ++ scopeTypes b
+    mergedImplicits = scopeImplicits a ++ scopeImplicits b
+    mergedFields = scopeFields a ++ scopeFields b
   in
-    U.Scope mergedValues mergedTypes mergedImplicits mergedFields
+    Scope mergedValues mergedTypes mergedImplicits mergedFields
 
 {-|
 Generates the individual contribution of the definition to the module scope.
 -}
-scopeContrib :: Common.Origin -> U.Declaration -> U.Scope
+scopeContrib :: Common.Origin -> U.Declaration -> Scope U.Type
 scopeContrib origin d =
   case d of 
     U.DeclEnumDecl (U.EnumDecl offset name constructors typeVars) -> 
@@ -116,10 +117,10 @@ scopeContrib origin d =
         types =
           [(name, origin, Common.TypeRef)]
       in
-        U.Scope values types [] []
+        Scope values types [] []
 
     U.DeclImplicitDecl (U.ValDecl offset name t) -> 
-      U.Scope [(name, t, Common.NonUnique, origin)] [] [(name, t, origin)] []
+      Scope [(name, t, Common.NonUnique, origin)] [] [(name, t, origin)] []
 
     U.DeclRecDecl (U.RecDecl offset name fields typeVars) -> 
       let 
@@ -147,7 +148,7 @@ scopeContrib origin d =
         values = 
           [(name, ctorWithTypeVars, Common.Unique, origin)]
       in 
-        U.Scope values types [] scopeFields
+        Scope values types [] scopeFields
     
     U.DeclValDecl (U.ValDecl _ name t) -> 
       let 
@@ -167,7 +168,7 @@ findTypeDefForImport typeDefs imp =
 
 
 scopeVariableType 
-  :: U.Scope 
+  :: Scope U.Type 
   -> Int 
   -> String 
   -> Either TypeError (U.Type, Common.Uniqueness, Common.Origin)
@@ -175,9 +176,9 @@ scopeVariableType scope offset name =
   Combinators.maybeToRight (UndefinedInScope offset)
     (fmap 
       (\(_, t, uniq, origin) -> (t, uniq, origin)) 
-      (List.find (\(n, _, _, _) -> n == name) (U.scopeValues scope)))
+      (List.find (\(n, _, _, _) -> n == name) (scopeValues scope)))
 
 
-mkScopeFromValues :: [(String, U.Type, Common.Uniqueness, Common.Origin)] -> U.Scope 
+mkScopeFromValues :: [(String, U.Type, Common.Uniqueness, Common.Origin)] -> Scope U.Type 
 mkScopeFromValues values =
-  U.Scope values [] [] []
+  Scope values [] [] []

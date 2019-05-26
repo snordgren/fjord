@@ -218,17 +218,6 @@ data Parameter
   deriving (Eq, Show)
 
 
-data Scope 
-  = Scope { 
-    scopeValues :: [(String, Type, Common.Uniqueness, Common.Origin)],
-    scopeTypes :: [(String, Common.Origin, Common.NameType)],
-    scopeImplicits :: [(String, Type, Common.Origin)],
-    -- | A list of fields with values name, target record type, field type, and origin.
-    scopeFields :: [(String, Type, Type, Common.Origin)]
-  }
-  deriving (Eq, Show)
-
-
 defToDecl :: Definition -> Declaration
 defToDecl d = 
   case d of 
