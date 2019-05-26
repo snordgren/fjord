@@ -24,3 +24,12 @@ var concatString = function (x, y) {
   return x + y;
 }
 exports.concatString = concatString;
+
+var boolEquals = function (x, y) {
+  if (x === y) {
+    return Object.freeze[1];
+  } else {
+    return Object.freeze[2];
+  }
+};
+exports.boolEquals = boolEquals;

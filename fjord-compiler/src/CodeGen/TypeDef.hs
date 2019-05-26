@@ -25,7 +25,7 @@ defToTypeDefStr decl =
         "enum " ++ name ++ "\n" ++ ctorStr
 
     T.ImplicitDef name typ expr ->
-      "implicit\n" ++ name ++ ":" ++ genTypeDefStr typ
+      "implicit\n" ++ name ++ " : " ++ genTypeDefStr typ
 
     T.RecDef name fields -> 
       let 

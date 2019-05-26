@@ -1,0 +1,7 @@
+module CoreTest
+
+import Core
+
+testBoolEquals : Bool
+testBoolEquals =
+  True == True

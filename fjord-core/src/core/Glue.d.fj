@@ -9,3 +9,5 @@ divInt : Int -> Int -> Int
 mulInt : Int -> Int -> Int
 
 concatString : String -> String -> String
+
+boolEquals : Bool -> Bool -> Bool

@@ -4,7 +4,7 @@ import Text.Megaparsec
 import Text.Megaparsec.Char
 
 import Parser.Common
-import Parser.Declaration (enumDeclP, recDeclP, valDeclP)
+import Parser.Declaration (enumDeclP, implicitDeclP, recDeclP, valDeclP)
 import qualified AST.Untyped as U
 
 typeDefP :: String -> Parser U.TypeDef
@@ -24,6 +24,7 @@ declP =
   choice 
     [
       fmap U.DeclEnumDecl enumDeclP,
+      fmap U.DeclImplicitDecl implicitDeclP,
       fmap U.DeclRecDecl recDeclP,
       fmap U.DeclValDecl valDeclP
     ]
