@@ -321,6 +321,7 @@ unifyTypes pat impl =
 typeVarsIn :: Type -> [String]
 typeVarsIn t =
   case t of 
+    BindImplicit f par -> typeVarsIn f ++ typeVarsIn par
     FunctionType uniq par ret -> typeVarsIn par ++ typeVarsIn ret
     LinearFunctionType par ret -> typeVarsIn par ++ typeVarsIn ret
     TupleType uniq types -> List.concat $ fmap typeVarsIn types

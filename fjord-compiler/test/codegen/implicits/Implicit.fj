@@ -11,3 +11,7 @@ zeroInstance =
 zero : implicit Zero -> Int -> Int
 zero ev anything =
   0
+
+toZero : Int
+toZero =
+  zero 5

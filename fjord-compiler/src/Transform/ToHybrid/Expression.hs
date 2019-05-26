@@ -3,6 +3,7 @@ module Transform.ToHybrid.Expression (
 ) where
   
 import Control.Monad.State.Lazy
+import Debug.Trace
 import qualified Control.Monad as Monad
 import qualified Data.List as List
 import qualified Data.Maybe as Maybe
@@ -33,9 +34,9 @@ transformExpr (T.Apply a b) =
     mkMissingParam m (t, n) = H.Read t ("_" ++ (show (n + m)))
     
     rootF = Maybe.fromMaybe a $ rootFunction a
-    allParams = T.fnParamList (T.expressionType rootF)
+    allParams = T.fnParamList $ T.expressionType rootF
     reqArgCount = List.length allParams
-    passedParameters = parametersOfApply (T.Apply a b)
+    passedParameters = parametersOfApply $ T.Apply a b
     passedParamCount = List.length passedParameters
     missingParameters = fmap transformType $ drop passedParamCount allParams
     hiddenParamCount = reqArgCount - passedParamCount
@@ -119,23 +120,23 @@ transformExpr (T.Name a t uniq origin) =
     Common.InFunction -> H.Read (transformType t) a
     Common.OtherModule b -> H.ReadImport (transformType t) a b
 
-transformExpr (T.Operator name opType a b orig) = do
-  ta <- transformExpr a
-  tb <- transformExpr b
-  case name of 
-    "+" -> return $ H.Addition (transformType $ T.expressionType a) ta tb
-    _ -> 
-      let
-        mangledName = 
-          NameMangling.mangle name 
-
-        readOp = 
-          case orig of
-            Common.SameModule -> H.Read (transformType opType) mangledName
-            Common.InFunction -> H.Read (transformType opType) mangledName
-            Common.OtherModule b -> H.ReadImport (transformType opType) mangledName b
-      in
-        return $ H.Invoke readOp [ta, tb] 
+transformExpr (T.Operator name opType a b orig) = 
+  let
+    mangledName :: String
+    mangledName =
+      NameMangling.mangle name
+     
+    readOp :: H.Expression
+    readOp = 
+      case orig of
+        Common.SameModule -> H.Read (transformType opType) mangledName
+        Common.InFunction -> H.Read (transformType opType) mangledName
+        Common.OtherModule b -> H.ReadImport (transformType opType) mangledName b
+  in
+    do 
+      ta <- transformExpr a
+      tb <- transformExpr b
+      return $ H.Invoke readOp [ta, tb] 
 
 transformExpr (T.RecAccess fieldName fieldType sourceExpression) =
   do
