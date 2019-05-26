@@ -6,5 +6,11 @@ import qualified AST.Hybrid as H
 import qualified AST.Typed as T
 
 transformType :: T.Type -> H.Type
-transformType (T.TypeName _ a _) = 
-  H.TypeName a
+transformType t =
+  case t of 
+    T.TypeName _ name _ ->
+      H.TypeName name
+  
+    _ ->
+      error $ "missing pattern for " ++ show t
+      
