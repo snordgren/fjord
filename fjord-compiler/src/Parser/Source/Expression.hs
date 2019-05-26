@@ -234,7 +234,7 @@ patternP = label "pattern" $ do
   vars <- many $ try $ (many spaceP) >> nameP
   many spaceP
   string "->"
-  many spaceP
+  spaceInExpressionP
   expr <- expressionP
   eol
   return $ U.Pattern offset constructor vars expr

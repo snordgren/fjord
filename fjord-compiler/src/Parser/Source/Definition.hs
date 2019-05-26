@@ -59,7 +59,7 @@ valDefP =
     char '='
     spaceInExpressionP
     value <- expressionP
-    some eol
+    many eol
     return $ U.ValDef v params value
     
 
