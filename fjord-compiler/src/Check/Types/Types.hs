@@ -78,7 +78,7 @@ toTypedType offset scope uniq a =
 
     U.TupleType _ types ->
       do
-        typesT <- Monad.sequence $ fmap (toTypedType offset scope uniq) types
+        typesT <- traverse (toTypedType offset scope uniq) types
         return $ T.TupleType uniq typesT
 
     U.TypeLambda _ var ret ->

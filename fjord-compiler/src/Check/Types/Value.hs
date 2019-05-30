@@ -53,7 +53,7 @@ typeCheckValDecl params expr f modScope (U.ValDecl offset name declType) =
     reqTypeT <- toTypedType offset defScope bodyUniq reqType
     declTypeT <- toTypedType offset defScope uniq declType
     let parListWithUniq = fnParListWithUniq declType
-    paramsT <- Monad.sequence $ fmap toTypedParam $ zip params parListWithUniq
+    paramsT <- traverse toTypedParam $ zip params parListWithUniq
     typedExpr <- (runUseCounting (U.expressionOffset expr) defScope) $ toTypedExpression defScope (Just reqType) (Just bodyUniq) expr 
     let exprT = unifyTypes (T.expressionType $ typedExpr) reqTypeT
     if exprT == reqTypeT then 

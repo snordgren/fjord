@@ -59,7 +59,7 @@ toTypedExpression scope expectType expectUniq expr =
       do
         typedSrcExpr <- toTypedExpression scope Nothing expectUniq expr
         let mkTypedPattern = toTypedPattern scope expr expectType expectUniq
-        typedPatterns <- Monad.sequence $ fmap mkTypedPattern patterns
+        typedPatterns <- traverse mkTypedPattern patterns
         return $ T.Case typedSrcExpr typedPatterns
 
     U.IntLiteral _ value -> 
@@ -158,7 +158,7 @@ toTypedExpression scope expectType expectUniq expr =
     U.RecUpdate _ target updates ->
       do
         typedTarget <- toTypedExpression scope expectType expectUniq target
-        typedUpdates <- Monad.sequence $ fmap (typedFieldUpdate scope) updates
+        typedUpdates <- traverse (typedFieldUpdate scope) updates
         return $ T.RecUpdate typedTarget typedUpdates
 
     U.StringLiteral _ value -> 
@@ -397,7 +397,7 @@ findRecordAccessType offset scope fieldName recordType =
           return []
   in
     do
-      alternativesM <- Monad.sequence $ fmap tryCandidate $ scopeFields scope
+      alternativesM <- traverse tryCandidate $ scopeFields scope
       let alts = List.concat alternativesM
       if length alts <= 0 then
         Left $ UnknownFieldType offset fieldName recordType

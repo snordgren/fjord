@@ -45,7 +45,7 @@ compileM
   -> Either String (String, String)
 compileM dir typeDefSources fileName fileContents =
   do
-    typeDefs <- handleErrBundle $ Monad.sequence $ fmap (\(a, b) -> parseTypeDef dir a b) typeDefSources
+    typeDefs <- handleErrBundle $ traverse (\(a, b) -> parseTypeDef dir a b) typeDefSources
     mod <- handleErrBundle $ parseModuleSource typeDefs fileName fileContents
     return (generateJSModule fileName mod, TypeDef.genDefStr mod)
 
@@ -69,7 +69,7 @@ getFilesWithin dir =
       then
         do
           paths <- Directory.listDirectory dir
-          within <- Monad.sequence $ fmap (\s -> getFilesWithin (dir ++ "/" ++ s)) paths
+          within <- traverse (\s -> getFilesWithin (dir ++ "/" ++ s)) paths
           let addedPaths = fmap (\a -> dir ++ "/" ++ a) paths
           return (addedPaths ++ (List.concat within))
       else

@@ -83,7 +83,7 @@ transformExpr (T.Case sourceExpression patterns) =
   in 
     do
       transformedSrcExpr <- transformExpr sourceExpression
-      caseStatements <- Monad.sequence $ fmap caseStatementFor patterns
+      caseStatements <- traverse caseStatementFor patterns
       let ifStatement = H.If caseStatements Nothing
       return $ H.IIFE $ 
         H.Block (decls transformedSrcExpr) [ifStatement]

@@ -57,7 +57,7 @@ typeCheck typeDefs m =
       mergeScope localDeclScope importScope
   in
     do
-      defs <- Monad.sequence $ fmap (toTypedDef modScope) $ U.moduleDefs m
+      defs <- traverse (toTypedDef modScope) $ U.moduleDefs m
       imports <- Monad.sequence $ fmap (checkImport typeDefs) $ U.moduleImports m
       return $ T.Module (U.moduleName m) imports defs
 
