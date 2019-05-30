@@ -255,6 +255,7 @@ replaceTypeName name with target =
       replaceTypeName name with
   in
     case target of 
+      BindImplicit par ret -> BindImplicit (next par) $ next ret
       FunctionType uniq par ret -> FunctionType uniq (next par) $ next ret
       LinearFunctionType par ret -> LinearFunctionType (next par) $ next ret
       TupleType uniq types -> TupleType uniq $ fmap next types
@@ -373,3 +374,15 @@ renameTypeVar from to t =
             TypeName uniq to nameType
           else
             TypeName uniq typeName nameType
+
+
+implicitsIn :: Type -> [Type]
+implicitsIn t =
+  case t of
+    BindImplicit par ret -> par : implicitsIn ret
+    FunctionType uniq par ret -> implicitsIn par ++ implicitsIn ret
+    LinearFunctionType par ret -> implicitsIn par ++ implicitsIn ret
+    TupleType uniq types -> List.concat $ fmap implicitsIn types
+    TypeApply f par -> implicitsIn par
+    TypeLambda arg ret -> implicitsIn ret
+    TypeName uniq typeName nameType -> []

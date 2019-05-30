@@ -29,7 +29,7 @@ stringInstance =
 
 three : Int
 three = 
-  1 ++ 2
+  1 ++ "no"
 
 helloWorld : String
 helloWorld =

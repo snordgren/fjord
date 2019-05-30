@@ -40,7 +40,7 @@ toTypedExpression scope expectType expectUniq expr =
         let parUniq = T.parTypeUniq $ T.expressionType typedA 
         typedB <- toTypedExpression scope Nothing (Just parUniq) b
         let parT = T.expressionType typedB
-        let exprType = T.unifyTypes (T.expressionType typedA) (T.concreteType parT)
+        let exprType = T.unifyTypes (T.expressionType typedA) $ T.concreteType parT
         let reqParT = T.parType exprType
         if reqParT == parT then
           case T.concreteType $ exprType of 
@@ -145,6 +145,8 @@ toTypedExpression scope expectType expectUniq expr =
         let paramBUniq = T.parTypeUniq $ T.returnType opTypeT
         typedA <- toTypedExpression scope expectType (Just paramAUniq) a
         typedB <- toTypedExpression scope expectType (Just paramBUniq) b
+        let exprType = T.unifyTypes opTypeT $ T.expressionType typedA
+        let implicits = T.implicitsIn exprType
         return $ T.Operator name opTypeT typedA typedB intro
 
     U.RecAccess offset fieldName target -> 
