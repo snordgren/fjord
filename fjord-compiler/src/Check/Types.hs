@@ -41,7 +41,7 @@ recFieldUniq =
   Common.Unique
 
 
-typeCheck :: [U.TypeDef] -> U.Module -> Either TypeError T.Module
+typeCheck :: [U.TypeDef] -> U.Module -> Either TypeErrorAt T.Module
 typeCheck typeDefs m = 
   let
 
@@ -62,11 +62,11 @@ typeCheck typeDefs m =
       return $ T.Module (U.moduleName m) imports defs
 
 
-checkImport :: [U.TypeDef] -> U.Import -> Either TypeError T.Import
+checkImport :: [U.TypeDef] -> U.Import -> Either TypeErrorAt T.Import
 checkImport typeDefs imp = 
   case findTypeDefForImport typeDefs imp of
     Just a -> Right $ T.Import (U.importModule imp) $ U.typeDefSource a
-    Nothing -> Left $ ImportNotFound imp
+    Nothing -> Left (U.importOffset imp, ImportNotFound imp)
 
 
 {-
@@ -80,7 +80,7 @@ genTypeVarScope typeVars =
 Generate a typed definition from an untyped one, or generate an error if there 
 is something wrong. 
 -}
-toTypedDef :: Scope U.Type -> U.Definition -> Either TypeError T.Definition
+toTypedDef :: Scope U.Type -> U.Definition -> Either TypeErrorAt T.Definition
 toTypedDef modScope a =
   case a of 
     U.EnumDef (U.EnumDecl offset name constructors typeVars) ->
@@ -123,7 +123,7 @@ toTypedDef modScope a =
         typeCheckValDecl params expr T.ValDef modScope valDecl
 
 
-validateParamCount :: U.Definition -> Either TypeError U.Definition
+validateParamCount :: U.Definition -> Either TypeErrorAt U.Definition
 validateParamCount (U.ValDef valDecl params expr) =
   let 
     paramTypes =
@@ -137,7 +137,7 @@ validateParamCount (U.ValDef valDecl params expr) =
         offset =
           U.parameterOffset $ head (drop maxParamCount params)
       in
-        Left $ TooManyParameters offset maxParamCount
+        Left (offset, TooManyParameters maxParamCount)
     else
       Right $ U.ValDef valDecl params expr
     

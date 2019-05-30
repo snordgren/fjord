@@ -28,11 +28,11 @@ inferRequiredBody declaredType parameters =
     returnType
 
 
-resolveTupleUniq :: Int -> [Common.Uniqueness] -> Either TypeError Common.Uniqueness
+resolveTupleUniq :: Int -> [Common.Uniqueness] -> Either TypeErrorAt Common.Uniqueness
 resolveTupleUniq offset uniqValues =
   if List.length uniqValues == 0 then
     return Common.Unique
   else if List.length (List.nub uniqValues) == 1 then
     return $ List.head uniqValues
   else 
-    Left $ MixedUniquenessInTuple offset
+    Left (offset,  MixedUniquenessInTuple)

@@ -24,7 +24,7 @@ import qualified AST.Untyped as U
 import qualified Check.Types.UseCounter as UseCounter
 
 type UseCountM = 
-  ExceptT TypeError (State (Int, [UseCounter]))
+  ExceptT TypeErrorAt (State (Int, [UseCounter]))
 
 toTypedExpression 
   :: Scope U.Type
@@ -51,9 +51,9 @@ toTypedExpression scope expectType expectUniq expr =
               return $ T.Apply typedA typedB
   
             _ -> 
-              useCountM $ Left $ CannotInferType offset $ "cannot infer function type " ++ show exprType
+              useCountM $ Left (offset, CannotInferType $ "cannot infer function type " ++ show exprType)
         else 
-          useCountM $ Left $ WrongType offset reqParT parT
+          useCountM $ Left (offset, WrongType reqParT parT)
 
     U.Case offset expr patterns ->
       do
@@ -68,7 +68,8 @@ toTypedExpression scope expectType expectUniq expr =
           return $ T.IntLiteral value uniq
 
         Nothing ->
-          useCountM $ Left $ CannotInferType (U.expressionOffset expr) "cannot infer int uniqueness"
+          useCountM $ Left (U.expressionOffset expr,
+            CannotInferType "cannot infer int uniqueness")
 
     U.Lambda offset name expr ->
       createLambda offset name scope expectUniq Common.NonUnique expectType expr T.Lambda
@@ -93,12 +94,12 @@ toTypedExpression scope expectType expectUniq expr =
         removeUseCount =
           List.filter (\a -> s /= (UseCounter.name a))
 
-        updateUseCount :: [UseCounter] -> Either TypeError [UseCounter]
+        updateUseCount :: [UseCounter] -> Either TypeErrorAt [UseCounter]
         updateUseCount useCounts =
           case findUseCount useCounts of 
             Just useCounter -> 
               if UseCounter.isUsedLinearly useCounter then
-                Left $ TooManyUsages offset s
+                Left (offset, TooManyUsages s)
               else 
                 case expectUniq of 
                   Just uniq ->
@@ -167,8 +168,9 @@ toTypedExpression scope expectType expectUniq expr =
           return $ T.StringLiteral value uniq
 
         Nothing ->
-          useCountM $ Left $ CannotInferType (U.expressionOffset expr) 
-            "cannot infer uniqueness of string value"
+          useCountM $ Left (U.expressionOffset expr, 
+            CannotInferType "cannot infer uniqueness of string value")
+            
 
     U.Tuple offset values ->
       if length values == 0 then
@@ -177,8 +179,8 @@ toTypedExpression scope expectType expectUniq expr =
             return $ T.Tuple uniq []
 
           Nothing ->
-            useCountM $ Left $ CannotInferType (U.expressionOffset expr)
-              "cannot infer uniqueness of empty tuple"
+            useCountM $ Left (U.expressionOffset expr, CannotInferType
+              "cannot infer uniqueness of empty tuple")
       else 
         case expectUniq of 
           Just uniq -> 
@@ -187,8 +189,7 @@ toTypedExpression scope expectType expectUniq expr =
               return $ T.Tuple uniq typedValues
 
           Nothing -> 
-            useCountM $ Left $ CannotInferType (U.expressionOffset expr)
-              "cannot infer tuple uniqueness"
+            useCountM $ Left (U.expressionOffset expr, CannotInferType "cannot infer tuple uniqueness")
 
     U.UniqueLambda offset name expr -> 
       createLambda offset name scope expectUniq Common.Unique expectType expr T.UniqueLambda
@@ -206,7 +207,7 @@ createLambda
 createLambda offset name scope expectUniq parUniq expectType expr f =
   let
     unableToInfer s t = 
-      useCountM $ Combinators.maybeToRight (CannotInferType offset s) t
+      useCountM $ Combinators.maybeToRight (offset, CannotInferType s) t
   in 
     do
       t <- unableToInfer "missing expected type" expectType
@@ -219,7 +220,7 @@ createLambda offset name scope expectUniq parUniq expectType expr f =
       return $ f name typedT exprT
 
 
-useCountM :: Either TypeError b -> UseCountM b 
+useCountM :: Either TypeErrorAt b -> UseCountM b 
 useCountM e = 
   ExceptT $ return e
 
@@ -245,7 +246,7 @@ runUseCounting
      Int
   -> Scope U.Type
   -> UseCountM T.Expression
-  -> Either TypeError T.Expression
+  -> Either TypeErrorAt T.Expression
 runUseCounting offset scope e =
   let 
     uniqueValues =
@@ -264,7 +265,7 @@ runUseCounting offset scope e =
     if Either.isRight eith then
       case tooFewUsages of
         Just a -> 
-          Left $ TooFewUsages offset $ UseCounter.name a
+          Left (offset, TooFewUsages $ UseCounter.name a)
 
         Nothing -> 
           eith
@@ -325,7 +326,7 @@ findPatSubst typeVars t exprType =
       _ -> []
 
 
-typeOf :: Scope U.Type -> U.Expression -> Either TypeError U.Type
+typeOf :: Scope U.Type -> U.Expression -> Either TypeErrorAt U.Type
 typeOf scope expr = 
   case expr of 
     U.IntLiteral offset _ ->
@@ -383,10 +384,10 @@ scopeFieldType scope fieldName exprType =
   error "not yet implemented"
 
 
-findRecordAccessType :: Int -> Scope U.Type -> String -> T.Type -> Either TypeError T.Type
+findRecordAccessType :: Int -> Scope U.Type -> String -> T.Type -> Either TypeErrorAt T.Type
 findRecordAccessType offset scope fieldName recordType =
   let 
-    tryCandidate :: (String, U.Type, U.Type, Common.Origin) -> Either TypeError [T.Type]
+    tryCandidate :: (String, U.Type, U.Type, Common.Origin) -> Either TypeErrorAt [T.Type]
     tryCandidate (name, candRecordType, candFieldType, origin) = 
       do
         candRecordTypeT <- toTypedType offset scope Common.NonUnique candRecordType
@@ -400,6 +401,6 @@ findRecordAccessType offset scope fieldName recordType =
       alternativesM <- traverse tryCandidate $ scopeFields scope
       let alts = List.concat alternativesM
       if length alts <= 0 then
-        Left $ UnknownFieldType offset fieldName recordType
+        Left (offset, UnknownFieldType fieldName recordType)
       else
         return $ head alts

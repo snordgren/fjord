@@ -30,7 +30,7 @@ typeCheckValDecl
   -> (String -> [T.Parameter] -> T.Type -> T.Expression -> T.Definition)
   -> Scope U.Type 
   -> U.ValDecl 
-  -> Either TypeError T.Definition
+  -> Either TypeErrorAt T.Definition
 typeCheckValDecl params expr f modScope (U.ValDecl offset name declType) =
   let 
     defScope :: Scope U.Type
@@ -59,16 +59,16 @@ typeCheckValDecl params expr f modScope (U.ValDecl offset name declType) =
     if exprT == reqTypeT then 
       Right $ f name paramsT declTypeT typedExpr
     else
-      Left $ WrongType (U.expressionOffset expr) reqTypeT exprT
+      Left (U.expressionOffset expr, WrongType reqTypeT exprT)
 
 
-resolveImplicit :: Int -> Scope U.Type -> (String, U.Type) -> Either TypeError (String, T.Type, T.Expression)
+resolveImplicit :: Int -> Scope U.Type -> (String, U.Type) -> Either TypeErrorAt (String, T.Type, T.Expression)
 resolveImplicit offset defScope (a, t) = 
   let 
     uniq = Common.NonUnique
   in 
     do
-      (name, _, orig) <- Combinators.maybeToRight (ImplicitNotFound offset t a) $ findImplicitDef defScope t
+      (name, _, orig) <- Combinators.maybeToRight (offset, ImplicitNotFound t a) $ findImplicitDef defScope t
       typedT <- toTypedType offset defScope uniq t
       return (a, typedT, T.Name name typedT uniq orig)
 

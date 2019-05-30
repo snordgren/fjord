@@ -46,7 +46,7 @@ fnTypeList t =
     a -> 
       [a]
 
-toTypedType :: Int -> Scope U.Type -> Common.Uniqueness -> U.Type -> Either TypeError T.Type
+toTypedType :: Int -> Scope U.Type -> Common.Uniqueness -> U.Type -> Either TypeErrorAt T.Type
 toTypedType offset scope uniq a =
   case a of 
     U.BindImplicit _ par ret -> 
@@ -111,7 +111,7 @@ toTypedType offset scope uniq a =
           List.find (\(t, _, nameType) -> t == name) typeNames
 
         resultE =
-          Combinators.maybeToRight (UnknownType offset name) result
+          Combinators.maybeToRight (offset, UnknownType name) result
       in
         fmap (\(t, _, nameType) -> T.TypeName uniq t nameType) resultE
 

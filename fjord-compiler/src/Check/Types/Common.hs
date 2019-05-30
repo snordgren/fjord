@@ -4,21 +4,24 @@ import qualified AST.Common as Common
 import qualified AST.Typed as T
 import qualified AST.Untyped as U
 
-data TypeError 
-  = CannotInferType Int String
-  | ExpectedUnique Int
-  | ImplicitNotFound Int U.Type String
+data TypeError
+  = CannotInferType String
+  | ExpectedUnique
+  | ImplicitNotFound U.Type String
   | ImportNotFound U.Import
-  | MixedUniquenessInTuple Int 
-  | TooManyParameters Int Int
-  | TooManyUsages Int String
-  | TooFewUsages Int String
-  | UndefinedInScope Int
-  | UnknownFieldType Int String T.Type
-  | UnknownType Int String
-  | WrongType Int T.Type T.Type -- expected type comes first, actual type second
+  | MixedUniquenessInTuple
+  | TooManyParameters Int
+  | TooManyUsages String
+  | TooFewUsages String
+  | UndefinedInScope
+  | UnknownFieldType String T.Type
+  | UnknownType String
+  | WrongType T.Type T.Type -- expected type comes first, actual type second
   deriving (Eq, Show)
   
+
+type TypeErrorAt = (Int, TypeError)
+
 
 {-
 Get all the parameters of this type.

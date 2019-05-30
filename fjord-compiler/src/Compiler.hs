@@ -12,7 +12,7 @@ import qualified Data.List.NonEmpty as NonEmpty
 import qualified Data.Set as Set
 import qualified System.Directory as Directory
 
-import Check.Types.Common (TypeError (..))
+import Check.Types.Common
 import Check.Types (typeCheck)
 import qualified AST.Typed as T
 import qualified AST.Untyped as U
@@ -27,14 +27,9 @@ runCompiler dir path =
   do
     typeDefs <- Compiler.readTypeDefs dir
     src <- readFile path
-    return $ Compiler.compileM dir typeDefs path src
-
-
-handleErrBundle 
-  :: Either (ParseErrorBundle String String) a 
-  -> Either String a
-handleErrBundle e =
-  Combinators.mapLeft errorBundlePretty e
+    let compileResult = Compiler.compileM dir typeDefs path src
+    let prettyCompileResult = Combinators.mapLeft errorBundlePretty compileResult
+    return prettyCompileResult
 
 
 compileM 
@@ -42,11 +37,11 @@ compileM
   -> [(String, String)] 
   -> String 
   -> String 
-  -> Either String (String, String)
+  -> Either (ParseErrorBundle String String) (String, String)
 compileM dir typeDefSources fileName fileContents =
   do
-    typeDefs <- handleErrBundle $ traverse (\(a, b) -> parseTypeDef dir a b) typeDefSources
-    mod <- handleErrBundle $ parseModuleSource typeDefs fileName fileContents
+    typeDefs <- traverse (\(a, b) -> parseTypeDef dir a b) typeDefSources
+    mod <- parseModuleSource typeDefs fileName fileContents
     return (generateJSModule fileName mod, TypeDef.genDefStr mod)
 
 
@@ -100,12 +95,12 @@ parseModuleSource
 parseModuleSource typeDefs fileName fileContents = 
   do
     untypedMod <- Source.Parser.runModuleParser fileName fileContents
-    Combinators.mapLeft (typeErrorToErrorBundle $ genPosState fileName fileContents) 
+    Combinators.mapLeft (makeErrorBundlePretty $ genPosState fileName fileContents) 
       (typeCheck typeDefs untypedMod)
   
 
-typeErrorToErrorBundle :: PosState String -> TypeError -> ParseErrorBundle String String
-typeErrorToErrorBundle initialPosState err =
+makeErrorBundlePretty :: PosState String -> TypeErrorAt -> ParseErrorBundle String String
+makeErrorBundlePretty initialPosState (offset, err) =
   let 
     bundleMsg :: Int -> String -> ParseErrorBundle String String
     bundleMsg offset msg =
@@ -117,43 +112,43 @@ typeErrorToErrorBundle initialPosState err =
         ],
         bundlePosState = initialPosState
       }
+
+    msg = 
+      case err of 
+        WrongType expected actual -> 
+          "expression has type " ++ (show actual) ++ ", expected " ++ (show expected)
+    
+        ExpectedUnique -> 
+           "expected unique value"
+    
+        CannotInferType s -> 
+          ("cannot infer type\n" ++ s)
+    
+        ImplicitNotFound typ name ->
+          ("cannot find implicit " ++ name ++ " of type " ++ show typ)
+    
+        ImportNotFound (U.Import _ name) -> 
+          ("cannot find import " ++ name)
+    
+        TooFewUsages name -> 
+          ("too few usages of " ++ name)
+    
+        TooManyParameters expectedCount -> 
+          ("too many parameters, expected " ++ (show expectedCount))
+    
+        TooManyUsages name -> 
+            "too many usages of " ++ name
+    
+        UndefinedInScope ->
+          "undefined in scope"
+    
+        UnknownFieldType fieldName t ->
+          "unknown field type " ++ fieldName ++ " for type " ++ (show t)
+    
+        UnknownType s -> 
+          "unknown type " ++ s
   in
-    case err of 
-      WrongType offset expected actual -> 
-        let 
-          msg = "expression has type " ++ (show actual) ++ ", expected " ++ (show expected)
-        in
-          bundleMsg offset msg
-
-      ExpectedUnique offset -> 
-        bundleMsg offset $ "expected unique value"
-
-      CannotInferType offset s -> 
-        bundleMsg offset ("cannot infer type\n" ++ s)
-
-      ImplicitNotFound offset typ name ->
-        bundleMsg offset ("cannot find implicit " ++ name ++ " of type " ++ show typ)
-
-      ImportNotFound (U.Import offset name) -> 
-        bundleMsg offset ("cannot find import " ++ name)
-
-      TooFewUsages offset name -> 
-        bundleMsg offset ("too few usages of " ++ name)
-
-      TooManyParameters offset expectedCount -> 
-        bundleMsg offset ("too many parameters, expected " ++ (show expectedCount))
-
-      TooManyUsages offset name -> 
-        bundleMsg offset ("too many usages of " ++ name)
-
-      UndefinedInScope offset ->
-        bundleMsg offset ("undefined in scope")
-
-      UnknownFieldType offset fieldName t ->
-        bundleMsg offset $ "unknown field type " ++ fieldName ++ " for type " ++ (show t)
-
-      UnknownType offset s -> 
-        bundleMsg offset $ "unknown type " ++ s
+    bundleMsg offset msg
 
 
 generateJSModule :: String -> T.Module -> String

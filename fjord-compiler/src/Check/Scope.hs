@@ -171,9 +171,9 @@ scopeVariableType
   :: Scope U.Type 
   -> Int 
   -> String 
-  -> Either TypeError (U.Type, Common.Uniqueness, Common.Origin)
+  -> Either TypeErrorAt (U.Type, Common.Uniqueness, Common.Origin)
 scopeVariableType scope offset name = 
-  Combinators.maybeToRight (UndefinedInScope offset)
+  Combinators.maybeToRight (offset, UndefinedInScope)
     (fmap 
       (\(_, t, uniq, origin) -> (t, uniq, origin)) 
       (List.find (\(n, _, _, _) -> n == name) (scopeValues scope)))
