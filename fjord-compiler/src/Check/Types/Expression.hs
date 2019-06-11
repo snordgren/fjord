@@ -107,25 +107,14 @@ toTypedExpression scope expectType expectUniq expr =
                       Common.Unique -> 
                         return ((UseCounter.markUsedLinearly useCounter) : (removeUseCount useCounts))
                       
-                      _ -> return useCounts
+                      Common.NonUnique -> 
+                        Left (offset, ExpectedNonUnique)
                   _ -> return useCounts
             Nothing -> return useCounts
-
-        -- The uniqueness that we are going to use.
-        -- If a shared value is expected, we attempt to share it.
-        deriveUseUniq :: Common.Uniqueness -> Common.Uniqueness
-        deriveUseUniq uniq = 
-          case expectUniq of 
-            Just Common.NonUnique -> 
-              Common.NonUnique
-
-            _ ->
-              uniq
       in 
         do
           (t, uniq, orig) <- useCountM $ scopeVariableType scope offset s
-          let useUniq = deriveUseUniq uniq
-          typedT <- useCountM $ toTypedType offset scope useUniq t
+          typedT <- useCountM $ toTypedType offset scope uniq t
           -- If the value is unique, update its use counter, and generate an
           -- error if it has been used uniquely before.  
           if uniq == Common.Unique then
@@ -136,7 +125,7 @@ toTypedExpression scope expectType expectUniq expr =
           else 
             return ()
           renamedT <- renameTypeVars typedT
-          return $ T.Name s renamedT useUniq orig
+          return $ T.Name s renamedT uniq orig
 
     U.Operator offset name a b -> 
       do

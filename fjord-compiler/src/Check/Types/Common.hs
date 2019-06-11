@@ -6,6 +6,7 @@ import qualified AST.Untyped as U
 
 data TypeError
   = CannotInferType String
+  | ExpectedNonUnique
   | ExpectedUnique
   | ImplicitNotFound U.Type String
   | ImportNotFound U.Import

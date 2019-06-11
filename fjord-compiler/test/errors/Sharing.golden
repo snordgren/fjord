@@ -1,0 +1,5 @@
+test/errors/Sharing.fj:9:16:
+  |
+9 |   useSharedInt x x
+  |                ^^^^
+expected shared value

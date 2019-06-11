@@ -117,6 +117,9 @@ makeErrorBundlePretty initialPosState (offset, err) =
       case err of 
         WrongType expected actual -> 
           "expression has type " ++ (show actual) ++ ", expected " ++ (show expected)
+
+        ExpectedNonUnique -> 
+          "expected shared value"
     
         ExpectedUnique -> 
            "expected unique value"
