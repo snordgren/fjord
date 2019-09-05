@@ -104,7 +104,7 @@ genTypeDefStr t =
       genTypeDefStr f ++ " " ++ genTypeDefStr par
 
     T.TypeLambda var ret ->
-      var ++ " => " ++ genTypeDefStr ret
+      var ++ ". " ++ genTypeDefStr ret
 
     T.TypeName uniq a nameType ->
       a

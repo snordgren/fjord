@@ -105,7 +105,6 @@ data Type
 instance Show Type where
   show a =
     case a of 
-
       FunctionType uniq p r ->
         let
           base = 
@@ -117,6 +116,7 @@ instance Show Type where
     
             Common.NonUnique ->
               base
+              
       LinearFunctionType p r -> 
         (show p) ++ " -* " ++ (show r)
 
@@ -127,7 +127,7 @@ instance Show Type where
         "(" ++ show f ++ " " ++ show par ++ ")"
 
       TypeLambda arg ret -> 
-        arg ++ " => " ++ show ret
+        arg ++ ". " ++ show ret
 
       TypeName uniq s nameType -> 
         uniqPrefix uniq ++ s
