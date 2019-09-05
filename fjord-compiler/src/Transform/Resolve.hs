@@ -2,6 +2,7 @@
 module Transform.Resolve where
 
 import Debug.Trace
+import qualified Data.List as List
 
 import qualified AST.Typed as T
 
@@ -47,3 +48,7 @@ resolveExpr expr =
 
     _ -> 
       return expr
+
+
+resolveImplicitsIn name typ uniq orig = 
+  return $ T.Name name typ uniq orig

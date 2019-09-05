@@ -2,11 +2,11 @@ module codegen.functions.OverlapTypeVars
 
 import Util
 
-last : b => a => b -* a -* a
+last : b. a. b -* a -* a
 last x y = 
   drop y x
 
-id : b => b -* b
+id : b. b -* b
 id x = 
   x
 

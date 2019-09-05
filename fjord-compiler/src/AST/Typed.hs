@@ -94,8 +94,7 @@ data Parameter
 
 
 data Type 
-  = BindImplicit Type Type
-  | FunctionType Common.Uniqueness Type Type
+  = FunctionType Common.Uniqueness Type Type
   | LinearFunctionType Type Type
   | TupleType Common.Uniqueness [Type]
   | TypeApply Type Type
@@ -106,8 +105,6 @@ data Type
 instance Show Type where
   show a =
     case a of 
-      BindImplicit par ret -> 
-        "implicit " ++ show par ++ " -> " ++ show ret
 
       FunctionType uniq p r ->
         let
@@ -227,8 +224,6 @@ returnType t =
 concreteType :: Type -> Type 
 concreteType t =
   case t of 
-    BindImplicit _ ret -> 
-      concreteType ret
 
     TypeLambda var ret -> 
       concreteType ret
@@ -253,7 +248,6 @@ replaceTypeName name with target =
       replaceTypeName name with
   in
     case target of 
-      BindImplicit par ret -> BindImplicit (next par) $ next ret
       FunctionType uniq par ret -> FunctionType uniq (next par) $ next ret
       LinearFunctionType par ret -> LinearFunctionType (next par) $ next ret
       TupleType uniq types -> TupleType uniq $ fmap next types
@@ -320,7 +314,6 @@ unifyTypes pat impl =
 typeVarsIn :: Type -> [String]
 typeVarsIn t =
   case t of 
-    BindImplicit f par -> typeVarsIn f ++ typeVarsIn par
     FunctionType uniq par ret -> typeVarsIn par ++ typeVarsIn ret
     LinearFunctionType par ret -> typeVarsIn par ++ typeVarsIn ret
     TupleType uniq types -> List.concat $ fmap typeVarsIn types
@@ -335,8 +328,6 @@ typeVarsIn t =
 fnParamList :: Type -> [Type]
 fnParamList t = 
   case t of 
-    BindImplicit par ret -> 
-      par : fnParamList ret
 
     FunctionType uniq a b ->
       a : fnParamList b
@@ -377,7 +368,6 @@ renameTypeVar from to t =
 implicitsIn :: Type -> [Type]
 implicitsIn t =
   case t of
-    BindImplicit par ret -> par : implicitsIn ret
     FunctionType uniq par ret -> implicitsIn par ++ implicitsIn ret
     LinearFunctionType par ret -> implicitsIn par ++ implicitsIn ret
     TupleType uniq types -> List.concat $ fmap implicitsIn types

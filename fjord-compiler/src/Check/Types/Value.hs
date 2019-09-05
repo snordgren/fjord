@@ -31,7 +31,7 @@ typeCheckValDecl
   -> Scope U.Type 
   -> U.ValDecl 
   -> Either TypeErrorAt T.Definition
-typeCheckValDecl params expr f modScope (U.ValDecl offset name declType) =
+typeCheckValDecl params expr f modScope (U.ValDecl offset name declType implicits) =
   let 
     defScope :: Scope U.Type
     defScope = 

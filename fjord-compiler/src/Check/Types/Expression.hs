@@ -369,11 +369,6 @@ renameTypeVars t =
       return res
 
 
-scopeFieldType :: Scope U.Type -> String -> U.Type -> U.Type
-scopeFieldType scope fieldName exprType =
-  error "not yet implemented"
-
-
 findRecordAccessType :: Int -> Scope U.Type -> String -> T.Type -> Either TypeErrorAt T.Type
 findRecordAccessType offset scope fieldName recordType =
   let 

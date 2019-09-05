@@ -8,7 +8,7 @@ zeroInstance : Zero
 zeroInstance = 
   Zero 0
 
-zero : implicit Zero -> Int -> Int
+zero : Zero => Int -> Int
 zero ev anything =
   0
 

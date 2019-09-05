@@ -1,7 +1,7 @@
 module codegen.functions.PolymorphicIdentity
 
 
-id : a => a -* a
+id : a. a -* a
 id x = 
   x
 

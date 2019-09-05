@@ -130,7 +130,7 @@ validateParamCount (U.ValDef valDecl params expr) =
       fnParamList $ U.valDeclType valDecl
 
     maxParamCount =
-      length paramTypes
+      (length paramTypes) + (length $ U.valDeclImplicits valDecl)
   in 
     if length params > maxParamCount then
       let 

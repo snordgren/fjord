@@ -119,7 +119,7 @@ scopeContrib origin d =
       in
         Scope values types [] []
 
-    U.DeclImplicitDecl (U.ValDecl offset name t) -> 
+    U.DeclImplicitDecl (U.ValDecl offset name t implicits) -> 
       Scope [(name, t, Common.NonUnique, origin)] [] [(name, t, origin)] []
 
     U.DeclRecDecl (U.RecDecl offset name fields typeVars) -> 
@@ -150,7 +150,7 @@ scopeContrib origin d =
       in 
         Scope values types [] scopeFields
     
-    U.DeclValDecl (U.ValDecl _ name t) -> 
+    U.DeclValDecl (U.ValDecl _ name t implicits) -> 
       let 
         values = 
           [(filter (\a -> a /= '(' && a /= ')') name, t, Common.Unique, origin)]

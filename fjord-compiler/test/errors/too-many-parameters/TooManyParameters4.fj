@@ -8,6 +8,6 @@ zeroInstance : Zero
 zeroInstance = 
   Zero 0
 
-myFun : implicit Zero -> Int
+myFun : Zero => Int
 myFun ev x =
   0

@@ -14,6 +14,6 @@ toOrigin p = { p | x = 0, y = 0 }
 setXAndY : Int -* Int -* Point -* Point
 setXAndY x y p = { { p | x = x } | y = y }
 
-withX : a => Point -> (Int -> a) -* a
+withX : a. Point -> (Int -> a) -* a
 withX p f =
   f (p.x)

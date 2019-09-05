@@ -39,8 +39,7 @@ data Declaration
   deriving (Eq, Show)
 
 data Type 
-  = BindImplicit Int Type Type
-  | FunctionType Int Type Type
+  = FunctionType Int Type Type
   | LinearFunctionType Int Type Type
   | TupleType Int [Type]
   | TypeApply Int Type Type
@@ -186,7 +185,8 @@ data ValDecl
   = ValDecl {
     valDeclOffset :: Int,
     valDeclName :: String,
-    valDeclType :: Type
+    valDeclType :: Type,
+    valDeclImplicits :: [Type]
   }
   deriving (Eq, Show)
 
@@ -237,8 +237,6 @@ defToDecl d =
 concreteType :: Type -> Type
 concreteType t =
   case t of 
-    BindImplicit _ _ ret -> 
-      concreteType ret
 
     TypeLambda _ _ ret -> 
       concreteType ret

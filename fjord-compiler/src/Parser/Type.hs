@@ -12,22 +12,7 @@ import qualified AST.Untyped as U
 
 typeTermP :: Parser U.Type
 typeTermP = 
-  choice [try bindImplicitP, try emptyTupleP, try tupleTypeP, parenTypeP, try typeLambdaP, typeNameP]
-
-
-bindImplicitP :: Parser U.Type
-bindImplicitP =
-  label "implicit type binding" $ 
-    do
-      offset <- getOffset
-      string "implicit"
-      some spaceP
-      t <- implicitTypeP
-      some spaceP
-      string "->"
-      some spaceP
-      retT <- typeP
-      return $ U.BindImplicit offset t retT
+  choice [try emptyTupleP, try tupleTypeP, parenTypeP, typeNameP]
 
 
 emptyTupleP :: Parser U.Type
@@ -70,19 +55,6 @@ parenTypeP = do
   return innerType
 
 
-typeLambdaP :: Parser U.Type
-typeLambdaP =
-  label "type lambda" $ 
-    do
-      offset <- getOffset
-      name <- nameP
-      many spaceP
-      string "=>"
-      many spaceP
-      ret <- typeP
-      return $ U.TypeLambda offset name ret
-
-
 typeNameP :: Parser U.Type
 typeNameP = 
   label "type name" $
@@ -94,7 +66,6 @@ typeNameP =
 typeP :: Parser U.Type
 typeP = 
   let 
-
     linearFunction = Expr.InfixR $ try $ label "-* function" $ do 
       offset <- getOffset
       many spaceP

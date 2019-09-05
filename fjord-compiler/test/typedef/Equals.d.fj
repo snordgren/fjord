@@ -7,11 +7,11 @@ enum Bool
 record Equals
   equals : a -> a -> Bool
 
-equals : (a => implicit (Equals a) -> a -> a -> Bool)
+equals : a. Equals a => a -> a -> Bool
 
 boolEquals : Bool -> Bool -> Bool
 
 implicit
-boolEqualsInstance : (Equals Bool)
+boolEqualsInstance : Equals Bool
 
 (+) : Int -> Int -> Int

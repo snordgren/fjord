@@ -30,8 +30,6 @@ Get all the parameters of this type.
 fnParListWithUniq :: U.Type -> [(U.Type, Common.Uniqueness)]
 fnParListWithUniq t = 
   case t of 
-    U.BindImplicit _ par ret -> 
-      (par, Common.NonUnique) : fnParListWithUniq ret
       
     U.FunctionType _ par ret -> 
       (par, Common.NonUnique) : fnParListWithUniq ret

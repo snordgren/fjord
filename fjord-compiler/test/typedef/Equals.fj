@@ -9,7 +9,7 @@ record Equals a
   equals : a -> a -> Bool
 
 
-equals : a => implicit Equals a -> a -> a -> Bool
+equals : a. Equals a => a -> a -> Bool
 equals ev x y =
   ev.equals x y
 

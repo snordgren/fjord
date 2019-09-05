@@ -51,9 +51,9 @@ transformExpr expr =
 
     T.Name a t uniq origin ->
       return $ case origin of 
-        Common.SameModule -> H.Read (transformType t) a
-        Common.InFunction -> H.Read (transformType t) a
-        Common.OtherModule b -> H.ReadImport (transformType t) a b
+        Common.SameModule -> H.Read (transformType t) $ NameMangling.mangle a
+        Common.InFunction -> H.Read (transformType t) $ NameMangling.mangle a
+        Common.OtherModule b -> H.ReadImport (transformType t) (NameMangling.mangle a) b
 
     T.Operator expr opType a b orig ->
       do 

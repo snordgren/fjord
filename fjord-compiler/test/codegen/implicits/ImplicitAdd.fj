@@ -23,7 +23,7 @@ stringInstance : Add String
 stringInstance =
   Add addString
 
-(++) : a => implicit Add a -> a -> a -> a
+(++) : a. Add a => a -> a -> a
 (++) ev x y =
   ev.add x y
 

@@ -8,6 +8,7 @@ module Parser.Declaration (
 import Debug.Trace
 import Text.Megaparsec
 import Text.Megaparsec.Char
+import qualified Data.List as List
 
 import Parser.Common
 import Parser.Type (typeP, typeTermP)
@@ -52,10 +53,10 @@ implicitDeclP = do
   many spaceP
   char ':'
   many spaceP
-  declaredType <- typeP
+  (implicits, declaredType) <- valDeclTypeP
   many spaceP
   some eol
-  return $ U.ValDecl offset declName declaredType
+  return $ U.ValDecl offset declName declaredType implicits
 
 
 recDeclP :: Parser U.RecDecl
@@ -92,8 +93,40 @@ valDeclP = label "value declaration" $ do
   many spaceP
   char ':'
   many spaceP
-  many spaceP
-  declaredType <- typeP
+  (implicits, declaredType) <- valDeclTypeP
   many spaceP
   some eol
-  return $ U.ValDecl offset declName declaredType
+  return $ U.ValDecl offset declName declaredType implicits
+
+
+{- 
+Parse a value type declaration. Returns a tuple containing first the implicits and
+then the remaining type of the declaration.
+-}
+valDeclTypeP :: Parser ([U.Type], U.Type)
+valDeclTypeP =
+  let 
+    typeVarP :: Parser String
+    typeVarP = 
+      label "type variable" $ do
+        name <- nameP
+        many spaceP
+        string "."
+        many spaceP
+        return name
+
+    implicitP :: Parser U.Type
+    implicitP = 
+      label "implicit value" $ do
+        t <- typeP
+        many spaceP
+        string "=>"
+        many spaceP
+        return t
+  in
+    do
+      offset <- getOffset
+      typeVars <- many $ try $ typeVarP
+      implicits <- many $ try $ implicitP
+      rest <- typeP
+      return (implicits, List.foldl' (\b a -> U.TypeLambda offset a b) rest typeVars)
