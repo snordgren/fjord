@@ -76,14 +76,6 @@ transformDef a =
 
     T.ImplicitDef name typ expr ->
       let
-        bodyParams :: H.Expression -> [(String, H.Type)]
-        bodyParams (H.Lambda p b) = p ++ (bodyParams b)
-        bodyParams _ = []
-    
-        realBody :: H.Expression -> H.Expression
-        realBody (H.Lambda _ a) = realBody a
-        realBody a = a
-    
         findReturnType (T.FunctionType uniq _ a) = findReturnType a
         findReturnType a = a
     
@@ -122,14 +114,6 @@ transformDef a =
 
     T.ValDef name params typ expr ->
       let
-        bodyParams :: H.Expression -> [(String, H.Type)]
-        bodyParams (H.Lambda p b) = p ++ (bodyParams b)
-        bodyParams _ = []
-    
-        realBody :: H.Expression -> H.Expression
-        realBody (H.Lambda _ a) = realBody a
-        realBody a = a
-    
         (transformedExpr, hiddenParams) = 
           runState (transformExpr expr) 0
 
@@ -159,4 +143,12 @@ transformDef a =
 simpleBlock :: H.Expression -> H.Block
 simpleBlock e =
   H.Block [] [H.Return e]
+    
+realBody :: H.Expression -> H.Expression
+realBody (H.Lambda _ a) = realBody a
+realBody a = a
+
+bodyParams :: H.Expression -> [(String, H.Type)]
+bodyParams (H.Lambda p b) = p ++ (bodyParams b)
+bodyParams _ = []
   

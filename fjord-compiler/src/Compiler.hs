@@ -124,26 +124,8 @@ makeErrorBundlePretty initialPosState (offset, err) =
         ],
         bundlePosState = initialPosState
       }
-
-    msg = err {-
-      case err of 
-        WrongType expected actual -> 
-          "expression has type " ++ (show actual) ++ ", expected " ++ (show expected)
-
-        ExpectedNonUnique -> 
-          
-    
-        ExpectedUnique -> 
-           "expected unique value"
-  
-        ImplicitNotFound typ name ->
-          
-    
-        ImportNotFound (U.Import _ name) -> 
-          ("cannot find import " ++ name)
-                          -}
   in
-    bundleMsg offset msg
+    bundleMsg offset err
 
 
 generateJSModule :: String -> T.Module -> String

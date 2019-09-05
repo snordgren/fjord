@@ -39,7 +39,7 @@ typeCheckValDecl params expr f modScope (U.ValDecl offset name declType implicit
 
     reqType :: U.Type
     reqType = 
-      inferRequiredBody declType params
+      inferRequiredBody implicits declType params
     
     toTypedParam (p, (t, uniq)) =
       do
@@ -52,7 +52,7 @@ typeCheckValDecl params expr f modScope (U.ValDecl offset name declType implicit
   in do
     reqTypeT <- toTypedType offset defScope bodyUniq reqType
     declTypeT <- toTypedType offset defScope uniq declType
-    let parListWithUniq = fnParListWithUniq declType
+    let parListWithUniq = (fmap (\a -> (a, Common.NonUnique)) implicits) ++ fnParListWithUniq declType
     paramsT <- traverse toTypedParam $ zip params parListWithUniq
     typedExpr <- (runUseCounting (U.expressionOffset expr) defScope) $ toTypedExpression defScope (Just reqType) (Just bodyUniq) expr 
     let exprT = unifyTypes (T.expressionType $ typedExpr) reqTypeT

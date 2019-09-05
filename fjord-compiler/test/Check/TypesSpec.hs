@@ -10,8 +10,7 @@ import qualified Check.Types as TypeCheck
 test :: TestTree
 test = testGroup "TypeCheckSpec"
   [
-    testCase "testFnParamList" testFnParamList,
-    testCase "testInferRequiredBody" testInferRequiredBody
+    testCase "testFnParamList" testFnParamList
   ]
 
 testFnParamList =
@@ -22,13 +21,3 @@ testFnParamList =
       (U.FunctionType 0 (U.TypeName 0 "Int") (U.TypeName 0 "Int")))
   in
     assertEqual "fnParamList" expected result
-
-testInferRequiredBody = 
-  let 
-    expected = U.FunctionType 0 (U.TypeName 0 "String") (U.TypeName 0 "Int")
-
-    result = (TypeCheck.inferRequiredBody 
-      (U.FunctionType 0 (U.TypeName 0 "Int") 
-        (U.FunctionType 0 (U.TypeName 0 "String") (U.TypeName 0 "Int"))) [U.Parameter 0 "a"])
-  in 
-    assertEqual "inferRequiredBody" expected result

@@ -14,3 +14,6 @@ var zero = function(ev, anything) {
   return 0;
 };
 exports.zero = zero;
+
+var toZero = (zero(5));
+exports.toZero = toZero;
