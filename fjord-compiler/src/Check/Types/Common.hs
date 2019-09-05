@@ -10,18 +10,21 @@ type TypeErrorAt = (Int, TypeError)
 {-
 Get all the parameters of this type.
 -}
-fnParListWithUniq :: U.Type -> [(U.Type, Common.Uniqueness)]
-fnParListWithUniq t = 
-  case t of 
-      
-    U.FunctionType _ par ret -> 
-      (par, Common.NonUnique) : fnParListWithUniq ret
+fnParListWithUniq :: U.Type -> [U.Type] -> [(U.Type, Common.Uniqueness)]
+fnParListWithUniq t implicits = 
+  let 
+    uniqImplicits =
+      fmap (\a -> (a, Common.NonUnique)) implicits
+  in
+    case t of 
+      U.FunctionType _ par ret -> 
+        uniqImplicits ++ ((par, Common.NonUnique) : fnParListWithUniq ret [])
 
-    U.LinearFunctionType _ par ret ->
-      (par, Common.Unique) : fnParListWithUniq ret
+      U.LinearFunctionType _ par ret ->
+        uniqImplicits ++ ((par, Common.Unique) : fnParListWithUniq ret [])
 
-    U.TypeLambda _ _ ret ->
-      fnParListWithUniq ret
+      U.TypeLambda _ _ ret ->
+        uniqImplicits ++ (fnParListWithUniq ret [])
 
-    _ -> 
-      []
+      _ -> 
+        []

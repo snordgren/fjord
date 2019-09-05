@@ -27,5 +27,4 @@ inferRequiredBody implicits declaredType parameters =
   in if length remainingParameters > 0 then
     List.foldr (U.FunctionType 0) returnType remainingParameters
   else
-    --trace (show remainingParameters ++ "; " ++ show concreteType ++ "; " ++ (show $ fnParamList concreteType)) 
     returnType

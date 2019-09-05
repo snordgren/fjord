@@ -18,7 +18,6 @@ import qualified AST.Typed as T
 import qualified AST.Untyped as U
 
 
-
 bodyUniq :: Common.Uniqueness
 bodyUniq = 
   Common.Unique
@@ -35,7 +34,7 @@ typeCheckValDecl params expr f modScope (U.ValDecl offset name declType implicit
   let 
     defScope :: Scope U.Type
     defScope = 
-      createDefScope modScope params declType
+      createDefScope modScope params declType implicits
 
     reqType :: U.Type
     reqType = 
@@ -52,7 +51,7 @@ typeCheckValDecl params expr f modScope (U.ValDecl offset name declType implicit
   in do
     reqTypeT <- toTypedType offset defScope bodyUniq reqType
     declTypeT <- toTypedType offset defScope uniq declType
-    let parListWithUniq = (fmap (\a -> (a, Common.NonUnique)) implicits) ++ fnParListWithUniq declType
+    let parListWithUniq = fnParListWithUniq declType implicits
     paramsT <- traverse toTypedParam $ zip params parListWithUniq
     typedExpr <- (runUseCounting (U.expressionOffset expr) defScope) $ toTypedExpression defScope (Just reqType) (Just bodyUniq) expr 
     let exprT = unifyTypes (T.expressionType $ typedExpr) reqTypeT
@@ -62,7 +61,11 @@ typeCheckValDecl params expr f modScope (U.ValDecl offset name declType implicit
       Left (U.expressionOffset expr,  "expression has type " ++ (show exprT) ++ ", expected " ++ (show reqTypeT))
 
 
-resolveImplicit :: Int -> Scope U.Type -> (String, U.Type) -> Either TypeErrorAt (String, T.Type, T.Expression)
+resolveImplicit 
+  :: Int 
+  -> Scope U.Type 
+  -> (String, U.Type) 
+  -> Either TypeErrorAt (String, T.Type, T.Expression)
 resolveImplicit offset defScope (a, t) = 
   let 
     uniq = Common.NonUnique

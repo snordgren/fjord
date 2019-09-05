@@ -14,12 +14,12 @@ import qualified AST.Untyped as U
 {-|
 Derive the scope of a definition with parameters. 
 -}
-createDefScope :: Scope U.Type -> [U.Parameter] -> U.Type -> Scope U.Type
-createDefScope modScope parameters typ = 
+createDefScope :: Scope U.Type -> [U.Parameter] -> U.Type -> [U.Type] -> Scope U.Type
+createDefScope modScope parameters typ implicits = 
   let
     parameterBindings = 
       fmap (\(a, (typ, uniq)) -> (a, typ, uniq, Common.InFunction)) $ 
-        List.zip (fmap U.parameterName parameters) (fnParListWithUniq typ)
+        List.zip (fmap U.parameterName parameters) (fnParListWithUniq typ implicits)
 
     typeLambdaValues t =
       case t of 
