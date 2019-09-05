@@ -125,43 +125,23 @@ makeErrorBundlePretty initialPosState (offset, err) =
         bundlePosState = initialPosState
       }
 
-    msg = 
+    msg = err {-
       case err of 
         WrongType expected actual -> 
           "expression has type " ++ (show actual) ++ ", expected " ++ (show expected)
 
         ExpectedNonUnique -> 
-          "expected shared value"
+          
     
         ExpectedUnique -> 
            "expected unique value"
-    
-        CannotInferType s -> 
-          ("cannot infer type\n" ++ s)
-    
+  
         ImplicitNotFound typ name ->
-          ("cannot find implicit " ++ name ++ " of type " ++ show typ)
+          
     
         ImportNotFound (U.Import _ name) -> 
           ("cannot find import " ++ name)
-    
-        TooFewUsages name -> 
-          ("too few usages of " ++ name)
-    
-        TooManyParameters expectedCount -> 
-          ("too many parameters, expected " ++ (show expectedCount))
-    
-        TooManyUsages name -> 
-            "too many usages of " ++ name
-    
-        UndefinedInScope ->
-          "undefined in scope"
-    
-        UnknownFieldType fieldName t ->
-          "unknown field type " ++ fieldName ++ " for type " ++ (show t)
-    
-        UnknownType s -> 
-          "unknown type " ++ s
+                          -}
   in
     bundleMsg offset msg
 

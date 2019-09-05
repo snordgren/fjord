@@ -35,4 +35,4 @@ resolveTupleUniq offset uniqValues =
   else if List.length (List.nub uniqValues) == 1 then
     return $ List.head uniqValues
   else 
-    Left (offset,  MixedUniquenessInTuple)
+    Left (offset, "mixed uniqueness in tuple")

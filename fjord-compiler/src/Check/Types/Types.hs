@@ -103,7 +103,7 @@ toTypedType offset scope uniq a =
           List.find (\(t, _, nameType) -> t == name) typeNames
 
         resultE =
-          Combinators.maybeToRight (offset, UnknownType name) result
+          Combinators.maybeToRight (offset, "unknown type " ++ name) result
       in
         fmap (\(t, _, nameType) -> T.TypeName uniq t nameType) resultE
 

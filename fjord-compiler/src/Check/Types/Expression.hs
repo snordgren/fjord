@@ -51,9 +51,10 @@ toTypedExpression scope expectType expectUniq expr =
               return $ T.Apply typedA typedB
   
             _ -> 
-              useCountM $ Left (offset, CannotInferType $ "cannot infer function type " ++ show exprType)
+              useCountM $ Left (offset, "cannot infer function type " ++ show exprType)
         else 
-          useCountM $ Left (offset, WrongType reqParT parT)
+          useCountM $ Left (offset, 
+            "expression has type " ++ (show parT) ++ ", expected " ++ (show reqParT))
 
     U.Case offset expr patterns ->
       do
@@ -69,7 +70,7 @@ toTypedExpression scope expectType expectUniq expr =
 
         Nothing ->
           useCountM $ Left (U.expressionOffset expr,
-            CannotInferType "cannot infer int uniqueness")
+            "cannot infer int uniqueness")
 
     U.Lambda offset name expr ->
       createLambda offset name scope expectUniq Common.NonUnique expectType expr T.Lambda
@@ -99,7 +100,7 @@ toTypedExpression scope expectType expectUniq expr =
           case findUseCount useCounts of 
             Just useCounter -> 
               if UseCounter.isUsedLinearly useCounter then
-                Left (offset, TooManyUsages s)
+                Left (offset, "too many usages of " ++ (UseCounter.name useCounter))
               else 
                 case expectUniq of 
                   Just uniq ->
@@ -108,7 +109,7 @@ toTypedExpression scope expectType expectUniq expr =
                         return ((UseCounter.markUsedLinearly useCounter) : (removeUseCount useCounts))
                       
                       Common.NonUnique -> 
-                        Left (offset, ExpectedNonUnique)
+                        Left (offset, "expected shared value")
                   _ -> return useCounts
             Nothing -> return useCounts
       in 
@@ -158,8 +159,7 @@ toTypedExpression scope expectType expectUniq expr =
           return $ T.StringLiteral value uniq
 
         Nothing ->
-          useCountM $ Left (U.expressionOffset expr, 
-            CannotInferType "cannot infer uniqueness of string value")
+          useCountM $ Left (U.expressionOffset expr, "cannot infer uniqueness of string value")
             
 
     U.Tuple offset values ->
@@ -169,8 +169,7 @@ toTypedExpression scope expectType expectUniq expr =
             return $ T.Tuple uniq []
 
           Nothing ->
-            useCountM $ Left (U.expressionOffset expr, CannotInferType
-              "cannot infer uniqueness of empty tuple")
+            useCountM $ Left (U.expressionOffset expr, "cannot infer uniqueness of empty tuple")
       else 
         case expectUniq of 
           Just uniq -> 
@@ -179,7 +178,7 @@ toTypedExpression scope expectType expectUniq expr =
               return $ T.Tuple uniq typedValues
 
           Nothing -> 
-            useCountM $ Left (U.expressionOffset expr, CannotInferType "cannot infer tuple uniqueness")
+            useCountM $ Left (U.expressionOffset expr, "cannot infer tuple uniqueness")
 
     U.UniqueLambda offset name expr -> 
       createLambda offset name scope expectUniq Common.Unique expectType expr T.UniqueLambda
@@ -197,7 +196,7 @@ createLambda
 createLambda offset name scope expectUniq parUniq expectType expr f =
   let
     unableToInfer s t = 
-      useCountM $ Combinators.maybeToRight (offset, CannotInferType s) t
+      useCountM $ Combinators.maybeToRight (offset, "cannot infer type\n" ++ s) t
   in 
     do
       t <- unableToInfer "missing expected type" expectType
@@ -255,7 +254,7 @@ runUseCounting offset scope e =
     if Either.isRight eith then
       case tooFewUsages of
         Just a -> 
-          Left (offset, TooFewUsages $ UseCounter.name a)
+          Left (offset, "too few usages of " ++ (UseCounter.name a))
 
         Nothing -> 
           eith
@@ -386,6 +385,6 @@ findRecordAccessType offset scope fieldName recordType =
       alternativesM <- traverse tryCandidate $ scopeFields scope
       let alts = List.concat alternativesM
       if length alts <= 0 then
-        Left (offset, UnknownFieldType fieldName recordType)
+        Left (offset, "unknown field type " ++ fieldName ++ " for type " ++ (show recordType))
       else
         return $ head alts

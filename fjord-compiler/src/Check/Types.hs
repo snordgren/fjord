@@ -66,7 +66,11 @@ checkImport :: [U.TypeDef] -> U.Import -> Either TypeErrorAt T.Import
 checkImport typeDefs imp = 
   case findTypeDefForImport typeDefs imp of
     Just a -> Right $ T.Import (U.importModule imp) $ U.typeDefSource a
-    Nothing -> Left (U.importOffset imp, ImportNotFound imp)
+    Nothing -> Left (U.importOffset imp, "cannot find import " ++ importName imp)
+
+
+importName :: U.Import -> String
+importName (U.Import _ name) = name
 
 
 {-
@@ -137,7 +141,7 @@ validateParamCount (U.ValDef valDecl params expr) =
         offset =
           U.parameterOffset $ head (drop maxParamCount params)
       in
-        Left (offset, TooManyParameters maxParamCount)
+        Left (offset, "too many parameters, expected " ++ (show maxParamCount))
     else
       Right $ U.ValDef valDecl params expr
     
