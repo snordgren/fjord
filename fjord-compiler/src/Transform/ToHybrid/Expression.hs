@@ -55,23 +55,12 @@ transformExpr expr =
         Common.InFunction -> H.Read (transformType t) a
         Common.OtherModule b -> H.ReadImport (transformType t) a b
 
-    T.Operator name opType a b orig ->
-      let
-        mangledName :: String
-        mangledName =
-          NameMangling.mangle name
-         
-        readOp :: H.Expression
-        readOp = 
-          case orig of
-            Common.SameModule -> H.Read (transformType opType) mangledName
-            Common.InFunction -> H.Read (transformType opType) mangledName
-            Common.OtherModule b -> H.ReadImport (transformType opType) mangledName b
-      in
-        do 
-          ta <- transformExpr a
-          tb <- transformExpr b
-          return $ H.Invoke readOp [ta, tb] 
+    T.Operator expr opType a b orig ->
+      do 
+        readOp <- transformExpr expr
+        ta <- transformExpr a
+        tb <- transformExpr b
+        return $ H.Invoke readOp [ta, tb] 
 
     T.RecAccess fieldName fieldType sourceExpression ->
       do
@@ -94,14 +83,14 @@ transformExpr expr =
             ]
       in do
         transformedSrcExpr <- transformExpr sourceExpression
-        transformedFieldUpdates <- Monad.sequence $ fmap transformFieldUpdate fieldUpdates
+        transformedFieldUpdates <- traverse transformFieldUpdate fieldUpdates
         let statements = (List.concat $ transformedFieldUpdates) ++ [retStmt]
         return $ H.IIFE $ H.Block [(updateFieldName, updateFieldType, Just transformedSrcExpr)] statements
 
     T.StringLiteral s _ -> return $ H.StringLiteral s
     T.Tuple uniq values -> 
       do
-        transExprs <- Monad.sequence $ fmap transformExpr values
+        transExprs <- traverse transformExpr values
         return $ H.Immutable $ H.Array transExprs
 
     T.UniqueLambda variable variableType body ->
@@ -183,7 +172,7 @@ transformApply a b =
     missingParamIx = List.zip missingParameters [0..(hiddenParamCount - 1)]
     missingParamArr = fmap (\(t, n) -> ("_" ++ (show n), t)) missingParamIx
   in do
-    transformedParams <- trace ("x: " ++ show rootF) $ Monad.sequence (fmap transformExpr passedParameters)
+    transformedParams <- traverse transformExpr passedParameters
     transformedRootF <- transformExpr rootF
     hiddenParamStartN <- get
     let hiddenParams = fmap (mkMissingParam hiddenParamStartN) missingParamIx

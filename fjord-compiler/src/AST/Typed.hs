@@ -36,7 +36,7 @@ data Expression
   | Lambda String Type Expression
   | Let String Expression Expression
   | Name String Type Common.Uniqueness Common.Origin
-  | Operator String Type Expression Expression Common.Origin
+  | Operator Expression Type Expression Expression Common.Origin
   | RecAccess String Type Expression
   | RecUpdate Expression [FieldUpdate]
   | StringLiteral String Common.Uniqueness

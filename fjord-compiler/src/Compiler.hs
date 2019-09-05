@@ -14,6 +14,7 @@ import qualified System.Directory as Directory
 
 import Check.Types.Common
 import Check.Types (typeCheck)
+import Transform.Resolve (resolveModule)
 import qualified AST.Typed as T
 import qualified AST.Untyped as U
 import qualified CodeGen.JS as JS
@@ -28,8 +29,19 @@ runCompiler dir path =
     typeDefs <- Compiler.readTypeDefs dir
     src <- readFile path
     let compileResult = Compiler.compileM dir typeDefs path src
-    let prettyCompileResult = Combinators.mapLeft errorBundlePretty compileResult
-    return prettyCompileResult
+    return compileResult
+
+
+parseModule 
+  :: String 
+  -> [(String, String)] 
+  -> String 
+  -> String 
+  -> Either (ParseErrorBundle String String) T.Module
+parseModule dir typeDefSources fileName fileContents =
+  do
+    typeDefs <- traverse (\(a, b) -> parseTypeDef dir a b) typeDefSources
+    parseModuleSource typeDefs fileName fileContents
 
 
 compileM 
@@ -37,13 +49,13 @@ compileM
   -> [(String, String)] 
   -> String 
   -> String 
-  -> Either (ParseErrorBundle String String) (String, String)
+  -> Either String (String, String)
 compileM dir typeDefSources fileName fileContents =
   do
-    typeDefs <- traverse (\(a, b) -> parseTypeDef dir a b) typeDefSources
-    mod <- parseModuleSource typeDefs fileName fileContents
-    return (generateJSModule fileName mod, TypeDef.genDefStr mod)
-
+    let parseRes = parseModule dir typeDefSources fileName fileContents
+    parseRes0 <- Combinators.mapLeft errorBundlePretty parseRes
+    resolvedModule <- resolveModule parseRes0
+    return (generateJSModule fileName resolvedModule, TypeDef.genDefStr resolvedModule)
 
 {-|
 Read the type defs in the folder.
@@ -53,7 +65,7 @@ readTypeDefs dir =
   do
     paths <- getFilesWithin dir
     let typeDefPaths = filter (List.isSuffixOf ".d.fj") paths
-    Monad.sequence $ fmap (\p -> fmap (\a -> (p, a)) $ readFile p) typeDefPaths
+    traverse (\p -> fmap (\a -> (p, a)) $ readFile p) typeDefPaths
 
 
 getFilesWithin :: String -> IO [String]

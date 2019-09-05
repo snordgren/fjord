@@ -129,7 +129,7 @@ toTypedExpression scope expectType expectUniq expr =
 
     U.Operator offset name a b -> 
       do
-        (opType, uniq, intro) <- useCountM $ scopeVariableType scope offset name 
+        (opType, uniq, orig) <- useCountM $ scopeVariableType scope offset name 
         opTypeT <- useCountM $ toTypedType offset scope uniq opType
         let paramAUniq = T.parTypeUniq $ opTypeT
         let paramBUniq = T.parTypeUniq $ T.returnType opTypeT
@@ -137,7 +137,8 @@ toTypedExpression scope expectType expectUniq expr =
         typedB <- toTypedExpression scope expectType (Just paramBUniq) b
         let exprType = T.unifyTypes opTypeT $ T.expressionType typedA
         let implicits = T.implicitsIn exprType
-        return $ T.Operator name opTypeT typedA typedB intro
+        let opName = T.Name name opTypeT Common.NonUnique orig
+        return $ T.Operator opName opTypeT typedA typedB orig
 
     U.RecAccess offset fieldName target -> 
       do
@@ -174,7 +175,7 @@ toTypedExpression scope expectType expectUniq expr =
         case expectUniq of 
           Just uniq -> 
             do
-              typedValues <- Monad.sequence $ fmap (toTypedExpression scope Nothing expectUniq) values
+              typedValues <- traverse (toTypedExpression scope Nothing expectUniq) values
               return $ T.Tuple uniq typedValues
 
           Nothing -> 
@@ -278,7 +279,7 @@ toTypedPattern scope expr expectType expectUniq (U.Pattern offset ctor vars retE
     let patSubst = findPatSubst patSubstTypeVars patSubstCtorType realExprType
     let substCtorType = List.foldl' (\acc (name, subst) -> replaceTypeName name subst acc) ctorType patSubst
     let patScope = createPatternScope substCtorType vars scope
-    types <- useCountM $ Monad.sequence $ fmap (toTypedType offset patScope uniq) $ fnParamList substCtorType
+    types <- useCountM $ traverse (toTypedType offset patScope uniq) $ fnParamList substCtorType
     let mergedVars = List.zip vars types
     typedRetExpr <- toTypedExpression patScope expectType expectUniq retExpr
     return $ T.Pattern ctor mergedVars typedRetExpr
@@ -363,7 +364,7 @@ renameTypeVars t =
       T.typeVarsIn t
   in
     do
-      substitutions <- Monad.sequence $ fmap renameTypeVar typeVars
+      substitutions <- traverse renameTypeVar typeVars
       let res = List.foldl' (\acc (prev, var) -> T.renameTypeVar prev var acc) t substitutions
       return res
 

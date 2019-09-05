@@ -58,7 +58,7 @@ typeCheck typeDefs m =
   in
     do
       defs <- traverse (toTypedDef modScope) $ U.moduleDefs m
-      imports <- Monad.sequence $ fmap (checkImport typeDefs) $ U.moduleImports m
+      imports <- traverse (checkImport typeDefs) $ U.moduleImports m
       return $ T.Module (U.moduleName m) imports defs
 
 
@@ -90,11 +90,11 @@ toTypedDef modScope a =
 
         toTypedEnumConstructor (U.EnumConstructor ctorPos s parTypes retType) = 
           do
-            parTypesT <- Monad.sequence $ fmap (toTypedType ctorPos enumScope enumParUniq) parTypes
+            parTypesT <- traverse (toTypedType ctorPos enumScope enumParUniq) parTypes
             retTypeT <- toTypedType ctorPos enumScope enumRetUniq retType
             return $ T.EnumConstructor s parTypesT retTypeT
       in do
-        ctors <- Monad.sequence $ fmap toTypedEnumConstructor constructors
+        ctors <- traverse toTypedEnumConstructor constructors
         return $ T.EnumDef name ctors
 
     U.ImplicitDef valDecl expr -> 
@@ -114,7 +114,7 @@ toTypedDef modScope a =
             return $ T.RecField fieldName typedT
       in 
         do
-          fieldsT <- Monad.sequence $ fmap toTypedRecField fields
+          fieldsT <- traverse toTypedRecField fields
           return $ T.RecDef name fieldsT
 
     U.ValDef valDecl params expr -> 
