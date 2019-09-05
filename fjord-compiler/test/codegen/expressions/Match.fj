@@ -4,7 +4,7 @@ enum Binary
   Zero : Binary
   One : Binary
 
-toInt : Binary -* Int
+toInt : Binary -> Int
 toInt b = 
   case b of
     Zero -> 0

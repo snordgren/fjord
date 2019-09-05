@@ -95,7 +95,6 @@ data Parameter
 
 data Type 
   = FunctionType Common.Uniqueness Type Type
-  | LinearFunctionType Type Type
   | TupleType Common.Uniqueness [Type]
   | TypeApply Type Type
   | TypeLambda String Type
@@ -116,9 +115,6 @@ instance Show Type where
     
             Common.NonUnique ->
               base
-              
-      LinearFunctionType p r -> 
-        (show p) ++ " -* " ++ (show r)
 
       TupleType uniq values -> 
         (uniqPrefix uniq) ++ "(" ++ (List.intercalate ", " $ fmap show values) ++ ")"
@@ -164,7 +160,6 @@ expressionType a =
     RecUpdate a _ -> expressionType a
     StringLiteral _ uniq -> TypeName uniq "String" Common.TypeRef
     Tuple uniq values -> TupleType uniq $ fmap expressionType values
-    UniqueLambda _ t r -> LinearFunctionType t $ expressionType r
 
 
 typeUniq :: Type -> Common.Uniqueness
@@ -172,9 +167,6 @@ typeUniq t =
   case t of 
     FunctionType uniq _ _ -> 
       uniq
-
-    LinearFunctionType _ _ ->
-      Common.Unique
 
     TypeApply f par ->
       typeUniq f
@@ -209,9 +201,6 @@ returnType :: Type -> Type
 returnType t =
   case concreteType t of 
     FunctionType _ _ a -> 
-      a
-
-    LinearFunctionType _ a ->
       a
 
     TypeLambda _ ret -> 
@@ -249,7 +238,6 @@ replaceTypeName name with target =
   in
     case target of 
       FunctionType uniq par ret -> FunctionType uniq (next par) $ next ret
-      LinearFunctionType par ret -> LinearFunctionType (next par) $ next ret
       TupleType uniq types -> TupleType uniq $ fmap next types
       TypeApply f par -> TypeApply (next f) $ next par
       TypeLambda arg ret -> 
@@ -276,13 +264,6 @@ findPatSubst typeVars exprType t =
       FunctionType exprUniq exprPar exprRet -> 
         case t of 
           FunctionType tUniq tPar tRet ->
-            self exprPar tPar ++ self exprRet tRet
-
-          _ -> []
-
-      LinearFunctionType exprPar exprRet -> 
-        case t of 
-          LinearFunctionType tPar tRet -> 
             self exprPar tPar ++ self exprRet tRet
 
           _ -> []
@@ -315,7 +296,6 @@ typeVarsIn :: Type -> [String]
 typeVarsIn t =
   case t of 
     FunctionType uniq par ret -> typeVarsIn par ++ typeVarsIn ret
-    LinearFunctionType par ret -> typeVarsIn par ++ typeVarsIn ret
     TupleType uniq types -> List.concat $ fmap typeVarsIn types
     TypeApply f par -> typeVarsIn f ++ typeVarsIn par
     TypeLambda arg ret -> arg : typeVarsIn ret
@@ -332,9 +312,6 @@ fnParamList t =
     FunctionType uniq a b ->
       a : fnParamList b
 
-    LinearFunctionType a b ->
-      a : fnParamList b
-
     TypeLambda _ ret -> 
       fnParamList ret
 
@@ -349,7 +326,6 @@ renameTypeVar from to t =
     in
       case t of 
         FunctionType uniq par ret -> FunctionType uniq (next par) $ next ret
-        LinearFunctionType par ret -> LinearFunctionType (next par) $ next ret
         TupleType uniq types -> TupleType uniq $ fmap next types
         TypeApply f par -> TypeApply (next f) $ next par
         TypeLambda arg ret -> 

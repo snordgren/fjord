@@ -1,5 +1,5 @@
 module Util
 
-drop : a. b. b -* a -* b
+drop : a. b. b -> a -> b
 
 toString : a. a -> String

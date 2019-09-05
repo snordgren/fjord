@@ -1,6 +1,6 @@
 module errors.uniqueness.ExpectUnique
 
-requiresUnique : Int -* Int
+requiresUnique : Int -> Int
 requiresUnique x =
   x
 

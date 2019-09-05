@@ -8,12 +8,12 @@ defaultPosition : Point
 defaultPosition = 
   Point 1 2
 
-toOrigin : Point -* Point
+toOrigin : Point -> Point
 toOrigin p = { p | x = 0, y = 0 }
 
-setXAndY : Int -* Int -* Point -* Point
+setXAndY : Int -> Int -> Point -> Point
 setXAndY x y p = { { p | x = x } | y = y }
 
-withX : a. Point -> (Int -> a) -* a
+withX : a. Point -> (Int -> a) -> a
 withX p f =
   f (p.x)

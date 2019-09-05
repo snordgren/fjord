@@ -1,6 +1,6 @@
 module test.codegen.functions.Identity
 
-id : Int -* Int
+id : Int -> Int
 id x = 
   x
 

@@ -8,11 +8,20 @@ import Text.Megaparsec.Char
 import qualified Control.Monad.Combinators.Expr as Expr
 
 import Parser.Common
+import qualified AST.Common as Common
 import qualified AST.Untyped as U
 
 typeTermP :: Parser U.Type
 typeTermP = 
-  choice [try emptyTupleP, try tupleTypeP, parenTypeP, typeNameP]
+  choice [try sharedValueP, try emptyTupleP, try tupleTypeP, parenTypeP, typeNameP]
+
+
+sharedValueP :: Parser U.Type
+sharedValueP = 
+  do
+    string "&"
+    t <- typeTermP
+    return $ U.typeWithUniq Common.NonUnique t
 
 
 emptyTupleP :: Parser U.Type
@@ -22,7 +31,7 @@ emptyTupleP =
     char '('
     many spaceP
     char ')'
-    return $ U.TupleType offset []
+    return $ U.TupleType offset [] Common.Unique
 
 
 tupleTypeP :: Parser U.Type
@@ -42,7 +51,7 @@ tupleTypeP = label "tuple type" $
     tail <- some rhsP
     many spaceP
     char ')'
-    return $ U.TupleType offset $ head : tail
+    return $ U.TupleType offset (head : tail) Common.Unique
 
 
 parenTypeP :: Parser U.Type
@@ -61,28 +70,21 @@ typeNameP =
     do
       offset <- getOffset
       name <- nameP
-      return $ U.TypeName offset name
+      return $ U.TypeName offset name Common.Unique
 
 typeP :: Parser U.Type
 typeP = 
   let 
-    linearFunction = Expr.InfixR $ try $ label "-* function" $ do 
-      offset <- getOffset
-      many spaceP
-      string "-*"
-      many spaceP
-      return $ U.LinearFunctionType offset
-
-    pureFunction = Expr.InfixR $ try $ label "-> function" $ do 
+    pureFunction = Expr.InfixR $ try $ label "function" $ do 
       offset <- getOffset
       many spaceP
       string "->"
       many spaceP
-      return $ U.FunctionType offset
+      return $ U.FunctionType offset Common.NonUnique
   in 
     Expr.makeExprParser typeTermP [
       [Expr.InfixL $ try $ typeApplyP], 
-      [pureFunction, linearFunction]
+      [pureFunction]
     ]
 
 

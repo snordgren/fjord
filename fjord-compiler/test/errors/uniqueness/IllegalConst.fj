@@ -1,6 +1,6 @@
 module errors.uniqueness.IllegalConst
 
-illegalConst : String -* Int -> String
+illegalConst : String -> Int -> String
 illegalConst x y =
   x
 
@@ -8,7 +8,7 @@ useIllegalConst : (Int -> String) -> (String, String)
 useIllegalConst f =
   (f 0, f 0)
 
-dup : String -* (String, String)
+dup : String -> (String, String)
 dup x = 
   useIllegalConst (illegalConst x)
 

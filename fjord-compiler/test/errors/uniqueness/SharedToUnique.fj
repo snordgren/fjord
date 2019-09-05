@@ -1,6 +1,6 @@
 module errors.uniqueness.SharedToUnique
 
-useUnique : Int -* Int
+useUnique : Int -> Int
 useUnique x =
   x
 

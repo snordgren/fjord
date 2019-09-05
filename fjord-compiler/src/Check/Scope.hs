@@ -85,7 +85,7 @@ scopeContrib origin d =
               List.intersect typeVars $ U.typeNamesIn retT
 
             typ = 
-              List.foldr (\par ret -> U.LinearFunctionType offset par ret) 
+              List.foldr (\par ret -> U.FunctionType offset Common.NonUnique par ret) 
                 retT $ U.enumConstructorParTypes c
 
             typeLambdas = 
@@ -117,14 +117,14 @@ scopeContrib origin d =
           fmap U.recFieldType fields
     
         ctorType = 
-          List.foldr (U.LinearFunctionType offset) ctorRetType fieldTypes
+          List.foldr (U.FunctionType offset Common.NonUnique) ctorRetType fieldTypes
 
         ctorWithTypeVars = 
           List.foldr (\par ret -> U.TypeLambda offset par ret) ctorType typeVars
 
         ctorRetType = 
-          List.foldr (\par f -> U.TypeApply offset f $ U.TypeName offset par) 
-            (U.TypeName offset name) typeVars
+          List.foldr (\par f -> U.TypeApply offset f (U.TypeName offset par Common.Unique))
+            (U.TypeName offset name Common.Unique) typeVars
 
         scopeFields :: [(String, U.Type, U.Type, Common.Origin)]
         scopeFields = 

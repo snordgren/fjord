@@ -74,28 +74,10 @@ genTypeDefStr t =
             T.FunctionType uniq a b -> 
               "(" ++ genTypeDefStr par ++ ")"
 
-            T.LinearFunctionType a b -> 
-              "(" ++ genTypeDefStr par ++ ")"
-
             _ -> 
               genTypeDefStr par
       in
         parStr ++ " -> " ++ genTypeDefStr ret
-
-    T.LinearFunctionType par ret -> 
-      let 
-        parStr = 
-          case par of 
-            T.FunctionType uniq a b -> 
-              "(" ++ genTypeDefStr par ++ ")"
-
-            T.LinearFunctionType a b -> 
-              "(" ++ genTypeDefStr par ++ ")"
-
-            _ -> 
-              genTypeDefStr par
-      in
-        parStr ++ " -* " ++ genTypeDefStr ret
 
     T.TupleType uniq types -> 
       "(" ++ (List.intercalate ", " $ fmap genTypeDefStr types) ++ ")"

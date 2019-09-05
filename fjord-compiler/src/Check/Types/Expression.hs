@@ -47,9 +47,6 @@ toTypedExpression scope expectType expectUniq expr =
             T.FunctionType uniq param ret -> 
               return $ T.Apply typedA typedB
   
-            T.LinearFunctionType par ret -> 
-              return $ T.Apply typedA typedB
-  
             _ -> 
               useCountM $ Left (offset, "cannot infer function type " ++ show exprType)
         else 
@@ -305,7 +302,7 @@ findPatSubst typeVars t exprType =
         case U.concreteType t of 
           U.TypeApply _ tF tPar ->
             case tPar of 
-              U.TypeName _ name -> 
+              U.TypeName _ name _ -> 
                 if List.elem name typeVars then
                   [(name, exprPar)]
                 else
@@ -318,7 +315,7 @@ typeOf :: Scope U.Type -> U.Expression -> Either TypeErrorAt U.Type
 typeOf scope expr = 
   case expr of 
     U.IntLiteral offset _ ->
-      return $ U.TypeName 0 "Int"
+      return $ U.TypeName 0 "Int" Common.NonUnique
       
     U.Name offset name ->
       do
@@ -335,16 +332,15 @@ replaceTypeName name with target =
       replaceTypeName name with
   in
     case target of 
-      U.FunctionType pos par ret -> U.FunctionType pos (next par) $ next ret
-      U.LinearFunctionType pos par ret -> U.LinearFunctionType pos (next par) $ next ret
-      U.TupleType pos types -> U.TupleType pos $ fmap next types
+      U.FunctionType pos uniq par ret -> U.FunctionType pos uniq (next par) $ next ret
+      U.TupleType pos types uniq -> U.TupleType pos (fmap next types) uniq
       U.TypeApply pos f par -> U.TypeApply pos (next f) $ next par
       U.TypeLambda pos arg ret -> U.TypeLambda pos arg $ next ret
-      U.TypeName pos typeName -> 
+      U.TypeName pos typeName uniq -> 
         if name == typeName then
           with
         else
-          U.TypeName pos typeName
+          U.TypeName pos typeName uniq
 
 
 renameTypeVar :: String -> UseCountM (String, String)

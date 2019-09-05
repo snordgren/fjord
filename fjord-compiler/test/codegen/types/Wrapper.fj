@@ -3,6 +3,6 @@ module codegen.types.Wrapper
 record Wrapper a
   value : a
 
-wrapInt : Int -* Wrapper Int
+wrapInt : Int -> Wrapper Int
 wrapInt x =
   Wrapper x

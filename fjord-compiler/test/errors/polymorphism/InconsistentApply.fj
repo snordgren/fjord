@@ -1,6 +1,6 @@
 module errors.parametricPolymorhpism.InconsistentApply
 
-second : a. a -> a -* a
+second : a. a -> a -> a
 second x y =
   y
 

@@ -39,25 +39,41 @@ data Declaration
   deriving (Eq, Show)
 
 data Type 
-  = FunctionType Int Type Type
-  | LinearFunctionType Int Type Type
-  | TupleType Int [Type]
+  = FunctionType Int Common.Uniqueness Type Type 
+  | TupleType Int [Type] Common.Uniqueness
   | TypeApply Int Type Type
   | TypeLambda Int String Type
-  | TypeName Int String
+  | TypeName Int String Common.Uniqueness
   deriving (Eq)
+
+
+typeUniq :: Type -> Common.Uniqueness
+typeUniq t = 
+  case t of 
+    FunctionType _ uniq _ _ -> uniq
+    TupleType _ _ uniq -> uniq
+    TypeApply _ f _ -> typeUniq f
+    TypeLambda _ _ ret -> typeUniq ret
+    TypeName _ _ uniq -> uniq
+
+
+typeWithUniq :: Common.Uniqueness -> Type -> Type
+typeWithUniq uniq t = 
+  case t of 
+    FunctionType offset _ par ret -> FunctionType offset uniq par ret
+    TupleType offset types _ -> TupleType offset (fmap (typeWithUniq uniq) types) uniq
+    TypeApply offset f par -> TypeApply offset (typeWithUniq uniq f) par
+    TypeLambda offset var typ -> TypeLambda offset var (typeWithUniq uniq typ)
+    TypeName offset name _ -> TypeName offset name uniq
 
 
 instance Show Type where
   show a = 
     case a of 
-      FunctionType _ p r -> 
+      FunctionType _ p r _ -> 
         show p ++ " -> " ++ show r
 
-      LinearFunctionType _ p r -> 
-        show p ++ " -* " ++ show r
-
-      TupleType _ t -> 
+      TupleType _ t _ -> 
         "(" ++ (List.intercalate "," $ fmap show t) ++ ")"
 
       TypeApply _ f par ->
@@ -66,7 +82,7 @@ instance Show Type where
       TypeLambda _ n t -> 
         n ++ " => " ++ (show t)
 
-      TypeName _ t -> 
+      TypeName _ t _ -> 
         t
 
 
@@ -249,21 +265,18 @@ concreteType t =
 typeNamesIn :: Type -> [String]
 typeNamesIn t =
   case t of 
-    FunctionType _ par ret -> typeNamesIn par ++ typeNamesIn ret
-    LinearFunctionType _ par ret -> typeNamesIn par ++ typeNamesIn ret
-    TupleType _ types -> List.concat $ fmap typeNamesIn types
+    FunctionType _ _ par ret -> typeNamesIn par ++ typeNamesIn ret
+    TupleType _ types _ -> List.concat $ fmap typeNamesIn types
     TypeApply _ f par -> typeNamesIn f ++ typeNamesIn par
     TypeLambda _ arg ret -> arg : typeNamesIn ret
-    TypeName _ name -> [name]
+    TypeName _ name _ -> [name]
 
 
 parameterType :: Type -> Maybe Type
-parameterType (FunctionType _ p _) = Just p
-parameterType (LinearFunctionType _ p _) = Just p
+parameterType (FunctionType _ _ p _) = Just p
 parameterType _ = Nothing
 
 
 returnType :: Type -> Maybe Type
-returnType (FunctionType _ _ ret) = Just ret
-returnType (LinearFunctionType _ _ ret) = Just ret
+returnType (FunctionType _ _ ret _) = Just ret
 returnType _ = Nothing

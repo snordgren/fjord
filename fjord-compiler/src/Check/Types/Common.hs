@@ -17,11 +17,8 @@ fnParListWithUniq t implicits =
       fmap (\a -> (a, Common.NonUnique)) implicits
   in
     case t of 
-      U.FunctionType _ par ret -> 
+      U.FunctionType _ _ par ret -> 
         uniqImplicits ++ ((par, Common.NonUnique) : fnParListWithUniq ret [])
-
-      U.LinearFunctionType _ par ret ->
-        uniqImplicits ++ ((par, Common.Unique) : fnParListWithUniq ret [])
 
       U.TypeLambda _ _ ret ->
         uniqImplicits ++ (fnParListWithUniq ret [])

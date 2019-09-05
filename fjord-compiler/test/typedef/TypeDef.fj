@@ -20,10 +20,10 @@ five : () -> Int
 five a = 
   5
 
-stringIdentity : String -* String
+stringIdentity : String -> String
 stringIdentity a = 
   a
 
-fn0 : (String -> String) -* String
+fn0 : (String -> String) -> String
 fn0 a = 
   a ""

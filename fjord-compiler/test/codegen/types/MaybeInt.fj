@@ -4,7 +4,7 @@ enum MaybeInt
   None : MaybeInt
   Some Int : MaybeInt
 
-maybeToInt : MaybeInt -* Int
+maybeToInt : MaybeInt -> Int
 maybeToInt m = 
   case m of 
     None -> 0

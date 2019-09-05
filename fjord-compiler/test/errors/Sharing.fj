@@ -1,10 +1,10 @@
 module codegen.expressions.Sharing
 
-useSharedInt : Int -> Int -* Int
+useSharedInt : Int -> Int -> Int
 useSharedInt x y =
   y
 
-shareInt : Int -* Int
+shareInt : Int -> Int
 shareInt x =
   useSharedInt x x
 

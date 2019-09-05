@@ -15,7 +15,7 @@ maybeOne =
   Some 1
 
 
-someOrZero : Maybe Int -* Int
+someOrZero : Maybe Int -> Int
 someOrZero x =
   case x of 
     None -> 0

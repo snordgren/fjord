@@ -64,29 +64,26 @@ typeCheckValDecl params expr f modScope (U.ValDecl offset name declType implicit
 compareTypEq :: U.Type -> U.Type -> Bool
 compareTypEq a b = 
   case a of 
-    U.FunctionType _ c d -> 
+    U.FunctionType _ aUniq c d -> 
       case b of 
-        U.FunctionType _ e f -> 
-          (compareTypEq c e) && (compareTypEq d f)
-
-        U.LinearFunctionType _ e f ->
-          (compareTypEq c e) && (compareTypEq d f)
+        U.FunctionType _ bUniq e f -> 
+          (compareTypEq c e) && (compareTypEq d f) && aUniq == bUniq
 
         _ -> 
           False
 
-    U.TypeName _ c ->
+    U.TypeName _ c cUniq ->
       case b of 
-        U.TypeName _ d -> 
-          c == d
+        U.TypeName _ d dUniq-> 
+          c == d && cUniq == dUniq
 
         _ ->
           False
 
-    U.TupleType _ c ->
+    U.TupleType _ c cUniq ->
       case b of 
-        U.TupleType _ d -> 
-          c == d
+        U.TupleType _ d dUniq-> 
+          c == d && cUniq == dUniq
 
         _ ->
           False

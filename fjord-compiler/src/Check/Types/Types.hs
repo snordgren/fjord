@@ -18,10 +18,7 @@ Get all the parameters of this type.
 fnParamList :: U.Type -> [U.Type]
 fnParamList t = 
   case t of 
-    U.FunctionType _ par ret -> 
-      par : fnParamList ret
-
-    U.LinearFunctionType _ par ret ->
+    U.FunctionType _ _ par ret -> 
       par : fnParamList ret
 
     U.TypeLambda _ _ ret ->
@@ -34,10 +31,7 @@ fnParamList t =
 fnTypeList :: U.Type -> [U.Type]
 fnTypeList t =
   case t of 
-    U.FunctionType _ p r -> 
-      p : fnTypeList r
-      
-    U.LinearFunctionType _ p r ->
+    U.FunctionType _ _ p r -> 
       p : fnTypeList r
 
     a -> 
@@ -47,11 +41,12 @@ toTypedType :: Int -> Scope U.Type -> Common.Uniqueness -> U.Type -> Either Type
 toTypedType offset scope uniq a =
   case a of 
 
-    U.FunctionType _ par ret ->
+    -- TODO Check if this clashes with expected uniqueness.
+    U.FunctionType _ uniq par ret ->
       let
         expectRetUniq =
           case ret of 
-            U.FunctionType _ _ _ -> 
+            U.FunctionType _ _ retT _ -> 
               Common.NonUnique
             
             _ -> 
@@ -62,13 +57,7 @@ toTypedType offset scope uniq a =
         retT <- toTypedType offset scope expectRetUniq ret
         return $ T.FunctionType uniq parT retT
 
-    U.LinearFunctionType _ par ret ->
-      do
-        parT <- toTypedType offset scope Common.Unique par
-        retT <- toTypedType offset scope Common.Unique ret
-        return $ T.LinearFunctionType parT retT
-
-    U.TupleType _ types ->
+    U.TupleType _ types _ ->
       do
         typesT <- traverse (toTypedType offset scope uniq) types
         return $ T.TupleType uniq typesT
@@ -88,13 +77,13 @@ toTypedType offset scope uniq a =
         typedB <- toTypedType offset scope uniq b
         return $ T.TypeApply typedA typedB
     
-    U.TypeName _ "Int" -> 
+    U.TypeName _ "Int" _ -> 
       return $ T.TypeName uniq "Int" Common.TypeRef
 
-    U.TypeName _ "String" -> 
+    U.TypeName _ "String" _ -> 
       return $ T.TypeName uniq "String" Common.TypeRef
 
-    U.TypeName _ name ->
+    U.TypeName _ name _ ->
       let 
         typeNames = 
           scopeTypes scope 
