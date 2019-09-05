@@ -18,7 +18,7 @@ createDefScope :: Scope U.Type -> [U.Parameter] -> U.Type -> [U.Type] -> Scope U
 createDefScope modScope parameters typ implicits = 
   let
     parameterBindings = 
-      fmap (\(a, (typ, uniq)) -> (a, typ, uniq, Common.InFunction)) $ 
+      fmap (\(a, (typ, uniq)) -> (a, typ, uniq, Common.InFunction, implicits)) $ 
         List.zip (fmap U.parameterName parameters) (fnParListWithUniq typ implicits)
 
     typeLambdaValues t =
@@ -65,20 +65,6 @@ emptyScope :: Scope U.Type
 emptyScope =
   Scope [] [] [] []
 
-
-{-|
-Merge two scopes, the tightest bound (innermost) scope should come first. 
--}
-mergeScope :: Scope U.Type -> Scope U.Type -> Scope U.Type
-mergeScope a b = 
-  let 
-    mergedValues = scopeValues a ++ scopeValues b
-    mergedTypes = scopeTypes a ++ scopeTypes b
-    mergedImplicits = scopeImplicits a ++ scopeImplicits b
-    mergedFields = scopeFields a ++ scopeFields b
-  in
-    Scope mergedValues mergedTypes mergedImplicits mergedFields
-
 {-|
 Generates the individual contribution of the definition to the module scope.
 -}
@@ -87,7 +73,9 @@ scopeContrib origin d =
   case d of 
     U.DeclEnumDecl (U.EnumDecl offset name constructors typeVars) -> 
       let 
-        genCtorBinding :: U.EnumConstructor -> (String, U.Type, Common.Uniqueness, Common.Origin)
+        genCtorBinding 
+          :: U.EnumConstructor 
+          -> ScopeValue U.Type
         genCtorBinding c = 
           let 
             retT = 
@@ -109,7 +97,7 @@ scopeContrib origin d =
               else
                 Common.NonUnique
           in
-            (U.enumConstructorName c, typeLambdas, uniq, origin)
+            (U.enumConstructorName c, typeLambdas, uniq, origin, [])
 
         values = 
           fmap genCtorBinding constructors
@@ -120,7 +108,7 @@ scopeContrib origin d =
         Scope values types [] []
 
     U.DeclImplicitDecl (U.ValDecl offset name t implicits) -> 
-      Scope [(name, t, Common.NonUnique, origin)] [] [(name, t, origin)] []
+      Scope [(name, t, Common.NonUnique, origin, [])] [] [(name, t, origin)] []
 
     U.DeclRecDecl (U.RecDecl offset name fields typeVars) -> 
       let 
@@ -145,15 +133,16 @@ scopeContrib origin d =
         types = 
           [(name, origin, Common.TypeRef)]
 
+        values :: [ScopeValue U.Type]
         values = 
-          [(name, ctorWithTypeVars, Common.Unique, origin)]
+          [(name, ctorWithTypeVars, Common.Unique, origin, [])]
       in 
         Scope values types [] scopeFields
     
     U.DeclValDecl (U.ValDecl _ name t implicits) -> 
       let 
         values = 
-          [(filter (\a -> a /= '(' && a /= ')') name, t, Common.Unique, origin)]
+          [(filter (\a -> a /= '(' && a /= ')') name, t, Common.Unique, origin, implicits)]
       in
         mkScopeFromValues values
 
@@ -171,14 +160,14 @@ scopeVariableType
   :: Scope U.Type 
   -> Int 
   -> String 
-  -> Either TypeErrorAt (U.Type, Common.Uniqueness, Common.Origin)
+  -> Either TypeErrorAt (U.Type, Common.Uniqueness, Common.Origin, [U.Type])
 scopeVariableType scope offset name = 
   Combinators.maybeToRight (offset, "undefined in scope")
     (fmap 
-      (\(_, t, uniq, origin) -> (t, uniq, origin)) 
-      (List.find (\(n, _, _, _) -> n == name) (scopeValues scope)))
+      (\(_, t, uniq, origin, implicits) -> (t, uniq, origin, implicits)) 
+      (List.find (\(n, _, _, _, _) -> n == name) (scopeValues scope)))
 
 
-mkScopeFromValues :: [(String, U.Type, Common.Uniqueness, Common.Origin)] -> Scope U.Type 
+mkScopeFromValues :: [ScopeValue U.Type] -> Scope U.Type 
 mkScopeFromValues values =
   Scope values [] [] []

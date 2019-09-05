@@ -3,47 +3,54 @@ module Transform.Resolve where
 
 import Debug.Trace
 import qualified Data.List as List
+import qualified Data.Maybe as Maybe
 
+import AST.Scope
 import qualified AST.Typed as T
 
 {- Resolve all implicits in this module. -}
 resolveModule :: T.Module -> Either String T.Module
 resolveModule mod = 
-  do
-    newDefs <- traverse resolveDef $ T.moduleDefs mod
+  let
+    modScope = moduleScope mod
+  in do
+    newDefs <- traverse (resolveDef modScope) $ T.moduleDefs mod
     return $ mod { T.moduleDefs = newDefs }
 
 
-resolveDef :: T.Definition -> Either String T.Definition
-resolveDef d = 
+resolveDef :: Scope T.Type -> T.Definition -> Either String T.Definition
+resolveDef moduleScope d = 
   case d of
     T.ValDef name parameters typ expr ->
-      do
-        resolvedExpr <- resolveExpr expr
+      let
+        scope :: Scope T.Type
+        scope = mergeScope (definitionScope d) moduleScope
+      in do
+        resolvedExpr <- resolveExpr scope expr
         return $ T.ValDef name parameters typ resolvedExpr
 
     _ -> 
       Right $ d
 
 
-resolveExpr :: T.Expression -> Either String T.Expression
-resolveExpr expr = 
+resolveExpr :: Scope T.Type -> T.Expression -> Either String T.Expression
+resolveExpr scope expr = 
   case expr of 
     T.Name name typ uniq orig ->
       let 
         implicits = 
-          T.implicitsIn typ
+          implicitsOf scope name
       in
         if List.length implicits == 0 then 
-          return $ T.Name name typ uniq orig
+          trace name $ return $ T.Name name typ uniq orig
         else 
           resolveImplicitsIn name typ uniq orig 
 
     T.Operator op typ leftArg rightArg orig ->
       do
-        resolvedOp <- resolveExpr op
-        resolvedLeftArg <- resolveExpr leftArg
-        resolvedRightArg <- resolveExpr rightArg
+        resolvedOp <- resolveExpr scope op
+        resolvedLeftArg <- resolveExpr scope leftArg
+        resolvedRightArg <- resolveExpr scope rightArg
         return $ T.Operator resolvedOp typ leftArg rightArg orig
 
     _ -> 
@@ -51,4 +58,24 @@ resolveExpr expr =
 
 
 resolveImplicitsIn name typ uniq orig = 
-  return $ T.Name name typ uniq orig
+  trace (show typ) $ return $ T.Name name typ uniq orig
+
+
+implicitsOf :: Scope T.Type -> String -> [T.Type]
+implicitsOf scope name =
+  let 
+    implicits :: Maybe (ScopeValue T.Type)
+    implicits = 
+      List.find (\(n, _, _, _, _) -> n == name) $ scopeValues scope
+  in
+    concat $ Maybe.maybeToList $ fmap (\(_, _, _, _, implicits) -> implicits) implicits
+
+
+moduleScope :: T.Module -> Scope T.Type
+moduleScope mod = 
+  Scope [] [] [] []
+
+
+definitionScope :: T.Definition -> Scope T.Type
+definitionScope def = 
+  Scope [] [] [] []

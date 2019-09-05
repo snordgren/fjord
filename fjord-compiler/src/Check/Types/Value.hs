@@ -61,27 +61,6 @@ typeCheckValDecl params expr f modScope (U.ValDecl offset name declType implicit
       Left (U.expressionOffset expr,  "expression has type " ++ (show exprT) ++ ", expected " ++ (show reqTypeT))
 
 
-resolveImplicit 
-  :: Int 
-  -> Scope U.Type 
-  -> (String, U.Type) 
-  -> Either TypeErrorAt (String, T.Type, T.Expression)
-resolveImplicit offset defScope (a, t) = 
-  let 
-    uniq = Common.NonUnique
-  in 
-    do
-      (name, _, orig) <- Combinators.maybeToRight (offset, 
-        "cannot find implicit " ++ a ++ " of type " ++ show t) $ findImplicitDef defScope t
-      typedT <- toTypedType offset defScope uniq t
-      return (a, typedT, T.Name name typedT uniq orig)
-
-
-findImplicitDef :: Scope U.Type -> U.Type -> Maybe (String, U.Type, Common.Origin)
-findImplicitDef defScope t = 
-  List.find (\(_, it, _) -> compareTypEq t it) $ scopeImplicits defScope 
-
-
 compareTypEq :: U.Type -> U.Type -> Bool
 compareTypEq a b = 
   case a of 

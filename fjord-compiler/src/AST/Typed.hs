@@ -363,14 +363,3 @@ renameTypeVar from to t =
             TypeName uniq to nameType
           else
             TypeName uniq typeName nameType
-
-
-implicitsIn :: Type -> [Type]
-implicitsIn t =
-  case t of
-    FunctionType uniq par ret -> implicitsIn par ++ implicitsIn ret
-    LinearFunctionType par ret -> implicitsIn par ++ implicitsIn ret
-    TupleType uniq types -> List.concat $ fmap implicitsIn types
-    TypeApply f par -> implicitsIn par
-    TypeLambda arg ret -> implicitsIn ret
-    TypeName uniq typeName nameType -> []
