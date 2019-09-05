@@ -104,45 +104,43 @@ data Type
   deriving Eq
 
 instance Show Type where
+  show a =
+    case a of 
+      BindImplicit par ret -> 
+        "implicit " ++ show par ++ " -> " ++ show ret
 
-  show (BindImplicit par ret) = 
-    "implicit " ++ show par ++ " -> " ++ show ret
+      FunctionType uniq p r ->
+        let
+          base = 
+            (show p) ++ " -> " ++ (show r)
+        in
+          case uniq of 
+            Common.Unique -> 
+              uniqPrefix uniq ++ "(" ++ base ++ ")"
+    
+            Common.NonUnique ->
+              base
+      LinearFunctionType p r -> 
+        (show p) ++ " -* " ++ (show r)
 
-  show (FunctionType uniq p r) = 
-    let
-      base = 
-        (show p) ++ " -> " ++ (show r)
-    in
-      case uniq of 
-        Common.Unique -> 
-          uniqPrefix uniq ++ "(" ++ base ++ ")"
+      TupleType uniq values -> 
+        (uniqPrefix uniq) ++ "(" ++ (List.intercalate ", " $ fmap show values) ++ ")"
 
-        Common.NonUnique ->
-          base
+      TypeApply f par ->
+        "(" ++ show f ++ " " ++ show par ++ ")"
 
-  show (LinearFunctionType p r) = 
-    (show p) ++ " -* " ++ (show r)
+      TypeLambda arg ret -> 
+        arg ++ " => " ++ show ret
 
-  show (TupleType uniq values) = 
-    (uniqPrefix uniq) ++ "(" ++ (List.intercalate ", " $ fmap show values) ++ ")"
-
-  show (TypeApply f par) =
-    "(" ++ show f ++ " " ++ show par ++ ")"
-
-  show (TypeLambda arg ret) =
-    arg ++ " => " ++ show ret
-
-  show (TypeName uniq s nameType) = uniqPrefix uniq ++ s
+      TypeName uniq s nameType -> 
+        uniqPrefix uniq ++ s
 
 
 uniqPrefix :: Common.Uniqueness -> String
 uniqPrefix a =
   case a of 
-    Common.Unique -> 
-      "1:"
-
-    Common.NonUnique ->
-      "?:"
+    Common.Unique -> "1:"
+    Common.NonUnique -> "?:"
 
 
 expressionType :: Expression -> Type

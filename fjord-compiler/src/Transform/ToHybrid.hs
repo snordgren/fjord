@@ -155,6 +155,8 @@ transformDef a =
         ]
 
 
+{- Create a simple block that returns the expression parameter. -}
 simpleBlock :: H.Expression -> H.Block
 simpleBlock e =
   H.Block [] [H.Return e]
+  

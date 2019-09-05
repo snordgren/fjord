@@ -14,47 +14,114 @@ import qualified AST.Hybrid as H
 import qualified AST.Typed as T
 import qualified CodeGen.NameMangling as NameMangling
 
+{- Transform an expression from typed AST to JS-level AST. -}
 transformExpr :: T.Expression -> State Int H.Expression
-
-transformExpr (T.Apply a b) = 
-  let 
-    rootFunction :: T.Expression -> Maybe T.Expression
-    rootFunction e = 
-      case e of 
-        T.Apply a b -> Just $ Maybe.fromMaybe a (rootFunction a)
-        _ -> Nothing
-
-    parametersOfApply :: T.Expression -> [T.Expression]
-    parametersOfApply e = 
-      case e of 
-        T.Apply a b -> (parametersOfApply a) ++ [b]
-        _ -> []
-
-    mkMissingParam :: Int -> (H.Type, Int) -> H.Expression
-    mkMissingParam m (t, n) = H.Read t ("_" ++ (show (n + m)))
+transformExpr expr = 
+  case expr of 
+    T.Apply a b -> 
+      transformApply a b
     
-    rootF = Maybe.fromMaybe a $ rootFunction a
-    allParams = T.fnParamList $ T.expressionType rootF
-    reqArgCount = List.length allParams
-    passedParameters = parametersOfApply $ T.Apply a b
-    passedParamCount = List.length passedParameters
-    missingParameters = fmap transformType $ drop passedParamCount allParams
-    hiddenParamCount = reqArgCount - passedParamCount
-    missingParamIx = List.zip missingParameters [0..(hiddenParamCount - 1)]
-    missingParamArr = fmap (\(t, n) -> ("_" ++ (show n), t)) missingParamIx
-  in do
-    transformedParams <- Monad.sequence (fmap transformExpr passedParameters)
-    transformedRootF <- transformExpr rootF
-    hiddenParamStartN <- get
-    let hiddenParams = fmap (mkMissingParam hiddenParamStartN) missingParamIx
-    put (hiddenParamStartN + (List.length hiddenParams))
-    return (
-      if hiddenParamCount == 0 then 
-        H.Invoke transformedRootF (transformedParams ++ hiddenParams)
-      else 
-        H.Lambda missingParamArr $ H.Invoke transformedRootF (transformedParams ++ hiddenParams))
+    T.Case sourceExpression patterns -> 
+      transformCase sourceExpression patterns
 
-transformExpr (T.Case sourceExpression patterns) = 
+    T.IntLiteral n _ ->
+      return $ H.IntLiteral n
+
+    T.Lambda variable variableType body ->
+      let 
+        nestedVariables :: T.Expression -> [(String, H.Type)]
+        nestedVariables (T.Lambda a b c) = (a, transformType b) : (nestedVariables c)
+        nestedVariables _ = []
+    
+        lambdaBody (T.Lambda _ _ b) = lambdaBody b
+        lambdaBody a = a
+    
+        retVariables = (variable, transformType variableType) : (nestedVariables body)
+      in 
+        do
+          transformedBody <- transformExpr (lambdaBody body)
+          return $ H.Lambda retVariables transformedBody
+      
+    T.Let var varExpr retExpr ->
+      do
+        varExprT <- transformExpr varExpr
+        retExprT <- transformExpr retExpr
+        let blockDecls = [(var, transformType $ T.expressionType varExpr, Just varExprT)]
+        return $ H.IIFE $ H.Block blockDecls [H.Return retExprT]
+
+    T.Name a t uniq origin ->
+      return $ case origin of 
+        Common.SameModule -> H.Read (transformType t) a
+        Common.InFunction -> H.Read (transformType t) a
+        Common.OtherModule b -> H.ReadImport (transformType t) a b
+
+    T.Operator name opType a b orig ->
+      let
+        mangledName :: String
+        mangledName =
+          NameMangling.mangle name
+         
+        readOp :: H.Expression
+        readOp = 
+          case orig of
+            Common.SameModule -> H.Read (transformType opType) mangledName
+            Common.InFunction -> H.Read (transformType opType) mangledName
+            Common.OtherModule b -> H.ReadImport (transformType opType) mangledName b
+      in
+        do 
+          ta <- transformExpr a
+          tb <- transformExpr b
+          return $ H.Invoke readOp [ta, tb] 
+
+    T.RecAccess fieldName fieldType sourceExpression ->
+      do
+        srcExprT <- transformExpr sourceExpression
+        return $ H.FieldAccess fieldName srcExprT
+
+    T.RecUpdate sourceExpression fieldUpdates ->
+      let
+        updateFieldName = "_m"
+        updateFieldType = transformType (T.expressionType sourceExpression)
+        readUpdateField = H.Read updateFieldType updateFieldName
+        retStmt = H.Return readUpdateField
+    
+        transformFieldUpdate :: T.FieldUpdate -> State Int [H.Statement]
+        transformFieldUpdate (T.FieldUpdate name expression) = do
+          transformedExpr <- transformExpr expression
+          return $ 
+            [
+              H.Mutate readUpdateField name transformedExpr
+            ]
+      in do
+        transformedSrcExpr <- transformExpr sourceExpression
+        transformedFieldUpdates <- Monad.sequence $ fmap transformFieldUpdate fieldUpdates
+        let statements = (List.concat $ transformedFieldUpdates) ++ [retStmt]
+        return $ H.IIFE $ H.Block [(updateFieldName, updateFieldType, Just transformedSrcExpr)] statements
+
+    T.StringLiteral s _ -> return $ H.StringLiteral s
+    T.Tuple uniq values -> 
+      do
+        transExprs <- Monad.sequence $ fmap transformExpr values
+        return $ H.Immutable $ H.Array transExprs
+
+    T.UniqueLambda variable variableType body ->
+      let 
+        nestedVariables :: T.Expression -> [(String, H.Type)]
+        nestedVariables (T.UniqueLambda a b c) = (a, transformType b) : (nestedVariables c)
+        nestedVariables _ = []
+    
+        lambdaBody (T.UniqueLambda _ _ b) = lambdaBody b
+        lambdaBody a = a
+    
+        retVariables = (variable, transformType variableType) : (nestedVariables body)
+      in 
+        do
+          transformedBody <- transformExpr (lambdaBody body)
+          return $ H.Lambda retVariables transformedBody
+
+
+transformCase :: T.Expression -> [T.Pattern] -> State Int H.Expression
+transformCase sourceExpression patterns  =
   let 
     srcExprT = transformType $ T.expressionType sourceExpression
     targetN = "target"
@@ -87,102 +154,42 @@ transformExpr (T.Case sourceExpression patterns) =
       let ifStatement = H.If caseStatements Nothing
       return $ H.IIFE $ 
         H.Block (decls transformedSrcExpr) [ifStatement]
-        
 
-transformExpr (T.IntLiteral n _) = 
-  return $ H.IntLiteral n
-
-transformExpr (T.Lambda variable variableType body) = 
+transformApply :: T.Expression -> T.Expression -> State Int H.Expression
+transformApply a b =
   let 
-    nestedVariables :: T.Expression -> [(String, H.Type)]
-    nestedVariables (T.Lambda a b c) = (a, transformType b) : (nestedVariables c)
-    nestedVariables _ = []
+    rootFunction :: T.Expression -> Maybe T.Expression
+    rootFunction e = 
+      case e of 
+        T.Apply a b -> Just $ Maybe.fromMaybe a (rootFunction a)
+        _ -> Nothing
 
-    lambdaBody (T.Lambda _ _ b) = lambdaBody b
-    lambdaBody a = a
+    parametersOfApply :: T.Expression -> [T.Expression]
+    parametersOfApply e = 
+      case e of 
+        T.Apply a b -> (parametersOfApply a) ++ [b]
+        _ -> []
 
-    retVariables = (variable, transformType variableType) : (nestedVariables body)
-  in 
-    do
-      transformedBody <- transformExpr (lambdaBody body)
-      return $ H.Lambda retVariables transformedBody
-
-transformExpr (T.Let var varExpr retExpr) =
-  do
-    varExprT <- transformExpr varExpr
-    retExprT <- transformExpr retExpr
-    let blockDecls = [(var, transformType $ T.expressionType varExpr, Just varExprT)]
-    return $ H.IIFE $ H.Block blockDecls [H.Return retExprT]
-
-transformExpr (T.Name a t uniq origin) = 
-  return $ case origin of 
-    Common.SameModule -> H.Read (transformType t) a
-    Common.InFunction -> H.Read (transformType t) a
-    Common.OtherModule b -> H.ReadImport (transformType t) a b
-
-transformExpr (T.Operator name opType a b orig) = 
-  let
-    mangledName :: String
-    mangledName =
-      NameMangling.mangle name
-     
-    readOp :: H.Expression
-    readOp = 
-      case orig of
-        Common.SameModule -> H.Read (transformType opType) mangledName
-        Common.InFunction -> H.Read (transformType opType) mangledName
-        Common.OtherModule b -> H.ReadImport (transformType opType) mangledName b
-  in
-    do 
-      ta <- transformExpr a
-      tb <- transformExpr b
-      return $ H.Invoke readOp [ta, tb] 
-
-transformExpr (T.RecAccess fieldName fieldType sourceExpression) =
-  do
-    srcExprT <- transformExpr sourceExpression
-    return $ H.FieldAccess fieldName srcExprT
-
-transformExpr (T.RecUpdate sourceExpression fieldUpdates) = 
-  let
-    updateFieldName = "_m"
-    updateFieldType = transformType (T.expressionType sourceExpression)
-    readUpdateField = H.Read updateFieldType updateFieldName
-    retStmt = H.Return readUpdateField
-
-    transformFieldUpdate :: T.FieldUpdate -> State Int [H.Statement]
-    transformFieldUpdate (T.FieldUpdate name expression) = do
-      transformedExpr <- transformExpr expression
-      return $ 
-        [
-          H.Mutate readUpdateField name transformedExpr
-        ]
+    mkMissingParam :: Int -> (H.Type, Int) -> H.Expression
+    mkMissingParam m (t, n) = H.Read t ("_" ++ (show (n + m)))
+    
+    rootF = Maybe.fromMaybe a $ rootFunction a
+    allParams = T.fnParamList $ T.expressionType rootF
+    reqArgCount = List.length allParams
+    passedParameters = parametersOfApply $ T.Apply a b
+    passedParamCount = List.length passedParameters
+    missingParameters = fmap transformType $ drop passedParamCount allParams
+    hiddenParamCount = reqArgCount - passedParamCount
+    missingParamIx = List.zip missingParameters [0..(hiddenParamCount - 1)]
+    missingParamArr = fmap (\(t, n) -> ("_" ++ (show n), t)) missingParamIx
   in do
-    transformedSrcExpr <- transformExpr sourceExpression
-    transformedFieldUpdates <- Monad.sequence $ fmap transformFieldUpdate fieldUpdates
-    let statements = (List.concat $ transformedFieldUpdates) ++ [retStmt]
-    return $ H.IIFE $ H.Block [(updateFieldName, updateFieldType, Just transformedSrcExpr)] statements
-
-transformExpr (T.StringLiteral s _) = 
-  return $ H.StringLiteral s
-
-transformExpr (T.Tuple uniq values) = 
-  do
-    transExprs <- Monad.sequence $ fmap transformExpr values
-    return $ H.Immutable $ H.Array transExprs
-
-
-transformExpr (T.UniqueLambda variable variableType body) = 
-  let 
-    nestedVariables :: T.Expression -> [(String, H.Type)]
-    nestedVariables (T.UniqueLambda a b c) = (a, transformType b) : (nestedVariables c)
-    nestedVariables _ = []
-
-    lambdaBody (T.UniqueLambda _ _ b) = lambdaBody b
-    lambdaBody a = a
-
-    retVariables = (variable, transformType variableType) : (nestedVariables body)
-  in 
-    do
-      transformedBody <- transformExpr (lambdaBody body)
-      return $ H.Lambda retVariables transformedBody
+    transformedParams <- trace ("x: " ++ show rootF) $ Monad.sequence (fmap transformExpr passedParameters)
+    transformedRootF <- transformExpr rootF
+    hiddenParamStartN <- get
+    let hiddenParams = fmap (mkMissingParam hiddenParamStartN) missingParamIx
+    put (hiddenParamStartN + (List.length hiddenParams))
+    return (
+      if hiddenParamCount == 0 then 
+        H.Invoke transformedRootF (transformedParams ++ hiddenParams)
+      else 
+        H.Lambda missingParamArr $ H.Invoke transformedRootF (transformedParams ++ hiddenParams))
