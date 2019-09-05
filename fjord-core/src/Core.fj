@@ -18,7 +18,7 @@ boolEqualsInstance =
   Equals boolEquals
 
 
-(==) : a => implicit Equals a -> a -> a -> Bool
+(==) : a. Equals a => a -> a -> Bool
 (==) ev x y =
   ev.equals x y
 
