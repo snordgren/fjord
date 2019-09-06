@@ -5,6 +5,6 @@ record Shared
   sharedInt : Int
 
 
-illegalMutation : Shared -> Shared
+illegalMutation : &Shared -> Shared
 illegalMutation a =
   { a | sharedInt = 3 }

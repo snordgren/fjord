@@ -16,7 +16,7 @@ enum ThreeMembers
   Second Int : ThreeMembers
   Third (TwoMembers -> String, Int) : ThreeMembers
 
-five : () -> Int
+five : &() -> Int
 five a = 
   5
 

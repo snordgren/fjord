@@ -5,6 +5,6 @@ useUnique x =
   x
 
 # needs to error, x is not unique
-passShared : Int -> Int
+passShared : &Int -> Int
 passShared x =
   useUnique x

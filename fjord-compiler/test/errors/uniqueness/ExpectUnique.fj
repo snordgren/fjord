@@ -4,7 +4,7 @@ requiresUnique : Int -> Int
 requiresUnique x =
   x
 
-passesShared : Int -> Int
+passesShared : &Int -> Int
 passesShared x =
   requiresUnique x
 
