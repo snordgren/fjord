@@ -13,7 +13,7 @@
   "author": "Silas Nordgren",
   "license": "ISC",
   "dependencies": {
-    "@fjord-lang/core": "^1.0.2",
+    "@fjord-lang/core": "^1.0.3",
     "express": "^4.16.4"
   }
 }
