@@ -58,7 +58,8 @@ typeCheckValDecl params expr f modScope (U.ValDecl offset name declType implicit
     if exprT == reqTypeT then 
       Right $ f name paramsT declTypeT typedExpr
     else
-      Left (U.expressionOffset expr,  "expression has type " ++ (show exprT) ++ ", expected " ++ (show reqTypeT))
+      Left (U.expressionOffset expr,  
+        "expression has type " ++ (show exprT) ++ ", expected " ++ (show reqTypeT))
 
 
 compareTypEq :: U.Type -> U.Type -> Bool

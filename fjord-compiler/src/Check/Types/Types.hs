@@ -47,7 +47,7 @@ toTypedType offset scope uniq a =
         expectRetUniq =
           case ret of 
             U.FunctionType _ _ retT _ -> 
-              Common.NonUnique
+              U.typeUniq retT
             
             _ -> 
               Common.Unique

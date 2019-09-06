@@ -51,7 +51,7 @@ toTypedExpression scope expectType expectUniq expr =
               useCountM $ Left (offset, "cannot infer function type " ++ show exprType)
         else 
           useCountM $ Left (offset, 
-            "expression has type " ++ (show parT) ++ ", expected " ++ (show reqParT))
+            "aexpression has type " ++ (show parT) ++ ", expected " ++ (show reqParT))
 
     U.Case offset expr patterns ->
       do
@@ -123,7 +123,7 @@ toTypedExpression scope expectType expectUniq expr =
           else 
             return ()
           renamedT <- renameTypeVars typedT
-          return $ T.Name s renamedT uniq orig
+          trace (show expectUniq ++ show uniq) $ return $ T.Name s renamedT uniq orig
 
     U.Operator offset name a b -> 
       do
