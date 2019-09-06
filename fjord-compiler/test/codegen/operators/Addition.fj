@@ -1,6 +1,6 @@
 module codegen.operators.Addition
 
-(+) : Int -> Int -> Int
+(+) : &Int -> Int -> Int
 (+) x y = 
   y
 

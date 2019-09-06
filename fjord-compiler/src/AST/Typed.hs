@@ -264,6 +264,7 @@ findPatSubst typeVars exprType t =
 
       _ -> []
 
+-- Unify types when the pattern is a function.
 unifyTypes :: Type -> Type -> Type
 unifyTypes pat impl =
   let 
