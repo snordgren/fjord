@@ -127,6 +127,7 @@ expressionType a =
           returnType $ replaceTypeName name (expressionType par) (expressionType f)
 
         _ ->
+          -- if the parameter is unique, the returned value must be unique
           if parTypeUniq (concreteType $ expressionType f) == Common.Unique then
             withUniq Common.Unique $ returnType $ expressionType f
           else

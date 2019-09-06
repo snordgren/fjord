@@ -80,7 +80,7 @@ typeP =
       many spaceP
       string "->"
       many spaceP
-      return $ U.FunctionType offset Common.NonUnique
+      return $ U.FunctionType offset Common.Unique
   in 
     Expr.makeExprParser typeTermP [
       [Expr.InfixL $ try $ typeApplyP], 

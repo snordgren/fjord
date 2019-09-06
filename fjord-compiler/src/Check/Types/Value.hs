@@ -45,10 +45,6 @@ typeCheckValDecl params expr f modScope (U.ValDecl offset name declType implicit
       do
         typedT <- toTypedType offset defScope t
         return $ T.Parameter (U.parameterName p) typedT
-  
-    uniq :: Common.Uniqueness
-    uniq = 
-      Common.NonUnique
   in do
     reqTypeT <- toTypedType offset defScope reqType
     declTypeT <- toTypedType offset defScope declType

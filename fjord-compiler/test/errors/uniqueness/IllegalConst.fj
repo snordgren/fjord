@@ -4,7 +4,7 @@ illegalConst : String -> &Int -> String
 illegalConst x y =
   x
 
-useIllegalConst : (Int -> String) -> (String, String)
+useIllegalConst : &(&Int -> String) -> (String, String)
 useIllegalConst f =
   (f 0, f 0)
 

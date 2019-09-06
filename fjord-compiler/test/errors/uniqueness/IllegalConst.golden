@@ -2,4 +2,4 @@ test/errors/uniqueness/IllegalConst.fj:13:18:
    |
 13 |   useIllegalConst (illegalConst x)
    |                  ^^^^^^^^^^^^^^^^^^
-expression has type 1:(?:Int -> 1:String), expected ?:Int -> 1:String
+expression has type 1:(?:Int -> 1:String), expected ?:(?:Int -> 1:String)
