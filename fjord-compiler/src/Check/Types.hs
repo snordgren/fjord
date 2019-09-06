@@ -94,8 +94,8 @@ toTypedDef modScope a =
 
         toTypedEnumConstructor (U.EnumConstructor ctorPos s parTypes retType) = 
           do
-            parTypesT <- traverse (toTypedType ctorPos enumScope enumParUniq) parTypes
-            retTypeT <- toTypedType ctorPos enumScope enumRetUniq retType
+            parTypesT <- traverse (toTypedType ctorPos enumScope) parTypes
+            retTypeT <- toTypedType ctorPos enumScope retType
             return $ T.EnumConstructor s parTypesT retTypeT
       in do
         ctors <- traverse toTypedEnumConstructor constructors
@@ -114,7 +114,7 @@ toTypedDef modScope a =
 
         toTypedRecField (U.RecField fieldPos fieldName fieldType) =
           do
-            typedT <- toTypedType fieldPos recScope recFieldUniq fieldType
+            typedT <- toTypedType fieldPos recScope fieldType
             return $ T.RecField fieldName typedT
       in 
         do

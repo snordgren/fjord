@@ -110,7 +110,7 @@ toTypedExpression scope expectType expectUniq expr =
         do
           (t, orig, implicits) <- useCountM $ scopeVariableType scope offset s
           let uniq = U.typeUniq t
-          typedT <- useCountM $ toTypedType offset scope uniq t
+          typedT <- useCountM $ toTypedType offset scope t
           -- If the value is unique, update its use counter, and generate an
           -- error if it has been used uniquely before.  
           if uniq == Common.Unique then
@@ -128,7 +128,7 @@ toTypedExpression scope expectType expectUniq expr =
       do
         (opType, orig, implicits) <- useCountM $ scopeVariableType scope offset name 
         let uniq = U.typeUniq opType
-        opTypeT <- useCountM $ toTypedType offset scope uniq opType
+        opTypeT <- useCountM $ toTypedType offset scope opType
         let paramAUniq = T.parTypeUniq $ opTypeT
         let paramBUniq = T.parTypeUniq $ T.returnType opTypeT
         typedA <- toTypedExpression scope expectType (Just paramAUniq) a
@@ -247,7 +247,7 @@ toTypedPattern scope expr expectType expectUniq (U.Pattern offset ctor vars retE
     let patSubst = findPatSubst patSubstTypeVars patSubstCtorType realExprType
     let substCtorType = List.foldl' (\acc (name, subst) -> replaceTypeName name subst acc) ctorType patSubst
     let patScope = createPatternScope substCtorType vars scope
-    types <- useCountM $ traverse (toTypedType offset patScope (U.typeUniq ctorType)) $ fnParamList substCtorType
+    types <- useCountM $ traverse (toTypedType offset patScope) $ fnParamList substCtorType
     let mergedVars = List.zip vars types
     typedRetExpr <- toTypedExpression patScope expectType expectUniq retExpr
     return $ T.Pattern ctor mergedVars typedRetExpr
@@ -342,8 +342,8 @@ findRecordAccessType offset scope fieldName recordType =
     tryCandidate :: (String, U.Type, U.Type, Common.Origin) -> Either TypeErrorAt [T.Type]
     tryCandidate (name, candRecordType, candFieldType, origin) = 
       do
-        candRecordTypeT <- toTypedType offset scope (U.typeUniq candRecordType) candRecordType
-        candFieldTypeT <- toTypedType offset scope (U.typeUniq candFieldType) candFieldType
+        candRecordTypeT <- toTypedType offset scope candRecordType
+        candFieldTypeT <- toTypedType offset scope candFieldType
         if name == fieldName && (recordType == unifyTypes candRecordTypeT recordType) then
           return [candFieldTypeT]
         else

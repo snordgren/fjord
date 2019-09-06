@@ -43,15 +43,15 @@ typeCheckValDecl params expr f modScope (U.ValDecl offset name declType implicit
     toTypedParam :: (U.Parameter, U.Type) -> Either TypeErrorAt T.Parameter
     toTypedParam (p, t) =
       do
-        typedT <- toTypedType offset defScope uniq t
+        typedT <- toTypedType offset defScope t
         return $ T.Parameter (U.parameterName p) typedT
   
     uniq :: Common.Uniqueness
     uniq = 
       Common.NonUnique
   in do
-    reqTypeT <- toTypedType offset defScope bodyUniq reqType
-    declTypeT <- toTypedType offset defScope uniq declType
+    reqTypeT <- toTypedType offset defScope reqType
+    declTypeT <- toTypedType offset defScope declType
     let parListWithUniq = fnParListWithUniq declType implicits
     paramsT <- traverse toTypedParam $ zip params parListWithUniq
     typedExpr <- (runUseCounting (U.expressionOffset expr) defScope) $ toTypedExpression defScope (Just reqType) (Just bodyUniq) expr 

@@ -38,8 +38,8 @@ fnTypeList t =
     a -> 
       [a]
 
-toTypedType :: Int -> Scope U.Type -> Common.Uniqueness -> U.Type -> Either TypeErrorAt T.Type
-toTypedType offset scope uniq a =
+toTypedType :: Int -> Scope U.Type -> U.Type -> Either TypeErrorAt T.Type
+toTypedType offset scope a =
   case a of 
 
     -- TODO Check if this clashes with expected uniqueness.
@@ -54,14 +54,14 @@ toTypedType offset scope uniq a =
               Common.Unique
       in
       do
-        parT <- toTypedType offset scope (U.typeUniq par) par
-        retT <- toTypedType offset scope expectRetUniq ret
-        return $ T.FunctionType uniq parT retT
+        parT <- toTypedType offset scope par
+        retT <- toTypedType offset scope ret
+        return $ T.FunctionType (U.typeUniq a) parT retT
 
     U.TupleType _ types _ ->
       do
-        typesT <- traverse (toTypedType offset scope uniq) types
-        return $ T.TupleType uniq typesT
+        typesT <- traverse (toTypedType offset scope) types
+        return $ T.TupleType (U.typeUniq a) typesT
 
     U.TypeLambda _ var ret ->
       let
@@ -69,20 +69,20 @@ toTypedType offset scope uniq a =
           mergeScope (Scope [] [(var, Common.SameModule, Common.TypeVar)] [] []) scope
       in
         do
-          retT <- toTypedType offset createLambdaScope uniq ret
+          retT <- toTypedType offset createLambdaScope ret
           return $ T.TypeLambda var retT
 
-    U.TypeApply _ a b -> 
+    U.TypeApply _ b c -> 
       do
-        typedA <- toTypedType offset scope uniq a 
-        typedB <- toTypedType offset scope uniq b
-        return $ T.TypeApply typedA typedB
+        typedB <- toTypedType offset scope b
+        typedC <- toTypedType offset scope c
+        return $ T.TypeApply typedB typedC
     
     U.TypeName _ "Int" _ -> 
-      return $ T.TypeName uniq "Int" Common.TypeRef
+      return $ T.TypeName (U.typeUniq a) "Int" Common.TypeRef
 
     U.TypeName _ "String" _ -> 
-      return $ T.TypeName uniq "String" Common.TypeRef
+      return $ T.TypeName (U.typeUniq a) "String" Common.TypeRef
 
     U.TypeName _ name _ ->
       let 
@@ -95,7 +95,7 @@ toTypedType offset scope uniq a =
         resultE =
           Combinators.maybeToRight (offset, "unknown type " ++ name) result
       in
-        fmap (\(t, _, nameType) -> T.TypeName uniq t nameType) resultE
+        fmap (\(t, _, nameType) -> T.TypeName (U.typeUniq a) t nameType) resultE
 
         
 unifyTypes :: T.Type -> T.Type -> T.Type
