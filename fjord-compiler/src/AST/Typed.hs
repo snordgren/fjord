@@ -105,7 +105,7 @@ instance Show Type where
       FunctionType uniq p r ->
         let
           base = 
-            (show p) ++ " -> " ++ (show r)
+            show p ++ " -> " ++ show r
         in
           case uniq of 
             Common.Unique -> 
@@ -115,7 +115,7 @@ instance Show Type where
               base
 
       TupleType uniq values -> 
-        (uniqPrefix uniq) ++ "(" ++ (List.intercalate ", " $ fmap show values) ++ ")"
+        uniqPrefix uniq ++ "(" ++ List.intercalate ", " (fmap show values) ++ ")"
 
       TypeApply f par ->
         "(" ++ show f ++ " " ++ show par ++ ")"
@@ -143,7 +143,7 @@ expressionType a =
           returnType $ replaceTypeName name (expressionType par) (expressionType f)
 
         _ ->
-          if (parTypeUniq $ concreteType $ expressionType f) == Common.Unique then
+          if parTypeUniq (concreteType $ expressionType f) == Common.Unique then
             withUniq Common.Unique $ returnType $ expressionType f
           else
             returnType $ expressionType f
@@ -183,7 +183,7 @@ parType a =
   let 
     params = fnParamList a
   in
-    if length params <= 0 then
+    if null params then
       error $ show a ++ " has no parameters."
     else
       head params
@@ -191,7 +191,7 @@ parType a =
 
 parTypeUniq :: Type -> Common.Uniqueness
 parTypeUniq =
-  (typeUniq . parType)
+  typeUniq . parType
 
 
 returnType :: Type -> Type 
@@ -204,7 +204,7 @@ returnType t =
       returnType ret
 
     a ->
-      error $ (show a) ++ " has no return type"
+      error $ show a ++ " has no return type"
 
 
 concreteType :: Type -> Type 
@@ -293,7 +293,7 @@ typeVarsIn :: Type -> [String]
 typeVarsIn t =
   case t of 
     FunctionType uniq par ret -> typeVarsIn par ++ typeVarsIn ret
-    TupleType uniq types -> List.concat $ fmap typeVarsIn types
+    TupleType uniq types -> concatMap typeVarsIn types
     TypeApply f par -> typeVarsIn f ++ typeVarsIn par
     TypeLambda arg ret -> arg : typeVarsIn ret
     TypeName uniq name nameType -> 

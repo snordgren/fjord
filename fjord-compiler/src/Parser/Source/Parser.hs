@@ -2,6 +2,7 @@ module Parser.Source.Parser (
   runModuleParser
 ) where
 
+import Control.Monad (void)
 import Control.Monad.Combinators.Expr
 import Text.Megaparsec
 import Text.Megaparsec.Char
@@ -36,7 +37,7 @@ moduleP = label "module" $ do
 defWithCommentsP :: Parser U.Definition
 defWithCommentsP =
   label "definition" $ do 
-    many $ try $ (commentP <|> (newline >> return ()))
+    many $ try $ (commentP <|> (void newline))
     d <- defP
     return d
 

@@ -8,6 +8,7 @@ module Parser.Declaration (
 import Debug.Trace
 import Text.Megaparsec
 import Text.Megaparsec.Char
+import Control.Monad (void)
 import qualified Data.List as List
 
 import Parser.Common
@@ -69,7 +70,7 @@ recDeclP = label "record declaration" $ do
   many spaceP
   eol
   fields <- many $ try $ recFieldP
-  (eol >> return ()) <|> (eof >> return ())
+  (void eol) <|> (void eof)
   return $ U.RecDecl offset declName fields typeVars
 
 

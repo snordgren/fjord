@@ -40,7 +40,7 @@ parseModule
   -> Either (ParseErrorBundle String String) T.Module
 parseModule dir typeDefSources fileName fileContents =
   do
-    typeDefs <- traverse (\(a, b) -> parseTypeDef dir a b) typeDefSources
+    typeDefs <- traverse (uncurry (parseTypeDef dir)) typeDefSources
     parseModuleSource typeDefs fileName fileContents
 
 

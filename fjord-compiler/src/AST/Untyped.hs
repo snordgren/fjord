@@ -256,7 +256,7 @@ typeNamesIn :: Type -> [String]
 typeNamesIn t =
   case t of 
     FunctionType _ _ par ret -> typeNamesIn par ++ typeNamesIn ret
-    TupleType _ types _ -> List.concat $ fmap typeNamesIn types
+    TupleType _ types _ -> concatMap typeNamesIn types
     TypeApply _ f par -> typeNamesIn f ++ typeNamesIn par
     TypeLambda _ arg ret -> arg : typeNamesIn ret
     TypeName _ name _ -> [name]

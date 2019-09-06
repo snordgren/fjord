@@ -13,7 +13,7 @@ generateJS :: String -> H.Source -> String
 generateJS srcPath s = 
   let 
     moduleS = "// module " ++ (H.sourceName s) ++ "\n\n"
-    importsS = List.concat $ fmap (depToJS srcPath) $ H.sourceDeps s
+    importsS = concatMap (depToJS srcPath) $ H.sourceDeps s
     definitionS = List.intercalate "\n\n" $ fmap definitionToJS $ H.sourceDefinitions s
   in 
     moduleS ++ importsS ++ (if (List.length importsS > 0) then "\n" else "") ++ definitionS ++ "\n"    

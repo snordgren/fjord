@@ -1,5 +1,6 @@
 module Check.Types.Types where
 
+import Debug.Trace
 import qualified Control.Monad as Monad
 import qualified Data.Either.Combinators as Combinators
 import qualified Data.List as List
@@ -53,7 +54,7 @@ toTypedType offset scope uniq a =
               Common.Unique
       in
       do
-        parT <- toTypedType offset scope Common.NonUnique par
+        parT <- trace (show uniq ++ "," ++ show a) $ toTypedType offset scope Common.Unique par
         retT <- toTypedType offset scope expectRetUniq ret
         return $ T.FunctionType uniq parT retT
 

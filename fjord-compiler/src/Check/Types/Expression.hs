@@ -122,7 +122,7 @@ toTypedExpression scope expectType expectUniq expr =
             return ()
           renamedT <- renameTypeVars typedT
           let uniq = U.typeUniq t
-          trace (show expectUniq ++ show uniq) $ return $ T.Name s renamedT uniq orig
+          return $ T.Name s renamedT uniq orig
 
     U.Operator offset name a b -> 
       do
