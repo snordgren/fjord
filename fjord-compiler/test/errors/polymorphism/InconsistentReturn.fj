@@ -1,5 +1,5 @@
 module errors.parametricPolymorphism.InconsistentReturn
 
-id : a. a -> a
+id : a. &a -> a
 id x =
   5

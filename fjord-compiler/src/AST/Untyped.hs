@@ -70,11 +70,11 @@ typeWithUniq uniq t =
 instance Show Type where
   show a = 
     case a of 
-      FunctionType _ p r _ -> 
-        show p ++ " -> " ++ show r
+      FunctionType _ uniq p r -> 
+        Common.uniqPrefix uniq ++ "(" ++ show p ++ " -> " ++ show r ++ ")"
 
-      TupleType _ t _ -> 
-        "(" ++ (List.intercalate "," $ fmap show t) ++ ")"
+      TupleType _ t uniq -> 
+        Common.uniqPrefix uniq ++ "(" ++ (List.intercalate "," $ fmap show t) ++ ")"
 
       TypeApply _ f par ->
         "(" ++ show f ++ " " ++ show par ++ ")"
@@ -82,8 +82,8 @@ instance Show Type where
       TypeLambda _ n t -> 
         n ++ " => " ++ (show t)
 
-      TypeName _ t _ -> 
-        t
+      TypeName _ t uniq -> 
+        Common.uniqPrefix uniq ++ t
 
 
 data Expression 

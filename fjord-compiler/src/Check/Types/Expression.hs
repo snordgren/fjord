@@ -342,8 +342,8 @@ findRecordAccessType offset scope fieldName recordType =
     tryCandidate :: (String, U.Type, U.Type, Common.Origin) -> Either TypeErrorAt [T.Type]
     tryCandidate (name, candRecordType, candFieldType, origin) = 
       do
-        candRecordTypeT <- toTypedType offset scope Common.NonUnique candRecordType
-        candFieldTypeT <- toTypedType offset scope Common.NonUnique candFieldType
+        candRecordTypeT <- toTypedType offset scope (U.typeUniq candRecordType) candRecordType
+        candFieldTypeT <- toTypedType offset scope (U.typeUniq candFieldType) candFieldType
         if name == fieldName && (recordType == unifyTypes candRecordTypeT recordType) then
           return [candFieldTypeT]
         else
@@ -353,6 +353,6 @@ findRecordAccessType offset scope fieldName recordType =
       alternativesM <- traverse tryCandidate $ scopeFields scope
       let alts = List.concat alternativesM
       if length alts <= 0 then
-        Left (offset, "unknown field type " ++ fieldName ++ " for type " ++ (show recordType))
+        Left (offset, "unknown field type " ++ fieldName ++ " for type " ++ (show recordType) ++ ", " ++ show (scopeFields scope))
       else
         return $ head alts

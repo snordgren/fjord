@@ -103,19 +103,10 @@ instance Show Type where
   show a =
     case a of 
       FunctionType uniq p r ->
-        let
-          base = 
-            show p ++ " -> " ++ show r
-        in
-          case uniq of 
-            Common.Unique -> 
-              uniqPrefix uniq ++ "(" ++ base ++ ")"
-    
-            Common.NonUnique ->
-              base
+        Common.uniqPrefix uniq ++ "(" ++ show p ++ " -> " ++ show r ++ ")"
 
       TupleType uniq values -> 
-        uniqPrefix uniq ++ "(" ++ List.intercalate ", " (fmap show values) ++ ")"
+        Common.uniqPrefix uniq ++ "(" ++ List.intercalate ", " (fmap show values) ++ ")"
 
       TypeApply f par ->
         "(" ++ show f ++ " " ++ show par ++ ")"
@@ -124,14 +115,7 @@ instance Show Type where
         arg ++ ". " ++ show ret
 
       TypeName uniq s nameType -> 
-        uniqPrefix uniq ++ s
-
-
-uniqPrefix :: Common.Uniqueness -> String
-uniqPrefix a =
-  case a of 
-    Common.Unique -> "1:"
-    Common.NonUnique -> "?:"
+        Common.uniqPrefix uniq ++ s
 
 
 expressionType :: Expression -> Type
