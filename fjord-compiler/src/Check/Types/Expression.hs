@@ -51,7 +51,7 @@ toTypedExpression scope expectType expectUniq expr =
               useCountM $ Left (offset, "cannot infer function type " ++ show exprType)
         else 
           useCountM $ Left (offset, 
-            "aexpression has type " ++ (show parT) ++ ", expected " ++ (show reqParT))
+            "expression has type " ++ (show parT) ++ ", expected " ++ (show reqParT))
 
     U.Case offset expr patterns ->
       do

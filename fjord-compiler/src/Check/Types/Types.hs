@@ -43,7 +43,7 @@ toTypedType offset scope uniq a =
   case a of 
 
     -- TODO Check if this clashes with expected uniqueness.
-    U.FunctionType _ uniq par ret ->
+    U.FunctionType _ functionUniq par ret ->
       let
         expectRetUniq =
           case ret of 
@@ -54,7 +54,7 @@ toTypedType offset scope uniq a =
               Common.Unique
       in
       do
-        parT <- trace (show uniq ++ "," ++ show a) $ toTypedType offset scope Common.Unique par
+        parT <- toTypedType offset scope (U.typeUniq par) par
         retT <- toTypedType offset scope expectRetUniq ret
         return $ T.FunctionType uniq parT retT
 

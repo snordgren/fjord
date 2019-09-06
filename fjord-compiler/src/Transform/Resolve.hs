@@ -42,7 +42,7 @@ resolveExpr scope expr =
           implicitsOf scope name
       in
         if List.length implicits == 0 then 
-          trace name $ return $ T.Name name typ uniq orig
+          return $ T.Name name typ uniq orig
         else 
           resolveImplicitsIn name typ uniq orig 
 
@@ -58,7 +58,7 @@ resolveExpr scope expr =
 
 
 resolveImplicitsIn name typ uniq orig = 
-  trace (show typ) $ return $ T.Name name typ uniq orig
+  return $ T.Name name typ uniq orig
 
 
 implicitsOf :: Scope T.Type -> String -> [T.Type]
