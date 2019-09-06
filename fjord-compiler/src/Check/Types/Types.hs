@@ -41,27 +41,16 @@ fnTypeList t =
 toTypedType :: Int -> Scope U.Type -> U.Type -> Either TypeErrorAt T.Type
 toTypedType offset scope a =
   case a of 
-
-    -- TODO Check if this clashes with expected uniqueness.
     U.FunctionType _ functionUniq par ret ->
-      let
-        expectRetUniq =
-          case ret of 
-            U.FunctionType _ _ retT _ -> 
-              U.typeUniq retT
-            
-            _ -> 
-              Common.Unique
-      in
       do
         parT <- toTypedType offset scope par
         retT <- toTypedType offset scope ret
-        return $ T.FunctionType (U.typeUniq a) parT retT
+        return $ T.FunctionType functionUniq parT retT
 
-    U.TupleType _ types _ ->
+    U.TupleType _ types uniq ->
       do
         typesT <- traverse (toTypedType offset scope) types
-        return $ T.TupleType (U.typeUniq a) typesT
+        return $ T.TupleType uniq typesT
 
     U.TypeLambda _ var ret ->
       let
@@ -78,13 +67,13 @@ toTypedType offset scope a =
         typedC <- toTypedType offset scope c
         return $ T.TypeApply typedB typedC
     
-    U.TypeName _ "Int" _ -> 
-      return $ T.TypeName (U.typeUniq a) "Int" Common.TypeRef
+    U.TypeName _ "Int" uniq -> 
+      return $ T.TypeName uniq "Int" Common.TypeRef
 
-    U.TypeName _ "String" _ -> 
-      return $ T.TypeName (U.typeUniq a) "String" Common.TypeRef
+    U.TypeName _ "String" uniq -> 
+      return $ T.TypeName uniq "String" Common.TypeRef
 
-    U.TypeName _ name _ ->
+    U.TypeName _ name uniq ->
       let 
         typeNames = 
           scopeTypes scope 
@@ -95,7 +84,7 @@ toTypedType offset scope a =
         resultE =
           Combinators.maybeToRight (offset, "unknown type " ++ name) result
       in
-        fmap (\(t, _, nameType) -> T.TypeName (U.typeUniq a) t nameType) resultE
+        fmap (\(t, _, nameType) -> T.TypeName uniq t nameType) resultE
 
         
 unifyTypes :: T.Type -> T.Type -> T.Type
