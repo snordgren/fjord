@@ -2,7 +2,7 @@ module AST.Scope where
 
 import qualified AST.Common as Common
 
-type ScopeValue a = (String, a, Common.Uniqueness, Common.Origin, [a])
+type ScopeValue a = (String, a, Common.Origin, [a])
 
 data Scope a
   = Scope { 

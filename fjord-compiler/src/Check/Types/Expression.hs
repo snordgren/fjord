@@ -69,14 +69,11 @@ toTypedExpression scope expectType expectUniq expr =
           useCountM $ Left (U.expressionOffset expr,
             "cannot infer int uniqueness")
 
-    U.Lambda offset name expr ->
-      createLambda offset name scope expectUniq Common.NonUnique expectType expr T.Lambda
-
     U.Let offset name val ret -> 
       do
         typedVal <- toTypedExpression scope Nothing (Just Common.Unique) val
         valType <- useCountM $ typeOf scope val
-        let letScope = mkScopeFromValues [(name, valType, T.typeUniq $ T.expressionType typedVal, Common.InFunction, [])]
+        let letScope = mkScopeFromValues [(name, valType, Common.InFunction, [])]
         let useScope = mergeScope letScope scope
         (typeVarCounter, useCounters) <- get
         put (typeVarCounter, (UseCounter.for name) : useCounters)
@@ -111,7 +108,8 @@ toTypedExpression scope expectType expectUniq expr =
             Nothing -> return useCounts
       in 
         do
-          (t, uniq, orig, implicits) <- useCountM $ scopeVariableType scope offset s
+          (t, orig, implicits) <- useCountM $ scopeVariableType scope offset s
+          let uniq = U.typeUniq t
           typedT <- useCountM $ toTypedType offset scope uniq t
           -- If the value is unique, update its use counter, and generate an
           -- error if it has been used uniquely before.  
@@ -123,11 +121,13 @@ toTypedExpression scope expectType expectUniq expr =
           else 
             return ()
           renamedT <- renameTypeVars typedT
+          let uniq = U.typeUniq t
           trace (show expectUniq ++ show uniq) $ return $ T.Name s renamedT uniq orig
 
     U.Operator offset name a b -> 
       do
-        (opType, uniq, orig, implicits) <- useCountM $ scopeVariableType scope offset name 
+        (opType, orig, implicits) <- useCountM $ scopeVariableType scope offset name 
+        let uniq = U.typeUniq opType
         opTypeT <- useCountM $ toTypedType offset scope uniq opType
         let paramAUniq = T.parTypeUniq $ opTypeT
         let paramBUniq = T.parTypeUniq $ T.returnType opTypeT
@@ -176,34 +176,6 @@ toTypedExpression scope expectType expectUniq expr =
           Nothing -> 
             useCountM $ Left (U.expressionOffset expr, "cannot infer tuple uniqueness")
 
-    U.UniqueLambda offset name expr -> 
-      createLambda offset name scope expectUniq Common.Unique expectType expr T.UniqueLambda
-
-createLambda 
-  :: Int
-  -> String
-  -> Scope U.Type
-  -> Maybe Common.Uniqueness
-  -> Common.Uniqueness 
-  -> Maybe U.Type
-  -> U.Expression
-  -> (String -> T.Type -> T.Expression -> T.Expression) 
-  -> UseCountM T.Expression
-createLambda offset name scope expectUniq parUniq expectType expr f =
-  let
-    unableToInfer s t = 
-      useCountM $ Combinators.maybeToRight (offset, "cannot infer type\n" ++ s) t
-  in 
-    do
-      t <- unableToInfer "missing expected type" expectType
-      parT <- unableToInfer "missing parameter type" (U.parameterType t)
-      retT <- unableToInfer "missing return type" (U.returnType t)
-      let lambdaPar = (name, parT, parUniq, Common.InFunction, [])
-      let lambdaScope = Scope (lambdaPar : scopeValues scope) (scopeTypes scope) [] []
-      exprT <- toTypedExpression lambdaScope (Just retT) expectUniq expr
-      typedT <- useCountM $ toTypedType offset scope Common.NonUnique t
-      return $ f name typedT exprT
-
 
 useCountM :: Either TypeErrorAt b -> UseCountM b 
 useCountM e = 
@@ -235,11 +207,12 @@ runUseCounting
 runUseCounting offset scope e =
   let 
     uniqueValues =
-      List.filter (\(_, _, uniq, orig, implicits) -> uniq == Common.Unique && orig == Common.InFunction) 
+      List.filter (\(_, typ, orig, implicits) -> (U.typeUniq typ) == Common.Unique && 
+        orig == Common.InFunction) 
         $ scopeValues scope
 
     initialMap =
-      fmap (\(name, _, _, _, _) -> UseCounter.for name) uniqueValues
+      fmap (\(name, _, _, _) -> UseCounter.for name) uniqueValues
 
     (eith, (_, finalMap)) = 
       runState (runExceptT e) (0, initialMap)
@@ -267,14 +240,14 @@ toTypedPattern
   -> UseCountM T.Pattern
 toTypedPattern scope expr expectType expectUniq (U.Pattern offset ctor vars retExpr) = 
   do
-    (ctorType, uniq, orig, implicits) <- useCountM $ scopeVariableType scope offset ctor 
+    (ctorType, orig, implicits) <- useCountM $ scopeVariableType scope offset ctor 
     realExprType <- useCountM $ typeOf scope expr
     let patSubstCtorType = Maybe.fromMaybe ctorType $ U.returnType $ U.concreteType ctorType
     let patSubstTypeVars = U.typeNamesIn ctorType
     let patSubst = findPatSubst patSubstTypeVars patSubstCtorType realExprType
     let substCtorType = List.foldl' (\acc (name, subst) -> replaceTypeName name subst acc) ctorType patSubst
     let patScope = createPatternScope substCtorType vars scope
-    types <- useCountM $ traverse (toTypedType offset patScope uniq) $ fnParamList substCtorType
+    types <- useCountM $ traverse (toTypedType offset patScope (U.typeUniq ctorType)) $ fnParamList substCtorType
     let mergedVars = List.zip vars types
     typedRetExpr <- toTypedExpression patScope expectType expectUniq retExpr
     return $ T.Pattern ctor mergedVars typedRetExpr
@@ -286,7 +259,7 @@ createPatternScope ctorType vars scope =
       fnParamList ctorType
 
     bindings = 
-      fmap (\(a, b) -> (a, b, Common.Unique, Common.InFunction, [])) $ 
+      fmap (\(a, b) -> (a, b, Common.InFunction, [])) $ 
         List.zip vars varTypes
 
     newScope = 
@@ -319,7 +292,7 @@ typeOf scope expr =
       
     U.Name offset name ->
       do
-        (t, uniq, orig, implicits) <- scopeVariableType scope offset name
+        (t, orig, implicits) <- scopeVariableType scope offset name
         return t
     _ -> 
       error $ "not yet implemented for " ++ show expr

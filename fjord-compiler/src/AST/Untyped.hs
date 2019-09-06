@@ -102,11 +102,6 @@ data Expression
     expressionOffset :: Int,
     intLiteralVal :: Integer 
   }
-  | Lambda {
-    expressionOffset :: Int,
-    lambdaVarName :: String,
-    lambdaVarExpr :: Expression
-  }
   | Let {
     expressionOffset :: Int,
     letName :: String,
@@ -141,11 +136,6 @@ data Expression
   | Tuple {
     expressionOffset :: Int,
     tupleValues :: [Expression]
-  }
-  | UniqueLambda {
-    expressionOffset :: Int,
-    lambdaVarName :: String,
-    lambdaVarExpr :: Expression
   }
   deriving (Eq, Show)
 

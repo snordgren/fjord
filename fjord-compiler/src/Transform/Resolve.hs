@@ -66,9 +66,9 @@ implicitsOf scope name =
   let 
     implicits :: Maybe (ScopeValue T.Type)
     implicits = 
-      List.find (\(n, _, _, _, _) -> n == name) $ scopeValues scope
+      List.find (\(n, _, _, _) -> n == name) $ scopeValues scope
   in
-    concat $ Maybe.maybeToList $ fmap (\(_, _, _, _, implicits) -> implicits) implicits
+    concat $ Maybe.maybeToList $ fmap (\(_, _, _, implicits) -> implicits) implicits
 
 
 moduleScope :: T.Module -> Scope T.Type

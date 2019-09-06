@@ -40,7 +40,8 @@ typeCheckValDecl params expr f modScope (U.ValDecl offset name declType implicit
     reqType = 
       inferRequiredBody implicits declType params
     
-    toTypedParam (p, (t, uniq)) =
+    toTypedParam :: (U.Parameter, U.Type) -> Either TypeErrorAt T.Parameter
+    toTypedParam (p, t) =
       do
         typedT <- toTypedType offset defScope uniq t
         return $ T.Parameter (U.parameterName p) typedT

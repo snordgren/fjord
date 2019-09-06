@@ -18,7 +18,7 @@ createDefScope :: Scope U.Type -> [U.Parameter] -> U.Type -> [U.Type] -> Scope U
 createDefScope modScope parameters typ implicits = 
   let
     parameterBindings = 
-      fmap (\(a, (typ, uniq)) -> (a, typ, uniq, Common.InFunction, implicits)) $ 
+      fmap (\(a, typ) -> (a, typ, Common.InFunction, implicits)) $ 
         List.zip (fmap U.parameterName parameters) (fnParListWithUniq typ implicits)
 
     typeLambdaValues t =
@@ -97,7 +97,7 @@ scopeContrib origin d =
               else
                 Common.NonUnique
           in
-            (U.enumConstructorName c, typeLambdas, uniq, origin, [])
+            (U.enumConstructorName c, typeLambdas, origin, [])
 
         values = 
           fmap genCtorBinding constructors
@@ -108,7 +108,7 @@ scopeContrib origin d =
         Scope values types [] []
 
     U.DeclImplicitDecl (U.ValDecl offset name t implicits) -> 
-      Scope [(name, t, Common.NonUnique, origin, [])] [] [(name, t, origin)] []
+      Scope [(name, t, origin, [])] [] [(name, t, origin)] []
 
     U.DeclRecDecl (U.RecDecl offset name fields typeVars) -> 
       let 
@@ -135,14 +135,14 @@ scopeContrib origin d =
 
         values :: [ScopeValue U.Type]
         values = 
-          [(name, ctorWithTypeVars, Common.Unique, origin, [])]
+          [(name, ctorWithTypeVars, origin, [])]
       in 
         Scope values types [] scopeFields
     
     U.DeclValDecl (U.ValDecl _ name t implicits) -> 
       let 
         values = 
-          [(filter (\a -> a /= '(' && a /= ')') name, t, Common.Unique, origin, implicits)]
+          [(filter (\a -> a /= '(' && a /= ')') name, t, origin, implicits)]
       in
         mkScopeFromValues values
 
@@ -160,12 +160,12 @@ scopeVariableType
   :: Scope U.Type 
   -> Int 
   -> String 
-  -> Either TypeErrorAt (U.Type, Common.Uniqueness, Common.Origin, [U.Type])
+  -> Either TypeErrorAt (U.Type, Common.Origin, [U.Type])
 scopeVariableType scope offset name = 
   Combinators.maybeToRight (offset, "undefined in scope")
     (fmap 
-      (\(_, t, uniq, origin, implicits) -> (t, uniq, origin, implicits)) 
-      (List.find (\(n, _, _, _, _) -> n == name) (scopeValues scope)))
+      (\(_, t, origin, implicits) -> (t, origin, implicits)) 
+      (List.find (\(n, _, _, _) -> n == name) (scopeValues scope)))
 
 
 mkScopeFromValues :: [ScopeValue U.Type] -> Scope U.Type 

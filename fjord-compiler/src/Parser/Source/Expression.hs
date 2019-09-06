@@ -47,30 +47,9 @@ recAccessP =
 termP :: Parser U.Expression
 termP = 
   choice [
-    (try caseP), (try uniqueLambdaP), (try lambdaP), (try tupleExprP), letP, recordUpdateP, 
+    (try caseP), (try tupleExprP), letP, recordUpdateP, 
     intLiteralP, stringLiteralP, (try nameExpressionP), (try emptyTupleP), parenExprP
   ]
-
-
-lambdaP :: Parser U.Expression
-lambdaP = 
-  label "lambda" $ baseLambdaP "->" U.Lambda
-
-
-uniqueLambdaP :: Parser U.Expression
-uniqueLambdaP = 
-  label "unique lambda" $ baseLambdaP "-*" U.UniqueLambda
-
-baseLambdaP :: String -> (Int -> String -> U.Expression -> U.Expression) -> Parser U.Expression
-baseLambdaP sym f =
-  do
-    offset <- getOffset
-    name <- nameP
-    many spaceP
-    string sym
-    many spaceP
-    ret <- expressionP
-    return $ f offset name ret
 
 
 recordUpdateP :: Parser U.Expression
