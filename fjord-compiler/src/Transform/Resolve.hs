@@ -30,12 +30,18 @@ resolveDef moduleScope d =
         return $ T.ValDef name parameters typ resolvedExpr
 
     _ -> 
-      Right $ d
+      return d
 
 
 resolveExpr :: Scope T.Type -> T.Expression -> Either String T.Expression
 resolveExpr scope expr = 
   case expr of 
+    T.Apply f par -> 
+      do
+        resolvedF <- resolveExpr scope f
+        resolvedPar <- resolveExpr scope par
+        return $ T.Apply resolvedF resolvedPar
+
     T.Name name typ orig ->
       let 
         implicits = 
@@ -44,13 +50,19 @@ resolveExpr scope expr =
         if List.length implicits == 0 then 
           return $ T.Name name typ orig
         else 
-          resolveImplicitsIn name typ orig 
+          resolveImplicitsIn name typ orig implicits
+
+    T.RecAccess fieldName fieldType recordExpr ->
+      do
+        resolvedRecordExpr <- resolveExpr scope recordExpr
+        return $ T.RecAccess fieldName fieldType resolvedRecordExpr
+
     _ -> 
-      return expr
+      trace (show expr) return expr
 
 
-resolveImplicitsIn name typ orig = 
-  return $ T.Name name typ orig
+resolveImplicitsIn name typ orig implicits = 
+  trace (show implicits) $ return $ T.Name name typ orig
 
 
 implicitsOf :: Scope T.Type -> String -> [T.Type]
