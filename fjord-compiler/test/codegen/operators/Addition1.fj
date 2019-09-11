@@ -1,8 +1,10 @@
 module codegen.operators.Addition1
 
+import TestUtil
+
 (+) : Int -> Int -> Int
 (+) x y = 
-  0
+  rm x (rm y 0)
 
 usePlus : Int -> Int -> Int 
 usePlus x y = 

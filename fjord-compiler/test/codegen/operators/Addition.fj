@@ -1,8 +1,10 @@
 module codegen.operators.Addition
 
+import TestUtil
+
 (+) : Int -> Int -> Int
 (+) x y = 
-  y
+  rm x y
 
 three : Int
 three = 

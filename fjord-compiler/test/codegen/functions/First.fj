@@ -1,8 +1,10 @@
 module test.codegen.functions.First
 
+import TestUtil
+
 first : Int -> Int -> Int
 first x y = 
-  x
+  rm y x
 
 one : Int
 one = 
