@@ -8,7 +8,7 @@ import qualified AST.Typed as T
 transformType :: T.Type -> H.Type
 transformType t =
   case t of 
-    T.TypeName _ name _ ->
+    T.TypeName name nameType ->
       H.TypeName name
   
     _ ->

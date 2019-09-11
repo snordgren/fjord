@@ -1,5 +1,0 @@
-module errors.uniqueness.ReturnShared
-
-returnShared : &Int -> Int
-returnShared x =
-  x

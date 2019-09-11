@@ -24,7 +24,7 @@ transformExpr expr =
     T.Case sourceExpression patterns -> 
       transformCase sourceExpression patterns
 
-    T.IntLiteral n _ ->
+    T.IntLiteral n ->
       return $ H.IntLiteral n
       
     T.Let var varExpr retExpr ->
@@ -34,7 +34,7 @@ transformExpr expr =
         let blockDecls = [(var, transformType $ T.expressionType varExpr, Just varExprT)]
         return $ H.IIFE $ H.Block blockDecls [H.Return retExprT]
 
-    T.Name a t uniq origin ->
+    T.Name a t origin ->
       return $ case origin of 
         Common.SameModule -> H.Read (transformType t) $ NameMangling.mangle a
         Common.InFunction -> H.Read (transformType t) $ NameMangling.mangle a
@@ -72,8 +72,10 @@ transformExpr expr =
         let statements = (List.concat $ transformedFieldUpdates) ++ [retStmt]
         return $ H.IIFE $ H.Block [(updateFieldName, updateFieldType, Just transformedSrcExpr)] statements
 
-    T.StringLiteral s _ -> return $ H.StringLiteral s
-    T.Tuple uniq values -> 
+    T.StringLiteral s -> 
+      return $ H.StringLiteral s
+    
+    T.Tuple values -> 
       do
         transExprs <- traverse transformExpr values
         return $ H.Immutable $ H.Array transExprs

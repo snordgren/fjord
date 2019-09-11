@@ -1,9 +1,10 @@
 module codegen.types.Unit
 
+import TestUtil
 
 record UnitContainer
   value : ()
 
-unitId : &() -> ()
+unitId : () -> ()
 unitId a =
-  ()
+  rm a ()

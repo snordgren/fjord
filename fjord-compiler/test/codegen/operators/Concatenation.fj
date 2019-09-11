@@ -1,8 +1,10 @@
 module codegen.operators.Concatenation
 
-(++) : &String -> String -> String
+import TestUtil
+
+(++) : String -> String -> String
 (++) x y = 
-  y
+  rm x y
 
 helloWorld : String
 helloWorld = 

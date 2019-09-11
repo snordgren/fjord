@@ -1,12 +1,14 @@
 module test.codegen.operators.Precedence
 
-(+) : &Int -> Int -> Int
-(+) x y = 
-  y
+import TestUtil
 
-(*) : &Int -> Int -> Int
+(+) : Int -> Int -> Int
+(+) x y = 
+  rm x y
+
+(*) : Int -> Int -> Int
 (*) x y = 
-  y
+  rm x y
 
 eleven : Int
 eleven =

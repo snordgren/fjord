@@ -25,6 +25,6 @@ inferRequiredBody implicits declaredType parameters =
     returnType = 
       last (fnTypeList concreteType)
   in if length remainingParameters > 0 then
-    List.foldr (U.FunctionType 0 Common.NonUnique) returnType remainingParameters
+    List.foldr (U.FunctionType 0) returnType remainingParameters
   else
     returnType

@@ -1,5 +1,0 @@
-test/errors/uniqueness/SharedToUnique.fj:10:12:
-   |
-10 |   useUnique x
-   |            ^^^
-expression has type ?:Int, expected 1:Int

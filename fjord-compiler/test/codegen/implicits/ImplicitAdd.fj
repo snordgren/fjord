@@ -1,16 +1,18 @@
 module codegen.implicits.ImplicitAdd
 
+import TestUtil
+
 record Add a
-  add : &a -> &a -> a
+  add : a -> a -> a
 
-addInt : &Int -> &Int -> Int
+addInt : Int -> Int -> Int
 addInt x y =
-  0
+  rm x (rm y 0)
 
 
-addString : &String -> &String -> String
+addString : String -> String -> String
 addString x y =
-  ""
+  rm x (rm y "")
 
 
 implicit
@@ -23,7 +25,7 @@ stringInstance : Add String
 stringInstance =
   Add addString
 
-(++) : a. Add a => &a -> &a -> a
+(++) : a. Add a => a -> a -> a
 (++) ev x y =
   ev.add x y
 

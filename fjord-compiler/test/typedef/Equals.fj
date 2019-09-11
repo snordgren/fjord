@@ -1,22 +1,24 @@
 module codegen.operators.Equals
 
+import TestUtil
+
 enum Bool
   False : Bool
   True : Bool
 
 
 record Equals a
-  equals : &a -> &a -> Bool
+  equals : a -> a -> Bool
 
 
-equals : a. Equals a => &a -> &a -> Bool
+equals : a. Equals a => a -> a -> Bool
 equals ev x y =
   ev.equals x y
 
 
-boolEquals : &Bool -> &Bool -> Bool
+boolEquals : Bool -> Bool -> Bool
 boolEquals x y = 
-  False
+  rm x (rm y False)
 
 
 implicit
@@ -25,7 +27,7 @@ boolEqualsInstance =
   Equals boolEquals
 
 
-(+) : &Int -> &Int -> Int
+(+) : Int -> Int -> Int
 (+) x y =
-  0
+  rm x (rm y 0)
   

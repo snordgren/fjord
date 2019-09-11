@@ -54,6 +54,7 @@ commentP =
 
 importP :: Parser U.Import
 importP = label "import" $ do
+  many commentP
   string "import"
   some spaceP
   offset <- getOffset

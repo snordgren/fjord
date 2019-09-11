@@ -1,5 +1,9 @@
 module typedef.TypeDef
 
+# Use the TestUtil package for the rm function for skirting linearity 
+# requirements when we aren't interested in testing them. 
+import TestUtil
+
 record Point 
   x : Int
   y : Int
@@ -16,9 +20,9 @@ enum ThreeMembers
   Second Int : ThreeMembers
   Third (TwoMembers -> String, Int) : ThreeMembers
 
-five : &() -> Int
+five : () -> Int
 five a = 
-  5
+  rm a 5
 
 stringIdentity : String -> String
 stringIdentity a = 

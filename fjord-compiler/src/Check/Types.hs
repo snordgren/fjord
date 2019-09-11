@@ -25,22 +25,6 @@ import qualified AST.Typed as T
 import qualified AST.Untyped as U
 
 
-enumParUniq = 
-  Common.Unique
-  
-
-enumRetUniq =
-  Common.Unique
-
-
-implUniq =
-  Common.Unique
-
-
-recFieldUniq =
-  Common.Unique
-
-
 typeCheck :: [U.TypeDef] -> U.Module -> Either TypeErrorAt T.Module
 typeCheck typeDefs m = 
   let

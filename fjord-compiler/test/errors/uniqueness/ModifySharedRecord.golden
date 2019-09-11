@@ -1,5 +1,0 @@
-test/errors/uniqueness/ModifySharedRecord.fj:10:3:
-   |
-10 |   { a | sharedInt = 3 }
-   |   ^^^^^^^^^^^^^^^^^^^^^^
-expression has type ?:Shared, expected 1:Shared

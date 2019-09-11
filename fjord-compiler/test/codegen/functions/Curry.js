@@ -1,7 +1,9 @@
 // module test.codegen.functions.Curry
 
+var TestUtil = require("../../../test/node_modules/@fjord-lang/test-util/dist/Util.js");
+
 var add = function(x, y) {
-  return 0;
+  return (TestUtil.rm(x, (TestUtil.rm(y, 0))));
 };
 exports.add = add;
 

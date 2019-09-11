@@ -19,7 +19,7 @@ Get all the parameters of this type.
 fnParamList :: U.Type -> [U.Type]
 fnParamList t = 
   case t of 
-    U.FunctionType _ _ par ret -> 
+    U.FunctionType _ par ret -> 
       par : fnParamList ret
 
     U.TypeLambda _ _ ret ->
@@ -32,7 +32,7 @@ fnParamList t =
 fnTypeList :: U.Type -> [U.Type]
 fnTypeList t =
   case t of 
-    U.FunctionType _ _ p r -> 
+    U.FunctionType _ p r -> 
       p : fnTypeList r
 
     a -> 
@@ -41,16 +41,16 @@ fnTypeList t =
 toTypedType :: Int -> Scope U.Type -> U.Type -> Either TypeErrorAt T.Type
 toTypedType offset scope a =
   case a of 
-    U.FunctionType _ functionUniq par ret ->
+    U.FunctionType _ par ret ->
       do
         parT <- toTypedType offset scope par
         retT <- toTypedType offset scope ret
-        return $ T.FunctionType functionUniq parT retT
+        return $ T.FunctionType parT retT
 
-    U.TupleType _ types uniq ->
+    U.TupleType _ types ->
       do
         typesT <- traverse (toTypedType offset scope) types
-        return $ T.TupleType uniq typesT
+        return $ T.TupleType typesT
 
     U.TypeLambda _ var ret ->
       let
@@ -67,13 +67,13 @@ toTypedType offset scope a =
         typedC <- toTypedType offset scope c
         return $ T.TypeApply typedB typedC
     
-    U.TypeName _ "Int" uniq -> 
-      return $ T.TypeName uniq "Int" Common.TypeRef
+    U.TypeName _ "Int" -> 
+      return $ T.TypeName "Int" Common.TypeRef
 
-    U.TypeName _ "String" uniq -> 
-      return $ T.TypeName uniq "String" Common.TypeRef
+    U.TypeName _ "String" -> 
+      return $ T.TypeName "String" Common.TypeRef
 
-    U.TypeName _ name uniq ->
+    U.TypeName _ name ->
       let 
         typeNames = 
           scopeTypes scope 
@@ -84,7 +84,7 @@ toTypedType offset scope a =
         resultE =
           Combinators.maybeToRight (offset, "unknown type " ++ name) result
       in
-        fmap (\(t, _, nameType) -> T.TypeName uniq t nameType) resultE
+        fmap (\(t, _, nameType) -> T.TypeName t nameType) resultE
 
         
 unifyTypes :: T.Type -> T.Type -> T.Type

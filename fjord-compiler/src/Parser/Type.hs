@@ -13,15 +13,7 @@ import qualified AST.Untyped as U
 
 typeTermP :: Parser U.Type
 typeTermP = 
-  choice [try sharedValueP, try emptyTupleP, try tupleTypeP, parenTypeP, typeNameP]
-
-
-sharedValueP :: Parser U.Type
-sharedValueP = 
-  do
-    string "&"
-    t <- typeTermP
-    return $ U.typeWithUniq Common.NonUnique t
+  choice [try emptyTupleP, try tupleTypeP, parenTypeP, typeNameP]
 
 
 emptyTupleP :: Parser U.Type
@@ -31,7 +23,7 @@ emptyTupleP =
     char '('
     many spaceP
     char ')'
-    return $ U.TupleType offset [] Common.Unique
+    return $ U.TupleType offset []
 
 
 tupleTypeP :: Parser U.Type
@@ -51,7 +43,7 @@ tupleTypeP = label "tuple type" $
     tail <- some rhsP
     many spaceP
     char ')'
-    return $ U.TupleType offset (head : tail) Common.Unique
+    return $ U.TupleType offset (head : tail)
 
 
 parenTypeP :: Parser U.Type
@@ -70,7 +62,7 @@ typeNameP =
     do
       offset <- getOffset
       name <- nameP
-      return $ U.TypeName offset name Common.Unique
+      return $ U.TypeName offset name
 
 typeP :: Parser U.Type
 typeP = 
@@ -80,7 +72,7 @@ typeP =
       many spaceP
       string "->"
       many spaceP
-      return $ U.FunctionType offset Common.Unique
+      return $ U.FunctionType offset
   in 
     Expr.makeExprParser typeTermP [
       [Expr.InfixL $ try $ typeApplyP], 

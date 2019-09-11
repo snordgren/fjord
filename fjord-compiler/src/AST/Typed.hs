@@ -32,14 +32,14 @@ data Import
 data Expression 
   = Apply Expression Expression
   | Case Expression [Pattern]
-  | IntLiteral Integer Common.Uniqueness
+  | IntLiteral Integer
   | Let String Expression Expression
-  | Name String Type Common.Uniqueness Common.Origin
+  | Name String Type Common.Origin
   | Operator Expression Type Expression Expression Common.Origin
   | RecAccess String Type Expression
   | RecUpdate Expression [FieldUpdate]
-  | StringLiteral String Common.Uniqueness
-  | Tuple Common.Uniqueness [Expression]
+  | StringLiteral String
+  | Tuple [Expression]
   deriving (Eq, Show)
 
 
@@ -92,21 +92,21 @@ data Parameter
 
 
 data Type 
-  = FunctionType Common.Uniqueness Type Type
-  | TupleType Common.Uniqueness [Type]
+  = FunctionType Type Type
+  | TupleType [Type]
   | TypeApply Type Type
   | TypeLambda String Type
-  | TypeName Common.Uniqueness String Common.NameType
+  | TypeName String Common.NameType
   deriving Eq
 
 instance Show Type where
   show a =
     case a of 
-      FunctionType uniq p r ->
-        Common.uniqPrefix uniq ++ "(" ++ show p ++ " -> " ++ show r ++ ")"
+      FunctionType p r ->
+        "(" ++ show p ++ " -> " ++ show r ++ ")"
 
-      TupleType uniq values -> 
-        Common.uniqPrefix uniq ++ "(" ++ List.intercalate ", " (fmap show values) ++ ")"
+      TupleType values -> 
+        "(" ++ List.intercalate ", " (fmap show values) ++ ")"
 
       TypeApply f par ->
         "(" ++ show f ++ " " ++ show par ++ ")"
@@ -114,8 +114,8 @@ instance Show Type where
       TypeLambda arg ret -> 
         arg ++ ". " ++ show ret
 
-      TypeName uniq s nameType -> 
-        Common.uniqPrefix uniq ++ s
+      TypeName s nameType -> 
+        s
 
 
 expressionType :: Expression -> Type
@@ -123,44 +123,21 @@ expressionType a =
   case a of 
     Apply f par -> 
       case parType $ concreteType $ expressionType f of 
-        TypeName uniq name Common.TypeVar -> 
+        TypeName name Common.TypeVar -> 
           returnType $ replaceTypeName name (expressionType par) (expressionType f)
 
         _ ->
-          -- if the parameter is unique, the returned value must be unique
-          if parTypeUniq (concreteType $ expressionType f) == Common.Unique then
-            withUniq Common.Unique $ returnType $ expressionType f
-          else
-            returnType $ expressionType f
+          returnType $ expressionType f
 
     Case a p -> expressionType $ patRetExpr $ head p
-    IntLiteral _ uniq -> TypeName uniq "Int" Common.TypeRef
+    IntLiteral _ -> TypeName "Int" Common.TypeRef
     Let _ _ ret -> expressionType ret
-    Name _ t _ _ -> t
+    Name _ t _ -> t
     Operator _ t _ _ _ -> returnType $ returnType t
     RecAccess _ t _ -> t
     RecUpdate a _ -> expressionType a
-    StringLiteral _ uniq -> TypeName uniq "String" Common.TypeRef
-    Tuple uniq values -> TupleType uniq $ fmap expressionType values
-
-
-typeUniq :: Type -> Common.Uniqueness
-typeUniq t = 
-  case t of 
-    FunctionType uniq _ _ -> 
-      uniq
-
-    TypeApply f par ->
-      typeUniq f
-
-    TypeLambda arg ret ->
-      typeUniq ret
-
-    TupleType uniq _ ->
-      uniq
-    
-    TypeName uniq _ _ ->
-      uniq
+    StringLiteral _ -> TypeName "String" Common.TypeRef
+    Tuple values -> TupleType $ fmap expressionType values
 
 
 parType :: Type -> Type
@@ -174,15 +151,10 @@ parType a =
       head params
 
 
-parTypeUniq :: Type -> Common.Uniqueness
-parTypeUniq =
-  typeUniq . parType
-
-
 returnType :: Type -> Type 
 returnType t =
   case concreteType t of 
-    FunctionType _ _ a -> 
+    FunctionType _ a -> 
       a
 
     TypeLambda _ ret -> 
@@ -202,15 +174,6 @@ concreteType t =
     a -> 
       a
 
-withUniq :: Common.Uniqueness -> Type -> Type
-withUniq uniq t =
-  case t of 
-    FunctionType _ par ret -> FunctionType uniq par ret
-    TupleType _ types -> TupleType uniq $ fmap (withUniq uniq) types
-    TypeLambda arg ret -> TypeLambda arg $ withUniq uniq ret
-    TypeName _ name nameType -> TypeName uniq name nameType
-    a -> a
-
 
 replaceTypeName :: String -> Type -> Type -> Type
 replaceTypeName name with target =
@@ -219,8 +182,8 @@ replaceTypeName name with target =
       replaceTypeName name with
   in
     case target of 
-      FunctionType uniq par ret -> FunctionType uniq (next par) $ next ret
-      TupleType uniq types -> TupleType uniq $ fmap next types
+      FunctionType par ret -> FunctionType (next par) $ next ret
+      TupleType types -> TupleType $ fmap next types
       TypeApply f par -> TypeApply (next f) $ next par
       TypeLambda arg ret -> 
         if arg == name then
@@ -228,11 +191,11 @@ replaceTypeName name with target =
         else
           TypeLambda arg $ next ret
           
-      TypeName uniq typeName nameType -> 
+      TypeName typeName nameType -> 
         if name == typeName then
-          withUniq uniq with
+          with
         else
-          TypeName uniq typeName nameType
+          TypeName typeName nameType
 
 
 
@@ -243,9 +206,9 @@ findPatSubst typeVars exprType t =
       findPatSubst typeVars
   in
     case exprType of
-      FunctionType exprUniq exprPar exprRet -> 
+      FunctionType exprPar exprRet -> 
         case t of 
-          FunctionType tUniq tPar tRet ->
+          FunctionType tPar tRet ->
             self exprPar tPar ++ self exprRet tRet
 
           _ -> []
@@ -257,7 +220,7 @@ findPatSubst typeVars exprType t =
 
           _ -> []
 
-      TypeName exprUniq exprName exprNameType ->
+      TypeName exprName exprNameType ->
         if exprNameType == Common.TypeVar then
           [(exprName, t)]
         else
@@ -278,11 +241,11 @@ unifyTypes pat impl =
 typeVarsIn :: Type -> [String]
 typeVarsIn t =
   case t of 
-    FunctionType uniq par ret -> typeVarsIn par ++ typeVarsIn ret
-    TupleType uniq types -> concatMap typeVarsIn types
+    FunctionType par ret -> typeVarsIn par ++ typeVarsIn ret
+    TupleType types -> concatMap typeVarsIn types
     TypeApply f par -> typeVarsIn f ++ typeVarsIn par
     TypeLambda arg ret -> arg : typeVarsIn ret
-    TypeName uniq name nameType -> 
+    TypeName name nameType -> 
       case nameType of 
         Common.TypeRef -> []
         Common.TypeVar -> [name]
@@ -292,7 +255,7 @@ fnParamList :: Type -> [Type]
 fnParamList t = 
   case t of 
 
-    FunctionType uniq a b ->
+    FunctionType a b ->
       a : fnParamList b
 
     TypeLambda _ ret -> 
@@ -308,8 +271,8 @@ renameTypeVar from to t =
         renameTypeVar from to
     in
       case t of 
-        FunctionType uniq par ret -> FunctionType uniq (next par) $ next ret
-        TupleType uniq types -> TupleType uniq $ fmap next types
+        FunctionType par ret -> FunctionType (next par) $ next ret
+        TupleType types -> TupleType $ fmap next types
         TypeApply f par -> TypeApply (next f) $ next par
         TypeLambda arg ret -> 
           if arg == from then
@@ -317,8 +280,8 @@ renameTypeVar from to t =
           else
             TypeLambda arg $ next ret
             
-        TypeName uniq typeName nameType -> 
+        TypeName typeName nameType -> 
           if from == typeName then
-            TypeName uniq to nameType
+            TypeName to nameType
           else
-            TypeName uniq typeName nameType
+            TypeName typeName nameType

@@ -39,42 +39,22 @@ data Declaration
   deriving (Eq, Show)
 
 data Type 
-  = FunctionType Int Common.Uniqueness Type Type 
-  | TupleType Int [Type] Common.Uniqueness
+  = FunctionType Int Type Type 
+  | TupleType Int [Type]
   | TypeApply Int Type Type
   | TypeLambda Int String Type
-  | TypeName Int String Common.Uniqueness
+  | TypeName Int String
   deriving (Eq)
-
-
-typeUniq :: Type -> Common.Uniqueness
-typeUniq t = 
-  case t of 
-    FunctionType _ uniq _ _ -> uniq
-    TupleType _ _ uniq -> uniq
-    TypeApply _ f _ -> typeUniq f
-    TypeLambda _ _ ret -> typeUniq ret
-    TypeName _ _ uniq -> uniq
-
-
-typeWithUniq :: Common.Uniqueness -> Type -> Type
-typeWithUniq uniq t = 
-  case t of 
-    FunctionType offset _ par ret -> FunctionType offset uniq par ret
-    TupleType offset types _ -> TupleType offset (fmap (typeWithUniq uniq) types) uniq
-    TypeApply offset f par -> TypeApply offset (typeWithUniq uniq f) par
-    TypeLambda offset var typ -> TypeLambda offset var (typeWithUniq uniq typ)
-    TypeName offset name _ -> TypeName offset name uniq
 
 
 instance Show Type where
   show a = 
     case a of 
-      FunctionType _ uniq p r -> 
-        Common.uniqPrefix uniq ++ "(" ++ show p ++ " -> " ++ show r ++ ")"
+      FunctionType _ p r -> 
+        "(" ++ show p ++ " -> " ++ show r ++ ")"
 
-      TupleType _ t uniq -> 
-        Common.uniqPrefix uniq ++ "(" ++ (List.intercalate "," $ fmap show t) ++ ")"
+      TupleType _ t -> 
+        "(" ++ (List.intercalate "," $ fmap show t) ++ ")"
 
       TypeApply _ f par ->
         "(" ++ show f ++ " " ++ show par ++ ")"
@@ -82,8 +62,8 @@ instance Show Type where
       TypeLambda _ n t -> 
         n ++ " => " ++ (show t)
 
-      TypeName _ t uniq -> 
-        Common.uniqPrefix uniq ++ t
+      TypeName _ t -> 
+        t
 
 
 data Expression 
@@ -255,18 +235,18 @@ concreteType t =
 typeNamesIn :: Type -> [String]
 typeNamesIn t =
   case t of 
-    FunctionType _ _ par ret -> typeNamesIn par ++ typeNamesIn ret
-    TupleType _ types _ -> concatMap typeNamesIn types
-    TypeApply _ f par -> typeNamesIn f ++ typeNamesIn par
-    TypeLambda _ arg ret -> arg : typeNamesIn ret
-    TypeName _ name _ -> [name]
+    FunctionType pos par ret -> typeNamesIn par ++ typeNamesIn ret
+    TupleType pos types -> concatMap typeNamesIn types
+    TypeApply pos f par -> typeNamesIn f ++ typeNamesIn par
+    TypeLambda pos arg ret -> arg : typeNamesIn ret
+    TypeName pos name -> [name]
 
 
 parameterType :: Type -> Maybe Type
-parameterType (FunctionType _ _ p _) = Just p
+parameterType (FunctionType _ p r) = Just p
 parameterType _ = Nothing
 
 
 returnType :: Type -> Maybe Type
-returnType (FunctionType _ _ ret _) = Just ret
+returnType (FunctionType _ par ret) = Just ret
 returnType _ = Nothing
