@@ -104,7 +104,7 @@ valDeclP = label "value declaration" $ do
 Parse a value type declaration. Returns a tuple containing first the implicits and
 then the remaining type of the declaration.
 -}
-valDeclTypeP :: Parser ([U.Type], U.Type)
+valDeclTypeP :: Parser ([Type], Type)
 valDeclTypeP =
   let 
     typeVarP :: Parser String
@@ -116,7 +116,7 @@ valDeclTypeP =
         many spaceP
         return name
 
-    implicitP :: Parser U.Type
+    implicitP :: Parser Type
     implicitP = 
       label "implicit value" $ do
         t <- typeP
@@ -130,4 +130,4 @@ valDeclTypeP =
       typeVars <- many $ try $ typeVarP
       implicits <- many $ try $ implicitP
       rest <- typeP
-      return (implicits, List.foldl' (\b a -> U.TypeLambda offset a b) rest typeVars)
+      return (implicits, List.foldl' (\b a -> TypeLambda offset a b) rest typeVars)

@@ -5,10 +5,10 @@ module Transform.ToHybrid.Type (
 import qualified AST.Hybrid as H
 import qualified AST.Typed as T
 
-transformType :: T.Type -> H.Type
+transformType :: Type -> H.Type
 transformType t =
   case t of 
-    T.TypeName name nameType ->
+    TypeName name nameType ->
       H.TypeName name
   
     _ ->

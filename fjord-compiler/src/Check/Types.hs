@@ -60,7 +60,7 @@ importName (U.Import _ name) = name
 {-
 Generate a scope with the type variables introduced by a definition.
 -}
-genTypeVarScope :: [String] -> Scope U.Type
+genTypeVarScope :: [String] -> Scope
 genTypeVarScope typeVars = 
   Scope [] (fmap (\str -> (str, Common.SameModule, Common.TypeVar)) typeVars) [] []
 
@@ -68,7 +68,7 @@ genTypeVarScope typeVars =
 Generate a typed definition from an untyped one, or generate an error if there 
 is something wrong. 
 -}
-toTypedDef :: Scope U.Type -> U.Definition -> Either TypeErrorAt T.Definition
+toTypedDef :: Scope -> U.Definition -> Either TypeErrorAt T.Definition
 toTypedDef modScope a =
   case a of 
     U.EnumDef (U.EnumDecl offset name constructors typeVars) ->

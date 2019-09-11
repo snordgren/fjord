@@ -11,12 +11,12 @@ import Parser.Common
 import qualified AST.Common as Common
 import qualified AST.Untyped as U
 
-typeTermP :: Parser U.Type
+typeTermP :: Parser Type
 typeTermP = 
   choice [try emptyTupleP, try tupleTypeP, parenTypeP, typeNameP]
 
 
-emptyTupleP :: Parser U.Type
+emptyTupleP :: Parser Type
 emptyTupleP = 
   label "empty tuple" $ do
     offset <- getOffset
@@ -26,7 +26,7 @@ emptyTupleP =
     return $ U.TupleType offset []
 
 
-tupleTypeP :: Parser U.Type
+tupleTypeP :: Parser Type
 tupleTypeP = label "tuple type" $
   let 
     rhsP = do
@@ -43,10 +43,10 @@ tupleTypeP = label "tuple type" $
     tail <- some rhsP
     many spaceP
     char ')'
-    return $ U.TupleType offset (head : tail)
+    return $ TupleType offset (head : tail)
 
 
-parenTypeP :: Parser U.Type
+parenTypeP :: Parser Type
 parenTypeP = do
   char '('
   many spaceP
@@ -56,15 +56,15 @@ parenTypeP = do
   return innerType
 
 
-typeNameP :: Parser U.Type
+typeNameP :: Parser Type
 typeNameP = 
   label "type name" $
     do
       offset <- getOffset
       name <- nameP
-      return $ U.TypeName offset name
+      return $ TypeName offset name
 
-typeP :: Parser U.Type
+typeP :: Parser Type
 typeP = 
   let 
     pureFunction = Expr.InfixR $ try $ label "function" $ do 

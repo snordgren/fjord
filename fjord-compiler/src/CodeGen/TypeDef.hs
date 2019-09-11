@@ -64,14 +64,14 @@ genFieldStr (T.RecField recFieldName recFieldType) =
   "  " ++ recFieldName ++ " : " ++ genTypeDefStr recFieldType
 
 
-genTypeDefStr :: T.Type -> String
+genTypeDefStr :: Type -> String
 genTypeDefStr t = 
   case t of
-    T.FunctionType par ret -> 
+    FunctionType par ret -> 
       let 
         parStr = 
           case par of 
-            T.FunctionType a b -> 
+            FunctionType a b -> 
               "(" ++ genTypeDefStr par ++ ")"
 
             _ -> 
@@ -79,14 +79,14 @@ genTypeDefStr t =
       in
         parStr ++ " -> " ++ genTypeDefStr ret
 
-    T.TupleType types -> 
+    TupleType types -> 
       "(" ++ (List.intercalate ", " $ fmap genTypeDefStr types) ++ ")"
 
-    T.TypeApply f par ->
+    TypeApply f par ->
       genTypeDefStr f ++ " " ++ genTypeDefStr par
 
-    T.TypeLambda var ret ->
+    TypeLambda var ret ->
       var ++ ". " ++ genTypeDefStr ret
 
-    T.TypeName a nameType ->
+    TypeName a nameType ->
       a

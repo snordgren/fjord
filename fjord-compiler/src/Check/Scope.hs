@@ -5,6 +5,7 @@ import Debug.Trace
 import qualified Data.List as List
 import qualified Data.Either.Combinators as Combinators
 
+import AST.Common (Type (..))
 import AST.Scope
 import Check.Types.Common
 import qualified AST.Common as Common
@@ -14,7 +15,7 @@ import qualified AST.Untyped as U
 {-|
 Derive the scope of a definition with parameters. 
 -}
-createDefScope :: Scope U.Type -> [U.Parameter] -> U.Type -> [U.Type] -> Scope U.Type
+createDefScope :: Scope -> [U.Parameter] -> Type -> [Type] -> Scope
 createDefScope modScope parameters typ implicits = 
   let
     parameterBindings = 
@@ -23,7 +24,7 @@ createDefScope modScope parameters typ implicits =
 
     typeLambdaValues t =
       case t of 
-        U.TypeLambda _ arg ret -> 
+        TypeLambda _ arg ret -> 
           arg : (typeLambdaValues ret)
 
         _ -> 
@@ -39,7 +40,7 @@ createDefScope modScope parameters typ implicits =
     mergeScope defScope modScope
 
 
-deriveImportScope :: [U.TypeDef] -> U.Import -> Scope U.Type
+deriveImportScope :: [U.TypeDef] -> U.Import -> Scope
 deriveImportScope typeDefs imp =
   let
     matchingTypeDef = 
@@ -61,21 +62,21 @@ deriveImportScope typeDefs imp =
       Nothing -> emptyScope
 
 
-emptyScope :: Scope U.Type
+emptyScope :: Scope
 emptyScope =
   Scope [] [] [] []
 
 {-|
 Generates the individual contribution of the definition to the module scope.
 -}
-scopeContrib :: Common.Origin -> U.Declaration -> Scope U.Type
+scopeContrib :: Common.Origin -> U.Declaration -> Scope
 scopeContrib origin d =
   case d of 
     U.DeclEnumDecl (U.EnumDecl offset name constructors typeVars) -> 
       let 
         genCtorBinding 
           :: U.EnumConstructor 
-          -> ScopeValue U.Type
+          -> ScopeValue
         genCtorBinding c = 
           let 
             retT = 
@@ -85,11 +86,11 @@ scopeContrib origin d =
               List.intersect typeVars $ U.typeNamesIn retT
 
             typ = 
-              List.foldr (\par ret -> U.FunctionType offset par ret) 
+              List.foldr (\par ret -> FunctionType offset par ret) 
                 retT $ U.enumConstructorParTypes c
 
             typeLambdas = 
-              List.foldr (\par ret -> U.TypeLambda offset par ret) typ typeVarList
+              List.foldr (\par ret -> TypeLambda offset par ret) typ typeVarList
           in
             (U.enumConstructorName c, typeLambdas, origin, [])
 
@@ -111,23 +112,23 @@ scopeContrib origin d =
           fmap U.recFieldType fields
     
         ctorType = 
-          List.foldr (U.FunctionType offset) ctorRetType fieldTypes
+          List.foldr (FunctionType offset) ctorRetType fieldTypes
 
         ctorWithTypeVars = 
-          List.foldr (\par ret -> U.TypeLambda offset par ret) ctorType typeVars
+          List.foldr (\par ret -> TypeLambda offset par ret) ctorType typeVars
 
         ctorRetType = 
-          List.foldr (\par f -> U.TypeApply offset f (U.TypeName offset par))
-            (U.TypeName offset name) typeVars
+          List.foldr (\par f -> TypeApply offset f (TypeName offset par))
+            (TypeName offset name) typeVars
 
-        scopeFields :: [(String, U.Type, U.Type, Common.Origin)]
+        scopeFields :: [(String, Type, Type, Common.Origin)]
         scopeFields = 
           fmap (\r -> (U.recFieldName r, ctorRetType, U.recFieldType r, origin)) fields
 
         types = 
           [(name, origin, Common.TypeRef)]
 
-        values :: [ScopeValue U.Type]
+        values :: [ScopeValue]
         values = 
           [(name, ctorWithTypeVars, origin, [])]
       in 
@@ -151,10 +152,10 @@ findTypeDefForImport typeDefs imp =
 
 
 scopeVariableType 
-  :: Scope U.Type 
+  :: Scope 
   -> Int 
   -> String 
-  -> Either TypeErrorAt (U.Type, Common.Origin, [U.Type])
+  -> Either TypeErrorAt (Type, Common.Origin, [Type])
 scopeVariableType scope offset name = 
   Combinators.maybeToRight (offset, "\"" ++ name ++ "\" is undefined in scope")
     (fmap 
@@ -162,6 +163,6 @@ scopeVariableType scope offset name =
       (List.find (\(n, _, _, _) -> n == name) (scopeValues scope)))
 
 
-mkScopeFromValues :: [ScopeValue U.Type] -> Scope U.Type 
+mkScopeFromValues :: [ScopeValue] -> Scope 
 mkScopeFromValues values =
   Scope values [] [] []

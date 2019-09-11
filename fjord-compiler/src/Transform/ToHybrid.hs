@@ -76,7 +76,7 @@ transformDef a =
 
     T.ImplicitDef name typ expr ->
       let
-        findReturnType (T.FunctionType _ a) = findReturnType a
+        findReturnType (FunctionType _ a) = findReturnType a
         findReturnType a = a
     
         (transformedExpr, hiddenParams) = runState (transformExpr expr) 0

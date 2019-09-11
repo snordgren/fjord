@@ -3,6 +3,7 @@ module AST.Untyped where
 
 import qualified Data.List as List
 
+import AST.Common (Type (..))
 import qualified AST.Common as Common
 
 data Module 
@@ -37,33 +38,6 @@ data Declaration
   | DeclRecDecl RecDecl
   | DeclValDecl ValDecl
   deriving (Eq, Show)
-
-data Type 
-  = FunctionType Int Type Type 
-  | TupleType Int [Type]
-  | TypeApply Int Type Type
-  | TypeLambda Int String Type
-  | TypeName Int String
-  deriving (Eq)
-
-
-instance Show Type where
-  show a = 
-    case a of 
-      FunctionType _ p r -> 
-        "(" ++ show p ++ " -> " ++ show r ++ ")"
-
-      TupleType _ t -> 
-        "(" ++ (List.intercalate "," $ fmap show t) ++ ")"
-
-      TypeApply _ f par ->
-        "(" ++ show f ++ " " ++ show par ++ ")"
-    
-      TypeLambda _ n t -> 
-        n ++ " => " ++ (show t)
-
-      TypeName _ t -> 
-        t
 
 
 data Expression 
