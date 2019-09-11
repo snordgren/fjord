@@ -92,13 +92,6 @@ data Expression
     expressionOffset :: Int,
     nameExpressionVal :: String
   }
-  | Operator
-  {
-    expressionOffset :: Int,
-    operatorName :: String,
-    operatorLHS :: Expression,
-    operatorRHS :: Expression 
-  }
   | RecAccess {
     expressionOffset :: Int,
     recAccessField :: String,

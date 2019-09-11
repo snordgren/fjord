@@ -1,0 +1,11 @@
+module errors.parametricPolymorhpism.InconsistentApply
+
+import TestUtil
+
+(++) : a. a -> a -> a
+(++) x y =
+  rm x y
+
+five : Int
+five = 
+  "hello" ++ 5

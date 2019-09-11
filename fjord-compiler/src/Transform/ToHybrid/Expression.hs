@@ -40,13 +40,6 @@ transformExpr expr =
         Common.InFunction -> H.Read (transformType t) $ NameMangling.mangle a
         Common.OtherModule b -> H.ReadImport (transformType t) (NameMangling.mangle a) b
 
-    T.Operator expr opType a b orig ->
-      do 
-        readOp <- transformExpr expr
-        ta <- transformExpr a
-        tb <- transformExpr b
-        return $ H.Invoke readOp [ta, tb] 
-
     T.RecAccess fieldName fieldType sourceExpression ->
       do
         srcExprT <- transformExpr sourceExpression

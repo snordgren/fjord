@@ -35,7 +35,6 @@ data Expression
   | IntLiteral Integer
   | Let String Expression Expression
   | Name String Type Common.Origin
-  | Operator Expression Type Expression Expression Common.Origin
   | RecAccess String Type Expression
   | RecUpdate Expression [FieldUpdate]
   | StringLiteral String
@@ -133,7 +132,6 @@ expressionType a =
     IntLiteral _ -> TypeName "Int" Common.TypeRef
     Let _ _ ret -> expressionType ret
     Name _ t _ -> t
-    Operator _ t _ _ _ -> returnType $ returnType t
     RecAccess _ t _ -> t
     RecUpdate a _ -> expressionType a
     StringLiteral _ -> TypeName "String" Common.TypeRef

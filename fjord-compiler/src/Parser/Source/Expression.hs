@@ -190,7 +190,7 @@ operatorP c = do
   if elem name reservedSym then
     fail $ name ++ " is a reserved symbol"
   else 
-    return $ U.Operator offset name
+    return (\lhs rhs -> U.Apply offset (U.Apply offset (U.Name offset name) lhs) rhs)
 
 
 caseP = label "case expression" $ do

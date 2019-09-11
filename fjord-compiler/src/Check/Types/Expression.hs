@@ -102,16 +102,6 @@ toTypedExpression scope expectType expr =
           renamedT <- renameTypeVars typedT
           return $ T.Name s renamedT orig
 
-    U.Operator offset name a b -> 
-      do
-        (opType, orig, implicits) <- useCountM $ scopeVariableType scope offset name 
-        opTypeT <- useCountM $ toTypedType offset scope opType
-        typedA <- toTypedExpression scope expectType a
-        typedB <- toTypedExpression scope expectType b
-        let exprType = T.unifyTypes opTypeT $ T.expressionType typedA
-        let opName = T.Name name opTypeT orig
-        return $ T.Operator opName opTypeT typedA typedB orig
-
     U.RecAccess offset fieldName target -> 
       do
         typedTarget <- toTypedExpression scope Nothing target

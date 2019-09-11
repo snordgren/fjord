@@ -45,14 +45,6 @@ resolveExpr scope expr =
           return $ T.Name name typ orig
         else 
           resolveImplicitsIn name typ orig 
-
-    T.Operator op typ leftArg rightArg orig ->
-      do
-        resolvedOp <- resolveExpr scope op
-        resolvedLeftArg <- resolveExpr scope leftArg
-        resolvedRightArg <- resolveExpr scope rightArg
-        return $ T.Operator resolvedOp typ leftArg rightArg orig
-
     _ -> 
       return expr
 

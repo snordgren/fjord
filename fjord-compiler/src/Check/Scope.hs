@@ -156,7 +156,7 @@ scopeVariableType
   -> String 
   -> Either TypeErrorAt (U.Type, Common.Origin, [U.Type])
 scopeVariableType scope offset name = 
-  Combinators.maybeToRight (offset, "undefined in scope")
+  Combinators.maybeToRight (offset, "\"" ++ name ++ "\" is undefined in scope")
     (fmap 
       (\(_, t, origin, implicits) -> (t, origin, implicits)) 
       (List.find (\(n, _, _, _) -> n == name) (scopeValues scope)))

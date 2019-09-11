@@ -1,0 +1,5 @@
+test/errors/polymorphism/InconsistentOpApp.fj:11:10:
+   |
+11 |   "hello" ++ 5
+   |          ^^^^^^
+expression has type Int, expected String

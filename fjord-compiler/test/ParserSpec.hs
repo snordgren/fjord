@@ -17,17 +17,9 @@ import qualified AST.Untyped as AST
 testParser :: TestTree
 testParser = testGroup "ParserSpec" 
   [
-    testCase "testParseAddition" testParseAddition,
     testCase "testParseCase" testParseCase,
     testCase "testParsePattern" testParsePattern
   ]
-
-testParseAddition :: Assertion
-testParseAddition = 
-  let 
-    expected = AST.Operator 1 "+" (AST.IntLiteral 0 1) (AST.IntLiteral 4 2)
-  in
-    runParserTest expressionP expected "1 + 2"
 
 
 testParseCase :: Assertion
