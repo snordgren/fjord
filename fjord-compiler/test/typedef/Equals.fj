@@ -1,5 +1,7 @@
 module codegen.operators.Equals
 
+import TestUtil
+
 enum Bool
   False : Bool
   True : Bool
@@ -16,7 +18,7 @@ equals ev x y =
 
 boolEquals : Bool -> Bool -> Bool
 boolEquals x y = 
-  False
+  rm x (rm y False)
 
 
 implicit
@@ -27,5 +29,5 @@ boolEqualsInstance =
 
 (+) : Int -> Int -> Int
 (+) x y =
-  0
+  rm x (rm y 0)
   

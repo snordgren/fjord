@@ -1,10 +1,12 @@
 // module codegen.functions.FirstClass
 
+var TestUtil = require("../../../test/node_modules/@fjord-lang/test-util/dist/Util.js");
+
 var toZeroContainerInstance = (ToZeroContainer(toZero2));
 exports.toZeroContainerInstance = toZeroContainerInstance;
 
 var toZero = function(x, y) {
-  return 0;
+  return (TestUtil.rm(x, (TestUtil.rm(y, 0))));
 };
 exports.toZero = toZero;
 

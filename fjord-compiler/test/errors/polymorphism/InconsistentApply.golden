@@ -1,5 +1,5 @@
-test/errors/polymorphism/InconsistentApply.fj:9:17:
-  |
-9 |   second "hello" 5
-  |                 ^^^
+test/errors/polymorphism/InconsistentApply.fj:11:17:
+   |
+11 |   second "hello" 5
+   |                 ^^^
 expression has type Int, expected String

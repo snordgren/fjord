@@ -1,8 +1,10 @@
 module codegen.expressions.Sharing
 
+import TestUtil
+
 useSharedInt : Int -> Int -> Int
 useSharedInt x y =
-  y
+  rm x y
 
 shareInt : Int -> Int
 shareInt x =

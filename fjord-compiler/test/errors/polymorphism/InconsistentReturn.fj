@@ -1,5 +1,7 @@
 module errors.parametricPolymorphism.InconsistentReturn
 
+import TestUtil
+
 id : a. a -> a
 id x =
-  5
+  rm x 5

@@ -1,5 +1,5 @@
-test/errors/polymorphism/InconsistentReturn.fj:5:3:
+test/errors/polymorphism/InconsistentReturn.fj:7:7:
   |
-5 |   5
-  |   ^^
+7 |   rm x 5
+  |       ^^^
 expression has type Int, expected a

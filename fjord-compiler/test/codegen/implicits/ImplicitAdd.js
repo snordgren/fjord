@@ -8,12 +8,12 @@ var Add = function(add) {
 exports.Add = Add;
 
 var addInt = function(x, y) {
-  return 0;
+  return (TestUtil.rm(x, (TestUtil.rm(y, 0))));
 };
 exports.addInt = addInt;
 
 var addString = function(x, y) {
-  return "";
+  return (TestUtil.rm(x, (TestUtil.rm(y, ""))));
 };
 exports.addString = addString;
 

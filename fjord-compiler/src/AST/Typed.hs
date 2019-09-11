@@ -192,7 +192,10 @@ replaceTypeName name with target =
           TypeLambda arg $ next ret
           
       TypeName typeName nameType -> 
-        TypeName typeName nameType
+        if name == typeName then
+          with
+        else
+          TypeName typeName nameType
 
 
 

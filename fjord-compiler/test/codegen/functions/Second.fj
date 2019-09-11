@@ -1,7 +1,9 @@
 module test.codegen.functions.Second 
 
+import TestUtil
+
 second : Int -> Int -> Int
-second x y = y
+second x y = rm x y
 
 two : Int
 two = 

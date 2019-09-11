@@ -1,8 +1,10 @@
 module errors.parametricPolymorhpism.InconsistentApply
 
+import TestUtil
+
 second : a. a -> a -> a
 second x y =
-  y
+  rm x y
 
 five : Int
 five = 

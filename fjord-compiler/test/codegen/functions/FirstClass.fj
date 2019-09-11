@@ -1,12 +1,14 @@
 module codegen.functions.FirstClass
 
+import TestUtil
+
 toZeroContainerInstance : ToZeroContainer
 toZeroContainerInstance =
   ToZeroContainer toZero2
 
 toZero : Int -> Int -> Int
 toZero x y = 
-  0
+  rm x (rm y 0)
 
 toZero2 : Int -> Int -> Int
 toZero2 =
