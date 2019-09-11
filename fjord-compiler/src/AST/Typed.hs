@@ -32,7 +32,7 @@ data Import
 
   
 data Expression 
-  = Apply Expression Expression
+  = Apply Expression Expression Type
   | Case Expression [Pattern]
   | IntLiteral Integer
   | Let String Expression Expression
@@ -92,25 +92,18 @@ data Parameter
   deriving (Eq, Show)
 
 
-expressionType :: Scope -> Expression -> Type
-expressionType scope a = 
+expressionType :: Expression -> Type
+expressionType a = 
   case a of 
-    Apply f par -> 
-      case parType $ concreteType $ expressionType scope f of 
-        TypeName pos name -> 
-          returnType $ replaceTypeName scope name (expressionType scope par) (expressionType scope f)
-
-        _ ->
-          returnType $ expressionType scope f
-
-    Case a p -> expressionType scope $ patRetExpr $ head p
+    Apply f par t -> t
+    Case a p -> expressionType $ patRetExpr $ head p
     IntLiteral _ -> TypeName 0 "Int"
-    Let _ _ ret -> expressionType scope ret
+    Let _ _ ret -> expressionType ret
     Name _ t _ -> t
     RecAccess _ t _ -> t
-    RecUpdate a _ -> expressionType scope a
+    RecUpdate a _ -> expressionType a
     StringLiteral _ -> TypeName 0 "String"
-    Tuple values -> TupleType 0 $ fmap (expressionType scope) values
+    Tuple values -> TupleType 0 $ fmap expressionType values
 
 
 parType :: Type -> Type
@@ -207,7 +200,7 @@ unifyTypes scope pat impl =
     patSubst =
       findPatSubst scope (typeVarsIn scope pat) (parType $ concreteType pat) impl
   in
-    List.foldl' (\acc (name, subst) -> replaceTypeName scope name subst acc) pat patSubst
+    trace (show scope) $ List.foldl' (\acc (name, subst) -> replaceTypeName scope name subst acc) pat patSubst
 
 -- Get all the type variables referenced by a type. 
 typeVarsIn :: Scope -> Type -> [String]

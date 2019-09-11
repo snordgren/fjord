@@ -39,12 +39,12 @@ toTypedExpression scope expectType expr =
         typedA <- toTypedExpression scope Nothing a
         typedB <- toTypedExpression scope Nothing b
         let parT = T.expressionType typedB
-        let exprType = T.unifyTypes (T.expressionType typedA) $ T.concreteType parT
+        let exprType = T.unifyTypes scope (T.expressionType typedA) $ T.concreteType parT
         let reqParT = T.parType exprType
         if reqParT == parT then
           case T.concreteType $ exprType of 
             FunctionType pos param ret -> 
-              return $ T.Apply typedA typedB
+              return $ T.Apply typedA typedB (T.returnType exprType)
   
             _ -> 
               useCountM $ Left (offset, "cannot infer function type " ++ show exprType)
@@ -99,7 +99,7 @@ toTypedExpression scope expectType expr =
           (typeVarCounter, useCounts) <- get
           newUseCounts <- useCountM $ updateUseCount useCounts
           put (typeVarCounter, newUseCounts)
-          renamedT <- renameTypeVars t
+          renamedT <- renameTypeVars scope t
           return $ T.Name s renamedT orig
 
     U.RecAccess offset fieldName target -> 
@@ -272,15 +272,16 @@ renameTypeVar str =
     return $ (str, str ++ (show typeVarCounter))
 
 
-renameTypeVars :: Scope -> Type -> UseCountM Type 
+renameTypeVars :: Scope -> Type -> UseCountM Type
 renameTypeVars scope t =
   let 
-    typeVars =
-      T.typeVarsIn scope t
+    typeVars = T.typeVarsIn scope t
+    foldF acc (prev, var) = 
+      T.renameTypeVar prev var acc
   in
     do
       substitutions <- traverse renameTypeVar typeVars
-      let res = List.foldl' (\acc (prev, var) -> T.renameTypeVar prev var acc) t substitutions
+      let res = List.foldl' foldF t substitutions
       return res
 
 

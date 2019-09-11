@@ -5,6 +5,7 @@ import Debug.Trace
 import qualified Data.List as List
 import qualified Data.Maybe as Maybe
 
+import AST.Common (Type (..))
 import AST.Scope
 import qualified AST.Typed as T
 
@@ -36,11 +37,11 @@ resolveDef moduleScope d =
 resolveExpr :: Scope -> T.Expression -> Either String T.Expression
 resolveExpr scope expr = 
   case expr of 
-    T.Apply f par -> 
+    T.Apply f par t -> 
       do
         resolvedF <- resolveExpr scope f
         resolvedPar <- resolveExpr scope par
-        return $ T.Apply resolvedF resolvedPar
+        return $ T.Apply resolvedF resolvedPar t
 
     T.Name name typ orig ->
       let 
@@ -68,11 +69,15 @@ resolveImplicitsIn name typ orig implicits =
 implicitsOf :: Scope -> String -> [Type]
 implicitsOf scope name =
   let 
-    implicits :: Maybe (Scope)
+    implicits :: Maybe ScopeValue
     implicits = 
       List.find (\(n, _, _, _) -> n == name) $ scopeValues scope
+
+    implicitsOnly :: Maybe [Type]
+    implicitsOnly =
+      fmap (\(_, _, _, implicits) -> implicits) implicits 
   in
-    concat $ Maybe.maybeToList $ fmap (\(_, _, _, implicits) -> implicits) implicits
+    concat $ Maybe.maybeToList implicitsOnly
 
 
 moduleScope :: T.Module -> Scope

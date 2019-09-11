@@ -77,10 +77,7 @@ toTypedDef modScope a =
           mergeScope (genTypeVarScope typeVars) modScope
 
         toTypedEnumConstructor (U.EnumConstructor ctorPos s parTypes retType) = 
-          do
-            parTypesT <- traverse (toTypedType ctorPos enumScope) parTypes
-            retTypeT <- toTypedType ctorPos enumScope retType
-            return $ T.EnumConstructor s parTypesT retTypeT
+          return $ T.EnumConstructor s parTypes retType
       in do
         ctors <- traverse toTypedEnumConstructor constructors
         return $ T.EnumDef name ctors
@@ -97,9 +94,7 @@ toTypedDef modScope a =
             modScope
 
         toTypedRecField (U.RecField fieldPos fieldName fieldType) =
-          do
-            typedT <- toTypedType fieldPos recScope fieldType
-            return $ T.RecField fieldName typedT
+          return $ T.RecField fieldName fieldType
       in 
         do
           fieldsT <- traverse toTypedRecField fields

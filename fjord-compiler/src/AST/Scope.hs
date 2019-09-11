@@ -30,7 +30,7 @@ isTypeVar scope name =
     found = List.find cond (scopeTypes scope)
   in case found of 
     Just (_, _, nameType) -> nameType == Common.TypeVar
-    Nothing -> False
+    Nothing -> error (name ++ " is not defined.")
 
 
 {-|

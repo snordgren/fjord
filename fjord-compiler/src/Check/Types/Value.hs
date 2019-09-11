@@ -7,6 +7,7 @@ import qualified Control.Monad as Monad
 import qualified Data.Either.Combinators as Combinators
 import qualified Data.List as List
 
+import AST.Common (Type (..))
 import AST.Scope
 import Check.Scope
 import Check.Types.Common
@@ -37,21 +38,17 @@ typeCheckValDecl params expr f modScope (U.ValDecl offset name declType implicit
     
     toTypedParam :: (U.Parameter, Type) -> Either TypeErrorAt T.Parameter
     toTypedParam (p, t) =
-      do
-        typedT <- toTypedType offset defScope t
-        return $ T.Parameter (U.parameterName p) typedT
+      return $ T.Parameter (U.parameterName p) t
   in do
-    reqTypeT <- toTypedType offset defScope reqType
-    declTypeT <- toTypedType offset defScope declType
-    let parListWithUniq = fnParList declType implicits
-    paramsT <- traverse toTypedParam $ zip params parListWithUniq
+    let functionParameterList = fnParList declType implicits
+    paramsT <- traverse toTypedParam $ zip params functionParameterList
     typedExpr <- (runUseCounting (U.expressionOffset expr) defScope) $ toTypedExpression defScope (Just reqType) expr 
-    let exprT = unifyTypes (T.expressionType $ typedExpr) reqTypeT
-    if exprT == reqTypeT then 
-      Right $ f name paramsT declTypeT typedExpr
+    let exprT = unifyTypes defScope (T.expressionType typedExpr) reqType
+    if exprT == reqType then 
+      Right $ f name paramsT declType typedExpr
     else
       Left (U.expressionOffset expr,  
-        "expression has type " ++ (show exprT) ++ ", expected " ++ (show reqTypeT))
+        "expression has type " ++ (show exprT) ++ ", expected " ++ (show reqType))
 
 
 compareTypEq :: Type -> Type -> Bool

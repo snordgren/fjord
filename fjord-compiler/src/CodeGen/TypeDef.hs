@@ -2,6 +2,7 @@ module CodeGen.TypeDef (genDefStr) where
 
 import qualified Data.List as List
 
+import AST.Common (Type (..))
 import qualified AST.Typed as T
 
 {-|
@@ -67,11 +68,11 @@ genFieldStr (T.RecField recFieldName recFieldType) =
 genTypeDefStr :: Type -> String
 genTypeDefStr t = 
   case t of
-    FunctionType par ret -> 
+    FunctionType _ par ret -> 
       let 
         parStr = 
           case par of 
-            FunctionType a b -> 
+            FunctionType _ a b -> 
               "(" ++ genTypeDefStr par ++ ")"
 
             _ -> 
@@ -79,14 +80,14 @@ genTypeDefStr t =
       in
         parStr ++ " -> " ++ genTypeDefStr ret
 
-    TupleType types -> 
+    TupleType _ types -> 
       "(" ++ (List.intercalate ", " $ fmap genTypeDefStr types) ++ ")"
 
-    TypeApply f par ->
+    TypeApply _ f par ->
       genTypeDefStr f ++ " " ++ genTypeDefStr par
 
-    TypeLambda var ret ->
+    TypeLambda _ var ret ->
       var ++ ". " ++ genTypeDefStr ret
 
-    TypeName a nameType ->
+    TypeName _ a ->
       a

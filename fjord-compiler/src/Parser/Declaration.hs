@@ -11,6 +11,7 @@ import Text.Megaparsec.Char
 import Control.Monad (void)
 import qualified Data.List as List
 
+import AST.Common (Type (..))
 import Parser.Common
 import Parser.Type (typeP, typeTermP)
 import qualified AST.Untyped as U

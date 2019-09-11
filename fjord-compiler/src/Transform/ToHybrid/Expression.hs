@@ -8,6 +8,8 @@ import qualified Control.Monad as Monad
 import qualified Data.List as List
 import qualified Data.Maybe as Maybe
 
+import AST.Common (Type (..))
+import AST.Scope
 import Transform.ToHybrid.Type (transformType)
 import qualified AST.Common as Common
 import qualified AST.Hybrid as H
@@ -18,7 +20,7 @@ import qualified CodeGen.NameMangling as NameMangling
 transformExpr :: T.Expression -> State Int H.Expression
 transformExpr expr = 
   case expr of 
-    T.Apply a b -> 
+    T.Apply a b _ -> 
       transformApply a b
     
     T.Case sourceExpression patterns -> 
@@ -115,13 +117,13 @@ transformApply a b =
     rootFunction :: T.Expression -> Maybe T.Expression
     rootFunction e = 
       case e of 
-        T.Apply a b -> Just $ Maybe.fromMaybe a (rootFunction a)
+        T.Apply a b _ -> Just $ Maybe.fromMaybe a (rootFunction a)
         _ -> Nothing
 
     parametersOfApply :: T.Expression -> [T.Expression]
     parametersOfApply e = 
       case e of 
-        T.Apply a b -> (parametersOfApply a) ++ [b]
+        T.Apply a b retType -> (parametersOfApply a) ++ [b]
         _ -> []
 
     mkMissingParam :: Int -> (H.Type, Int) -> H.Expression
@@ -130,7 +132,7 @@ transformApply a b =
     rootF = Maybe.fromMaybe a $ rootFunction a
     allParams = T.fnParamList $ T.expressionType rootF
     reqArgCount = List.length allParams
-    passedParameters = parametersOfApply $ T.Apply a b
+    passedParameters = parametersOfApply $ T.Apply a b (T.returnType $ T.expressionType a)
     passedParamCount = List.length passedParameters
     missingParameters = fmap transformType $ drop passedParamCount allParams
     hiddenParamCount = reqArgCount - passedParamCount

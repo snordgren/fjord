@@ -7,6 +7,7 @@ import Text.Megaparsec
 import Text.Megaparsec.Char
 import qualified Control.Monad.Combinators.Expr as Expr
 
+import AST.Common (Type (..))
 import Parser.Common
 import qualified AST.Common as Common
 import qualified AST.Untyped as U
@@ -23,7 +24,7 @@ emptyTupleP =
     char '('
     many spaceP
     char ')'
-    return $ U.TupleType offset []
+    return $ TupleType offset []
 
 
 tupleTypeP :: Parser Type
@@ -72,7 +73,7 @@ typeP =
       many spaceP
       string "->"
       many spaceP
-      return $ U.FunctionType offset
+      return $ FunctionType offset
   in 
     Expr.makeExprParser typeTermP [
       [Expr.InfixL $ try $ typeApplyP], 
@@ -91,7 +92,7 @@ typeApplyP =
           fmap (const ()) $ oneOf ":",
           fmap (const ()) $ eol
         ]
-      return $ U.TypeApply offset
+      return $ TypeApply offset
 
 -- Matches a type term or type application. 
 implicitTypeP =
