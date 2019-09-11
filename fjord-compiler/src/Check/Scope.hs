@@ -19,7 +19,7 @@ createDefScope modScope parameters typ implicits =
   let
     parameterBindings = 
       fmap (\(a, typ) -> (a, typ, Common.InFunction, implicits)) $ 
-        List.zip (fmap U.parameterName parameters) (fnParListWithUniq typ implicits)
+        List.zip (fmap U.parameterName parameters) (fnParList typ implicits)
 
     typeLambdaValues t =
       case t of 
