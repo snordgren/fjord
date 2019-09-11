@@ -18,11 +18,6 @@ import qualified AST.Typed as T
 import qualified AST.Untyped as U
 
 
-bodyUniq :: Common.Uniqueness
-bodyUniq = 
-  Common.Unique
-
-
 typeCheckValDecl 
   :: [U.Parameter] 
   -> U.Expression
@@ -50,7 +45,7 @@ typeCheckValDecl params expr f modScope (U.ValDecl offset name declType implicit
     declTypeT <- toTypedType offset defScope declType
     let parListWithUniq = fnParListWithUniq declType implicits
     paramsT <- traverse toTypedParam $ zip params parListWithUniq
-    typedExpr <- (runUseCounting (U.expressionOffset expr) defScope) $ toTypedExpression defScope (Just reqType) (Just bodyUniq) expr 
+    typedExpr <- (runUseCounting (U.expressionOffset expr) defScope) $ toTypedExpression defScope (Just reqType) expr 
     let exprT = unifyTypes (T.expressionType $ typedExpr) reqTypeT
     if exprT == reqTypeT then 
       Right $ f name paramsT declTypeT typedExpr
@@ -62,26 +57,26 @@ typeCheckValDecl params expr f modScope (U.ValDecl offset name declType implicit
 compareTypEq :: U.Type -> U.Type -> Bool
 compareTypEq a b = 
   case a of 
-    U.FunctionType _ aUniq c d -> 
+    U.FunctionType _ c d -> 
       case b of 
-        U.FunctionType _ bUniq e f -> 
-          (compareTypEq c e) && (compareTypEq d f) && aUniq == bUniq
+        U.FunctionType _ e f -> 
+          (compareTypEq c e) && (compareTypEq d f)
 
         _ -> 
           False
 
-    U.TypeName _ c cUniq ->
+    U.TypeName _ c ->
       case b of 
-        U.TypeName _ d dUniq-> 
-          c == d && cUniq == dUniq
+        U.TypeName _ d -> 
+          c == d
 
         _ ->
           False
 
-    U.TupleType _ c cUniq ->
+    U.TupleType _ c ->
       case b of 
-        U.TupleType _ d dUniq-> 
-          c == d && cUniq == dUniq
+        U.TupleType _ d -> 
+          c == d
 
         _ ->
           False

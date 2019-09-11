@@ -6,15 +6,15 @@ enum Bool
 
 
 record Equals a
-  equals : &a -> &a -> Bool
+  equals : a -> a -> Bool
 
 
-equals : a. Equals a => &a -> &a -> Bool
+equals : a. Equals a => a -> a -> Bool
 equals ev x y =
   ev.equals x y
 
 
-boolEquals : &Bool -> &Bool -> Bool
+boolEquals : Bool -> Bool -> Bool
 boolEquals x y = 
   False
 
@@ -25,7 +25,7 @@ boolEqualsInstance =
   Equals boolEquals
 
 
-(+) : &Int -> &Int -> Int
+(+) : Int -> Int -> Int
 (+) x y =
   0
   

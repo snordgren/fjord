@@ -1,5 +1,0 @@
-test/errors/uniqueness/ReturnShared.fj:5:3:
-  |
-5 |   x
-  |   ^^
-expression has type ?:Int, expected 1:Int

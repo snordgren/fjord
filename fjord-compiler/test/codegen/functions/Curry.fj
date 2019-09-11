@@ -2,12 +2,12 @@ module test.codegen.functions.Curry
 
 
 
-add : &Int -> &Int -> Int
+add : Int -> Int -> Int
 add x y =
   0
 
 
-useFOn3 : (&Int -> Int) -> Int
+useFOn3 : (Int -> Int) -> Int
 useFOn3 f =
   f 3
 

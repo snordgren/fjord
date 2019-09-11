@@ -13,7 +13,7 @@ Get all the parameters of this type.
 fnParListWithUniq :: U.Type -> [U.Type] -> [U.Type]
 fnParListWithUniq t implicits = 
   case t of 
-    U.FunctionType _ _ par ret -> 
+    U.FunctionType _ par ret -> 
       implicits ++ (par : fnParListWithUniq ret [])
 
     U.TypeLambda _ _ ret ->

@@ -85,17 +85,11 @@ scopeContrib origin d =
               List.intersect typeVars $ U.typeNamesIn retT
 
             typ = 
-              List.foldr (\par ret -> U.FunctionType offset Common.NonUnique par ret) 
+              List.foldr (\par ret -> U.FunctionType offset par ret) 
                 retT $ U.enumConstructorParTypes c
 
             typeLambdas = 
               List.foldr (\par ret -> U.TypeLambda offset par ret) typ typeVarList
-          
-            uniq = 
-              if (List.length $ U.enumConstructorParTypes c) == 0 then
-                Common.Unique
-              else
-                Common.NonUnique
           in
             (U.enumConstructorName c, typeLambdas, origin, [])
 
@@ -117,14 +111,14 @@ scopeContrib origin d =
           fmap U.recFieldType fields
     
         ctorType = 
-          List.foldr (U.FunctionType offset Common.NonUnique) ctorRetType fieldTypes
+          List.foldr (U.FunctionType offset) ctorRetType fieldTypes
 
         ctorWithTypeVars = 
           List.foldr (\par ret -> U.TypeLambda offset par ret) ctorType typeVars
 
         ctorRetType = 
-          List.foldr (\par f -> U.TypeApply offset f (U.TypeName offset par Common.Unique))
-            (U.TypeName offset name Common.Unique) typeVars
+          List.foldr (\par f -> U.TypeApply offset f (U.TypeName offset par))
+            (U.TypeName offset name) typeVars
 
         scopeFields :: [(String, U.Type, U.Type, Common.Origin)]
         scopeFields = 

@@ -1,5 +1,0 @@
-test/errors/uniqueness/ExpectUnique.fj:9:17:
-  |
-9 |   requiresUnique x
-  |                 ^^^
-expression has type ?:Int, expected 1:Int

@@ -36,15 +36,15 @@ resolveDef moduleScope d =
 resolveExpr :: Scope T.Type -> T.Expression -> Either String T.Expression
 resolveExpr scope expr = 
   case expr of 
-    T.Name name typ uniq orig ->
+    T.Name name typ orig ->
       let 
         implicits = 
           implicitsOf scope name
       in
         if List.length implicits == 0 then 
-          return $ T.Name name typ uniq orig
+          return $ T.Name name typ orig
         else 
-          resolveImplicitsIn name typ uniq orig 
+          resolveImplicitsIn name typ orig 
 
     T.Operator op typ leftArg rightArg orig ->
       do
@@ -57,8 +57,8 @@ resolveExpr scope expr =
       return expr
 
 
-resolveImplicitsIn name typ uniq orig = 
-  return $ T.Name name typ uniq orig
+resolveImplicitsIn name typ orig = 
+  return $ T.Name name typ orig
 
 
 implicitsOf :: Scope T.Type -> String -> [T.Type]
