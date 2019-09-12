@@ -1,24 +1,27 @@
 module AST.Scope where
 
+import qualified Data.List as List
+
+import AST.Common (Type (..))
 import qualified AST.Common as Common
 
-type ScopeValue a = (String, a, Common.Origin, [a])
+type ScopeValue = (String, Type, Common.Origin, [Type])
 
-data Scope a
+data Scope
   = Scope { 
-    scopeValues :: [ScopeValue a],
+    scopeValues :: [ScopeValue],
     scopeTypes :: [(String, Common.Origin, Common.NameType)],
-    scopeImplicits :: [(String, a, Common.Origin)],
+    scopeImplicits :: [(String, Type, Common.Origin)],
     -- | A list of fields with values name, target record type, field type, and origin.
-    scopeFields :: [(String, a, a, Common.Origin)]
+    scopeFields :: [(String, Type, Type, Common.Origin)]
   }
-  deriving (Eq, Show)
+  deriving (Show)
 
 
 {-|
 Merge two scopes, the tightest bound (innermost) scope should come first. 
 -}
-mergeScope :: Scope a -> Scope a -> Scope a
+mergeScope :: Scope -> Scope -> Scope
 mergeScope a b = 
   let 
     mergedValues = scopeValues a ++ scopeValues b

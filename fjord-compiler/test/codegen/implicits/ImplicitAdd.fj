@@ -31,7 +31,7 @@ stringInstance =
 
 three : Int
 three = 
-  1 ++ 2"
+  1 ++ 2
 
 helloWorld : String
 helloWorld =

@@ -1,5 +1,7 @@
 // module codegen.implicits.ImplicitAdd
 
+var TestUtil = require("../../../test/node_modules/@fjord-lang/test-util/dist/Util.js");
+
 var Add = function(add) {
   var _a = {};
   _a.add = add;

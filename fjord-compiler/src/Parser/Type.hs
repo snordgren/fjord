@@ -7,74 +7,76 @@ import Text.Megaparsec
 import Text.Megaparsec.Char
 import qualified Control.Monad.Combinators.Expr as Expr
 
+import AST.Common (Type (..))
 import Parser.Common
 import qualified AST.Common as Common
 import qualified AST.Untyped as U
 
-typeTermP :: Parser U.Type
-typeTermP = 
-  choice [try emptyTupleP, try tupleTypeP, parenTypeP, typeNameP]
+typeTermP :: [String] -> Parser Type
+typeTermP typeVars = 
+  choice [try emptyTupleP, try $ tupleTypeP typeVars, parenTypeP typeVars, typeNameP typeVars]
 
 
-emptyTupleP :: Parser U.Type
+emptyTupleP :: Parser Type
 emptyTupleP = 
   label "empty tuple" $ do
     offset <- getOffset
     char '('
     many spaceP
     char ')'
-    return $ U.TupleType offset []
+    return $ TupleType offset []
 
 
-tupleTypeP :: Parser U.Type
-tupleTypeP = label "tuple type" $
+tupleTypeP :: [String] -> Parser Type
+tupleTypeP typeVars = label "tuple type" $
   let 
     rhsP = do
       many spaceP
       char ','
       many spaceP
-      expr <- typeP
+      expr <- typeP typeVars
       return expr
   in do
     offset <- getOffset
     char '('
     many spaceP
-    head <- typeP
+    head <- typeP typeVars
     tail <- some rhsP
     many spaceP
     char ')'
-    return $ U.TupleType offset (head : tail)
+    return $ TupleType offset (head : tail)
 
 
-parenTypeP :: Parser U.Type
-parenTypeP = do
+parenTypeP :: [String] -> Parser Type
+parenTypeP typeVars = do
   char '('
   many spaceP
-  innerType <- typeP
+  innerType <- typeP typeVars
   many spaceP
   char ')'
   return innerType
 
 
-typeNameP :: Parser U.Type
-typeNameP = 
+typeNameP :: [String] -> Parser Type
+typeNameP typeVars = 
   label "type name" $
     do
       offset <- getOffset
       name <- nameP
-      return $ U.TypeName offset name
+      let nameType = if elem name typeVars then Common.TypeVar else Common.TypeRef
+      return $ TypeName offset name nameType
 
-typeP :: Parser U.Type
-typeP = 
+typeP :: [String] -> Parser Type
+typeP typeVars = 
   let 
     pureFunction = Expr.InfixR $ try $ label "function" $ do 
       offset <- getOffset
       many spaceP
       string "->"
       many spaceP
-      return $ U.FunctionType offset
+      return $ FunctionType offset
   in 
-    Expr.makeExprParser typeTermP [
+    Expr.makeExprParser (typeTermP typeVars) [
       [Expr.InfixL $ try $ typeApplyP], 
       [pureFunction]
     ]
@@ -91,11 +93,5 @@ typeApplyP =
           fmap (const ()) $ oneOf ":",
           fmap (const ()) $ eol
         ]
-      return $ U.TypeApply offset
-
--- Matches a type term or type application. 
-implicitTypeP =
-  Expr.makeExprParser typeTermP [
-      [Expr.InfixL $ try $ typeApplyP]
-  ]
-     
+      return $ TypeApply offset
+      

@@ -3,6 +3,7 @@ module AST.Untyped where
 
 import qualified Data.List as List
 
+import AST.Common (Type (..))
 import qualified AST.Common as Common
 
 data Module 
@@ -11,7 +12,7 @@ data Module
     moduleImports :: [Import],
     moduleDefs :: [Definition]
   }
-  deriving (Eq, Show)
+  deriving (Show)
 
 
 data Import 
@@ -28,7 +29,7 @@ data TypeDef
     typeDefName :: String,
     typeDefDecls :: [Declaration]
   }
-  deriving (Eq, Show)
+  deriving (Show)
 
 
 data Declaration 
@@ -36,34 +37,7 @@ data Declaration
   | DeclImplicitDecl ValDecl
   | DeclRecDecl RecDecl
   | DeclValDecl ValDecl
-  deriving (Eq, Show)
-
-data Type 
-  = FunctionType Int Type Type 
-  | TupleType Int [Type]
-  | TypeApply Int Type Type
-  | TypeLambda Int String Type
-  | TypeName Int String
-  deriving (Eq)
-
-
-instance Show Type where
-  show a = 
-    case a of 
-      FunctionType _ p r -> 
-        "(" ++ show p ++ " -> " ++ show r ++ ")"
-
-      TupleType _ t -> 
-        "(" ++ (List.intercalate "," $ fmap show t) ++ ")"
-
-      TypeApply _ f par ->
-        "(" ++ show f ++ " " ++ show par ++ ")"
-    
-      TypeLambda _ n t -> 
-        n ++ " => " ++ (show t)
-
-      TypeName _ t -> 
-        t
+  deriving (Show)
 
 
 data Expression 
@@ -110,7 +84,7 @@ data Expression
     expressionOffset :: Int,
     tupleValues :: [Expression]
   }
-  deriving (Eq, Show)
+  deriving (Show)
 
 
 data Pattern = 
@@ -120,7 +94,7 @@ data Pattern =
     patternValues :: [String],
     patternExpression :: Expression
   }
-  deriving (Eq, Show)
+  deriving (Show)
 
 
 data FieldUpdate = FieldUpdate 
@@ -129,7 +103,7 @@ data FieldUpdate = FieldUpdate
     fieldUpdateName :: String,
     fieldUpdateExpression :: Expression
   }
-  deriving (Eq, Show)
+  deriving (Show)
 
 
 data Definition 
@@ -137,7 +111,7 @@ data Definition
   | ImplicitDef ValDecl Expression
   | RecDef RecDecl
   | ValDef ValDecl [Parameter] Expression
-  deriving (Eq, Show)
+  deriving (Show)
 
 
 data EnumDecl
@@ -147,7 +121,7 @@ data EnumDecl
     enumDefCtors :: [EnumConstructor],
     enumDefTypeVars :: [String]
   }
-  deriving (Eq, Show)
+  deriving (Show)
 
 
 data RecDecl
@@ -157,7 +131,7 @@ data RecDecl
     recDeclFields :: [RecField],
     recDeclTypeVars :: [String]
   }
-  deriving (Eq, Show)
+  deriving (Show)
 
 
 data ValDecl
@@ -167,7 +141,7 @@ data ValDecl
     valDeclType :: Type,
     valDeclImplicits :: [Type]
   }
-  deriving (Eq, Show)
+  deriving (Show)
 
 
 data EnumConstructor 
@@ -177,7 +151,7 @@ data EnumConstructor
     enumConstructorParTypes :: [Type],
     enumConstructorRetType :: Type
   }
-  deriving (Eq, Show)
+  deriving (Show)
 
 
 data RecField 
@@ -186,7 +160,7 @@ data RecField
     recFieldName :: String,
     recFieldType :: Type
   }
-  deriving (Eq, Show)
+  deriving (Show)
 
 
 data Parameter 
@@ -232,7 +206,7 @@ typeNamesIn t =
     TupleType pos types -> concatMap typeNamesIn types
     TypeApply pos f par -> typeNamesIn f ++ typeNamesIn par
     TypeLambda pos arg ret -> arg : typeNamesIn ret
-    TypeName pos name -> [name]
+    TypeName pos name nameType -> [name]
 
 
 parameterType :: Type -> Maybe Type

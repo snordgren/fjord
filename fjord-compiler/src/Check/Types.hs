@@ -60,7 +60,7 @@ importName (U.Import _ name) = name
 {-
 Generate a scope with the type variables introduced by a definition.
 -}
-genTypeVarScope :: [String] -> Scope U.Type
+genTypeVarScope :: [String] -> Scope
 genTypeVarScope typeVars = 
   Scope [] (fmap (\str -> (str, Common.SameModule, Common.TypeVar)) typeVars) [] []
 
@@ -68,7 +68,7 @@ genTypeVarScope typeVars =
 Generate a typed definition from an untyped one, or generate an error if there 
 is something wrong. 
 -}
-toTypedDef :: Scope U.Type -> U.Definition -> Either TypeErrorAt T.Definition
+toTypedDef :: Scope -> U.Definition -> Either TypeErrorAt T.Definition
 toTypedDef modScope a =
   case a of 
     U.EnumDef (U.EnumDecl offset name constructors typeVars) ->
@@ -77,10 +77,7 @@ toTypedDef modScope a =
           mergeScope (genTypeVarScope typeVars) modScope
 
         toTypedEnumConstructor (U.EnumConstructor ctorPos s parTypes retType) = 
-          do
-            parTypesT <- traverse (toTypedType ctorPos enumScope) parTypes
-            retTypeT <- toTypedType ctorPos enumScope retType
-            return $ T.EnumConstructor s parTypesT retTypeT
+          return $ T.EnumConstructor s parTypes retType
       in do
         ctors <- traverse toTypedEnumConstructor constructors
         return $ T.EnumDef name ctors
@@ -97,9 +94,7 @@ toTypedDef modScope a =
             modScope
 
         toTypedRecField (U.RecField fieldPos fieldName fieldType) =
-          do
-            typedT <- toTypedType fieldPos recScope fieldType
-            return $ T.RecField fieldName typedT
+          return $ T.RecField fieldName fieldType
       in 
         do
           fieldsT <- traverse toTypedRecField fields

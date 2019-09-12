@@ -12,6 +12,7 @@ import Debug.Trace
 import qualified Control.Monad as Monad
 import qualified Data.List as List
 
+import AST.Common (Type (..))
 import Transform.ToHybrid.Expression (transformExpr)
 import Transform.ToHybrid.Type (transformType)
 import qualified AST.Common as Common
@@ -76,7 +77,7 @@ transformDef a =
 
     T.ImplicitDef name typ expr ->
       let
-        findReturnType (T.FunctionType _ a) = findReturnType a
+        findReturnType (FunctionType pos _ a) = findReturnType a
         findReturnType a = a
     
         (transformedExpr, hiddenParams) = runState (transformExpr expr) 0
