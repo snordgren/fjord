@@ -15,22 +15,7 @@ data Scope
     -- | A list of fields with values name, target record type, field type, and origin.
     scopeFields :: [(String, Type, Type, Common.Origin)]
   }
-  deriving (Eq, Show)
-
-
-addTypeVarToScope :: String -> Scope -> Scope
-addTypeVarToScope var scope = 
-  mergeScope (Scope [] [(var, Common.InFunction, Common.TypeVar)] [] []) scope
-
-
-isTypeVar :: Scope -> String -> Bool
-isTypeVar scope name =
-  let 
-    cond = \(n, _, _ ) -> n == name
-    found = List.find cond (scopeTypes scope)
-  in case found of 
-    Just (_, _, nameType) -> nameType == Common.TypeVar
-    Nothing -> error (name ++ " is not defined.")
+  deriving (Show)
 
 
 {-|

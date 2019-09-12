@@ -20,8 +20,7 @@ data Type
   | TupleType Int [Type]
   | TypeApply Int Type Type
   | TypeLambda Int String Type
-  | TypeName Int String
-  deriving (Eq)
+  | TypeName Int String NameType
 
 instance Show Type where
   show a =
@@ -38,5 +37,45 @@ instance Show Type where
       TypeLambda pos arg ret -> 
         arg ++ ". " ++ show ret
 
-      TypeName pos s -> 
+      TypeName pos s nameType -> 
         s
+
+
+compareTypEq :: Type -> Type -> Bool
+compareTypEq a b = 
+  case a of 
+    FunctionType _ c d -> 
+      case b of 
+        FunctionType _ e f -> 
+          (compareTypEq c e) && (compareTypEq d f)
+
+        _ -> 
+          False
+
+    TypeApply _ af ap -> 
+      case b of 
+        TypeApply _ bf bp ->
+          compareTypEq af bf && compareTypEq ap bp
+        _ -> False
+
+    TypeName _ c cNameType ->
+      case b of 
+        TypeName _ d dNameType-> 
+          c == d && cNameType == dNameType
+
+        _ ->
+          False
+
+    TupleType _ c ->
+      case b of 
+        TupleType _ d -> 
+          if null c && null d then True else 
+            (List.length c == List.length d) &&
+              (List.elem True $ zipWith (\x y -> compareTypEq x y) c d)
+
+        _ ->
+          False
+
+
+    _ -> 
+      error $ "Missing pattern for " ++ (show a)

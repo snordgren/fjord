@@ -89,5 +89,5 @@ genTypeDefStr t =
     TypeLambda _ var ret ->
       var ++ ". " ++ genTypeDefStr ret
 
-    TypeName _ a ->
+    TypeName pos a nameType ->
       a

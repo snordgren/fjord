@@ -7,7 +7,7 @@ import qualified Control.Monad as Monad
 import qualified Data.Either.Combinators as Combinators
 import qualified Data.List as List
 
-import AST.Common (Type (..))
+import AST.Common (Type (..), compareTypEq)
 import AST.Scope
 import Check.Scope
 import Check.Types.Common
@@ -44,36 +44,8 @@ typeCheckValDecl params expr f modScope (U.ValDecl offset name declType implicit
     paramsT <- traverse toTypedParam $ zip params functionParameterList
     typedExpr <- (runUseCounting (U.expressionOffset expr) defScope) $ toTypedExpression defScope (Just reqType) expr 
     let exprT = unifyTypes defScope (T.expressionType typedExpr) reqType
-    if exprT == reqType then 
+    if compareTypEq exprT reqType then 
       Right $ f name paramsT declType typedExpr
     else
       Left (U.expressionOffset expr,  
         "expression has type " ++ (show exprT) ++ ", expected " ++ (show reqType))
-
-
-compareTypEq :: Type -> Type -> Bool
-compareTypEq a b = 
-  case a of 
-    FunctionType _ c d -> 
-      case b of 
-        FunctionType _ e f -> 
-          (compareTypEq c e) && (compareTypEq d f)
-
-        _ -> 
-          False
-
-    TypeName _ c ->
-      case b of 
-        TypeName _ d -> 
-          c == d
-
-        _ ->
-          False
-
-    TupleType _ c ->
-      case b of 
-        TupleType _ d -> 
-          c == d
-
-        _ ->
-          False

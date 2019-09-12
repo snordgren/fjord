@@ -43,6 +43,6 @@ unifyTypes :: Scope -> Type -> Type -> Type
 unifyTypes scope pat inst =
   let 
     patSubst = 
-      T.findPatSubst scope (T.typeVarsIn scope pat) (T.concreteType pat) inst 
+      T.findPatSubst scope (T.typeVarsIn pat) (T.concreteType pat) inst 
   in
     List.foldl' (\acc (name, subst) -> T.replaceTypeName scope name subst acc) pat patSubst

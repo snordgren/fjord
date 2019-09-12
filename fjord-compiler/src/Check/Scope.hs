@@ -105,7 +105,7 @@ scopeContrib origin d =
     U.DeclImplicitDecl (U.ValDecl offset name t implicits) -> 
       Scope [(name, t, origin, [])] [] [(name, t, origin)] []
 
-    U.DeclRecDecl (U.RecDecl offset name fields typeVars) -> 
+    U.DeclRecDecl (U.RecDecl offset recordName fields typeVars) -> 
       let 
         
         fieldTypes = 
@@ -118,19 +118,19 @@ scopeContrib origin d =
           List.foldr (\par ret -> TypeLambda offset par ret) ctorType typeVars
 
         ctorRetType = 
-          List.foldr (\par f -> TypeApply offset f (TypeName offset par))
-            (TypeName offset name) typeVars
+          List.foldr (\par f -> TypeApply offset f (TypeName offset par Common.TypeVar))
+            (TypeName offset recordName Common.TypeRef) typeVars
 
         scopeFields :: [(String, Type, Type, Common.Origin)]
         scopeFields = 
           fmap (\r -> (U.recFieldName r, ctorRetType, U.recFieldType r, origin)) fields
 
         types = 
-          [(name, origin, Common.TypeRef)]
+          [(recordName, origin, Common.TypeRef)]
 
         values :: [ScopeValue]
         values = 
-          [(name, ctorWithTypeVars, origin, [])]
+          [(recordName, ctorWithTypeVars, origin, [])]
       in 
         Scope values types [] scopeFields
     

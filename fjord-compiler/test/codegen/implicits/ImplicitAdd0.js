@@ -1,7 +1,5 @@
 // module codegen.implicits.ImplicitAdd
 
-var TestUtil = require("../../../test/node_modules/@fjord-lang/test-util/dist/Util.js");
-
 var Add = function(add) {
   var _a = {};
   _a.add = add;
@@ -30,7 +28,7 @@ var $plus$plus = function(ev, x, y) {
 };
 exports.$plus$plus = $plus$plus;
 
-var three = ($plus$plus(1, 2));
+var three = ($plus$plus(intInstance, 1, 2));
 exports.three = three;
 
 var helloWorld = ($plus$plus(stringInstance, "hello, ", "world"));

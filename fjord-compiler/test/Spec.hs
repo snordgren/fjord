@@ -8,19 +8,12 @@ import qualified System.FilePath as FilePath
 
 import qualified Compiler as Compiler
 import qualified AST.Typed as T
-import qualified ParserSpec as ParserSpec
 
 
 main :: IO ()
 main = do
   foundGoldenTests <- goldenTests
-  defaultMain $ testGroup "Tests" [unitTests, foundGoldenTests]
-
-unitTests :: TestTree
-unitTests = testGroup "Unit Tests" 
-  [
-    ParserSpec.testParser
-  ]
+  defaultMain $ testGroup "Tests" [foundGoldenTests]
 
 goldenTests :: IO TestTree
 goldenTests = do

@@ -41,7 +41,7 @@ data Expression
   | RecUpdate Expression [FieldUpdate]
   | StringLiteral String
   | Tuple [Expression]
-  deriving (Eq, Show)
+  deriving (Show)
 
 
 data FieldUpdate = FieldUpdate 
@@ -49,7 +49,7 @@ data FieldUpdate = FieldUpdate
     fieldUpdateName :: String, 
     fieldUpdateExpression :: Expression 
   }
-  deriving (Eq, Show)
+  deriving (Show)
 
 data Pattern = Pattern 
   {
@@ -57,14 +57,14 @@ data Pattern = Pattern
     patternVariables :: [(String, Type)],
     patRetExpr :: Expression
   }
-  deriving (Eq, Show)
+  deriving (Show)
 
 data Definition 
   = EnumDef String [EnumConstructor]
   | ImplicitDef String Type Expression
   | RecDef String [RecField]
   | ValDef String [Parameter] Type Expression
-  deriving (Eq, Show)
+  deriving (Show)
 
 
 data EnumConstructor = EnumConstructor 
@@ -73,7 +73,7 @@ data EnumConstructor = EnumConstructor
     enumConstructorPars :: [Type],
     enumConstructorRet :: Type
   }
-  deriving (Eq, Show)
+  deriving (Show)
 
 
 data RecField = 
@@ -81,7 +81,7 @@ data RecField =
     recFieldName :: String, 
     recFieldType :: Type 
   } 
-  deriving (Eq, Show)
+  deriving (Show)
 
 
 data Parameter 
@@ -89,7 +89,7 @@ data Parameter
     parameterName :: String, 
     parameterType :: Type 
   }
-  deriving (Eq, Show)
+  deriving (Show)
 
 
 expressionType :: Expression -> Type
@@ -97,12 +97,12 @@ expressionType a =
   case a of 
     Apply f par t -> t
     Case a p -> expressionType $ patRetExpr $ head p
-    IntLiteral _ -> TypeName 0 "Int"
+    IntLiteral _ -> TypeName 0 "Int" Common.TypeRef
     Let _ _ ret -> expressionType ret
     Name _ t _ -> t
     RecAccess _ t _ -> t
     RecUpdate a _ -> expressionType a
-    StringLiteral _ -> TypeName 0 "String"
+    StringLiteral _ -> TypeName 0 "String" Common.TypeRef
     Tuple values -> TupleType 0 $ fmap expressionType values
 
 
@@ -156,8 +156,8 @@ replaceTypeName scope name with target =
         else
           TypeLambda pos arg $ next ret
           
-      TypeName pos typeName -> 
-        if name == typeName && isTypeVar scope typeName then
+      TypeName pos typeName nameType -> 
+        if name == typeName && nameType == Common.TypeVar then
           with
         else
           target
@@ -185,8 +185,8 @@ findPatSubst scope typeVars exprType t =
 
           _ -> []
 
-      TypeName _ exprName ->
-        if isTypeVar scope exprName then
+      TypeName _ exprName nameType ->
+        if nameType == Common.TypeVar then
           [(exprName, t)]
         else
           []
@@ -198,24 +198,19 @@ unifyTypes :: Scope -> Type -> Type -> Type
 unifyTypes scope pat impl =
   let 
     patSubst =
-      findPatSubst scope (typeVarsIn scope pat) (parType $ concreteType pat) impl
+      findPatSubst scope (typeVarsIn pat) (parType $ concreteType pat) impl
   in
-    trace (show scope) $ List.foldl' (\acc (name, subst) -> replaceTypeName scope name subst acc) pat patSubst
+    List.foldl' (\acc (name, subst) -> replaceTypeName scope name subst acc) pat patSubst
 
 -- Get all the type variables referenced by a type. 
-typeVarsIn :: Scope -> Type -> [String]
-typeVarsIn scope t =
+typeVarsIn :: Type -> [String]
+typeVarsIn t =
   case t of 
-    FunctionType pos par ret -> typeVarsIn scope par ++ typeVarsIn scope ret
-    TupleType pos types -> concatMap (typeVarsIn scope) types
-    TypeApply pos f par -> typeVarsIn scope f ++ typeVarsIn scope par
-    TypeLambda pos arg ret -> arg : typeVarsIn (addTypeVarToScope arg scope) ret
-    TypeName pos name -> 
-      let 
-        cond :: (String, Common.Origin, Common.NameType) -> Bool
-        cond (n, orig, nameType) = n == name && nameType == Common.TypeVar
-        result = List.find cond $ scopeTypes scope
-      in Maybe.maybeToList $ fmap (\(n, _, _) -> n) result
+    FunctionType pos par ret -> typeVarsIn par ++ typeVarsIn ret
+    TupleType pos types -> concatMap typeVarsIn types
+    TypeApply pos f par -> typeVarsIn f ++ typeVarsIn par
+    TypeLambda pos arg ret -> arg : typeVarsIn ret
+    TypeName pos name nameType -> if nameType == Common.TypeVar then [name] else []
 
 
 fnParamList :: Type -> [Type]
@@ -247,8 +242,8 @@ renameTypeVar from to t =
           else
             TypeLambda pos arg $ next ret
             
-        TypeName pos typeName -> 
+        TypeName pos typeName nameType -> 
           if from == typeName then
-            TypeName pos to
+            TypeName pos to nameType
           else
-            TypeName pos typeName
+            TypeName pos typeName nameType

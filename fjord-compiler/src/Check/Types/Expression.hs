@@ -12,7 +12,7 @@ import qualified Data.Either.Combinators as Combinators
 import qualified Data.List as List
 import qualified Data.Maybe as Maybe
 
-import AST.Common (Type (..))
+import AST.Common (Type (..), compareTypEq)
 import AST.Scope
 import Check.Scope
 import Check.Types.Common
@@ -41,7 +41,7 @@ toTypedExpression scope expectType expr =
         let parT = T.expressionType typedB
         let exprType = T.unifyTypes scope (T.expressionType typedA) $ T.concreteType parT
         let reqParT = T.parType exprType
-        if reqParT == parT then
+        if compareTypEq reqParT parT then
           case T.concreteType $ exprType of 
             FunctionType pos param ret -> 
               return $ T.Apply typedA typedB (T.returnType exprType)
@@ -192,7 +192,7 @@ toTypedPattern scope expr expectType (U.Pattern offset ctor vars retExpr) =
     realExprType <- useCountM $ typeOf scope expr
     let patSubstCtorType = Maybe.fromMaybe ctorType $ U.returnType $ U.concreteType ctorType
     let patSubstTypeVars = U.typeNamesIn ctorType
-    let patSubst = findPatSubst patSubstTypeVars patSubstCtorType realExprType
+    let patSubst = findPatSubst patSubstCtorType realExprType
     let substCtorType = List.foldl' (\acc (name, subst) -> replaceTypeName name subst acc) ctorType patSubst
     let patScope = createPatternScope substCtorType vars scope
     let types = fnParamList substCtorType
@@ -216,15 +216,15 @@ createPatternScope ctorType vars scope =
       mergeScope newScope scope
 
 
-findPatSubst :: [String] -> Type -> Type -> [(String, Type)]
-findPatSubst typeVars t exprType = 
+findPatSubst :: Type -> Type -> [(String, Type)]
+findPatSubst t exprType = 
     case exprType of
       TypeApply _ exprF exprPar ->
         case U.concreteType t of 
           TypeApply _ tF tPar ->
             case tPar of 
-              TypeName pos name -> 
-                if List.elem name typeVars then
+              TypeName pos name nameType -> 
+                if nameType == Common.TypeVar then
                   [(name, exprPar)]
                 else
                   []
@@ -236,7 +236,7 @@ typeOf :: Scope -> U.Expression -> Either TypeErrorAt Type
 typeOf scope expr = 
   case expr of 
     U.IntLiteral offset _ ->
-      return $ TypeName 0 "Int"
+      return $ TypeName 0 "Int" Common.TypeRef
       
     U.Name offset name ->
       do
@@ -257,11 +257,11 @@ replaceTypeName name with target =
       TupleType pos types -> TupleType pos (fmap next types)
       TypeApply pos f par -> TypeApply pos (next f) $ next par
       TypeLambda pos arg ret -> TypeLambda pos arg $ next ret
-      TypeName pos typeName -> 
+      TypeName pos typeName nameType -> 
         if name == typeName then
           with
         else
-          TypeName pos typeName
+          target
 
 
 renameTypeVar :: String -> UseCountM (String, String)
@@ -275,7 +275,7 @@ renameTypeVar str =
 renameTypeVars :: Scope -> Type -> UseCountM Type
 renameTypeVars scope t =
   let 
-    typeVars = T.typeVarsIn scope t
+    typeVars = T.typeVarsIn t
     foldF acc (prev, var) = 
       T.renameTypeVar prev var acc
   in
@@ -290,7 +290,7 @@ findRecordAccessType offset scope fieldName recordType =
   let 
     tryCandidate :: (String, Type, Type, Common.Origin) -> Either TypeErrorAt [Type]
     tryCandidate (name, candRecordType, candFieldType, origin) = 
-      if name == fieldName && (recordType == unifyTypes scope candRecordType recordType) then
+      if name == fieldName && (compareTypEq recordType $ unifyTypes scope candRecordType recordType) then
         return [candFieldType]
       else
         return []

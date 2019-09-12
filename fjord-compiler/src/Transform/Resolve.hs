@@ -59,11 +59,11 @@ resolveExpr scope expr =
         return $ T.RecAccess fieldName fieldType resolvedRecordExpr
 
     _ -> 
-      trace (show expr) return expr
+      return expr
 
 
 resolveImplicitsIn name typ orig implicits = 
-  trace (show implicits) $ return $ T.Name name typ orig
+  return $ T.Name name typ orig
 
 
 implicitsOf :: Scope -> String -> [Type]
